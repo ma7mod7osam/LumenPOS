@@ -227,11 +227,13 @@ async function load() {
   }
   loading.value = true
   try {
-    const payload = { ...filters.value, limit: 100 }
+    // pos_profile is always sent (drives which backend table to read); a
+    // specific filter overrides it, and all_profiles=1 ignores it as a filter.
+    const payload = { ...filters.value, limit: 100, pos_profile: session.posProfile }
     if (profileFilter.value === '__all__') {
       payload.all_profiles = 1
-    } else {
-      payload.pos_profile = profileFilter.value || session.posProfile
+    } else if (profileFilter.value) {
+      payload.pos_profile = profileFilter.value
     }
     sales.value = await call('lumenpos.api.sales.search_sales', { filters: payload })
   } catch (e) {

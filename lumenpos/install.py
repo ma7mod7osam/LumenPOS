@@ -196,11 +196,24 @@ def make_custom_fields():
                     collapsible=1,
                 ),
                 dict(
+                    fieldname="lumenpos_invoice_mode",
+                    label="Sale posts as",
+                    fieldtype="Select",
+                    options="POS Invoice\nSales Invoice",
+                    default="POS Invoice",
+                    insert_after="lumenpos_options_section",
+                    description="POS Invoice (default): sales are POS Invoices that "
+                    "ERPNext consolidates into Sales Invoices at register close. "
+                    "Sales Invoice: each sale posts a Sales Invoice directly (GL posts "
+                    "immediately, no consolidation); the register is a lightweight "
+                    "LumenPOS cash shift with no POS Opening/Closing Entry.",
+                ),
+                dict(
                     fieldname="lumenpos_ignore_pricing_rules",
                     label="Ignore ERPNext Pricing Rules",
                     fieldtype="Check",
                     default="1",
-                    insert_after="lumenpos_options_section",
+                    insert_after="lumenpos_invoice_mode",
                     description="On (default): ERPNext Pricing Rules are bypassed and "
                     "LumenPOS uses its own promotion engine. Off: Pricing Rules apply "
                     "(they stack on top of any LumenPOS promotions — avoid running both).",
@@ -231,6 +244,18 @@ def make_custom_fields():
             # Lines sold together as a bundle / buy-x-get-y set carry a group id so
             # a regular return can enforce returning the whole set together.
             "POS Invoice Item": [
+                dict(
+                    fieldname="lumenpos_return_group",
+                    label="LumenPOS Return Group",
+                    fieldtype="Data",
+                    insert_after="warehouse",
+                    read_only=1,
+                    hidden=1,
+                    print_hide=1,
+                )
+            ],
+            # Same group tag on Sales Invoice Item for the Sales-Invoice backend.
+            "Sales Invoice Item": [
                 dict(
                     fieldname="lumenpos_return_group",
                     label="LumenPOS Return Group",

@@ -69,11 +69,13 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
       - {"requires_choice": ...} only for a genuine orphan POS Opening Entry
         (one with no live LumenPOS session), offering resume / force-new
     """
-    if not frappe.has_permission("POS Opening Entry", "create"):
-        frappe.throw(_("You are not permitted to open a register"), frappe.PermissionError)
-
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
     opening_float = flt(opening_float)
+    si_mode = profile.get("lumenpos_invoice_mode") == "Sales Invoice"
+
+    needed = "POS Register Session" if si_mode else "POS Opening Entry"
+    if not frappe.has_permission(needed, "create"):
+        frappe.throw(_("You are not permitted to open a register"), frappe.PermissionError)
 
     # 1) This register must have no live shift (Open or still-finalising Closing).
     existing = frappe.db.get_value(
@@ -98,6 +100,22 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
         frappe.throw(
             _("Register {0} already has an open session ({1}).").format(profile.name, existing.name)
         )
+
+    # Sales Invoice (direct) mode: a lightweight LumenPOS cash shift — just the
+    # float, no ERPNext POS Opening Entry. Sales post as Sales Invoices directly,
+    # so there's nothing to consolidate at close.
+    if si_mode:
+        frappe.get_doc(
+            {
+                "doctype": "POS Register Session",
+                "pos_profile": profile.name,
+                "opened_by": frappe.session.user,
+                "opened_at": now_datetime(),
+                "status": "Open",
+                "opening_float": opening_float,
+            }
+        ).insert()
+        return get_open_session(pos_profile)
 
     if resume_opening_entry:
         return _resume_opening(profile, resume_opening_entry)
@@ -324,7 +342,9 @@ def get_session_summary(session):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
     doc = frappe.get_doc("POS Register Session", session)
     _assert_owner_or_manager(doc)
-    payments = _payments_by_mode(doc.name)
+    # A session with no POS Opening Entry is a Sales Invoice (direct) shift.
+    sale_doctype = "POS Invoice" if doc.get("pos_opening_entry") else "Sales Invoice"
+    payments = _payments_by_mode(doc.name, sale_doctype)
 
     cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
     cash_in = sum(m.amount for m in (doc.cash_movements or []) if m.movement_type == "Cash In")
@@ -349,7 +369,7 @@ def get_session_summary(session):
         )
 
     totals = frappe.get_all(
-        "POS Invoice",
+        sale_doctype,
         filters={"lumenpos_session": doc.name, "docstatus": 1},
         fields=[
             "count(name) as sales_count",
@@ -358,10 +378,10 @@ def get_session_summary(session):
         ],
     )
     line_discounts = frappe.db.sql(
-        """
+        f"""
         select coalesce(sum(pii.discount_amount * pii.qty), 0)
-        from `tabPOS Invoice Item` pii
-        join `tabPOS Invoice` pi on pi.name = pii.parent
+        from `tab{sale_doctype} Item` pii
+        join `tab{sale_doctype}` pi on pi.name = pii.parent
         where pi.lumenpos_session = %s and pi.docstatus = 1
         """,
         doc.name,
@@ -401,12 +421,15 @@ def close_register(session, counted, closing_note=None):
     """Flip the session to 'Closing' (committed immediately, so it can never be
     sold-on or resumed again), then consolidate in a serialized background job.
     The shift only reaches 'Closed' once consolidation succeeds."""
-    if not frappe.has_permission("POS Closing Entry", "create"):
-        frappe.throw(_("You are not permitted to close a register"), frappe.PermissionError)
     if isinstance(counted, str):
         counted = json.loads(counted)
 
     doc = frappe.get_doc("POS Register Session", session)
+    # A session with no POS Opening Entry (Sales Invoice mode / legacy) closes
+    # directly — there is no POS Closing Entry to create or consolidate.
+    needed = "POS Register Session" if not doc.get("pos_opening_entry") else "POS Closing Entry"
+    if not frappe.has_permission(needed, "create"):
+        frappe.throw(_("You are not permitted to close a register"), frappe.PermissionError)
     if doc.status == "Closed":
         frappe.throw(_("Register session is already closed"))
     if doc.status == "Closing":
@@ -454,8 +477,11 @@ def close_register(session, counted, closing_note=None):
         _enqueue_consolidation(doc.name, counted)
         queued = True
     else:
-        # Legacy session with no opening entry — nothing to consolidate.
+        # No opening entry (Sales Invoice mode / legacy) — nothing to consolidate;
+        # the shift closes outright. Reflect that on the doc for the response.
         _mark_closed(doc.name, None)
+        doc.status = "Closed"
+        doc.closing_status = "Submitted"
         queued = False
 
     return _close_result(doc, queued=queued)
@@ -963,13 +989,13 @@ def _accumulate_tax(closing, tax):
     )
 
 
-def _payments_by_mode(session):
-    # POS Invoice reuses the Sales Invoice Payment child doctype
+def _payments_by_mode(session, doctype="POS Invoice"):
+    # Both POS Invoice and Sales Invoice use the Sales Invoice Payment child.
     rows = frappe.db.sql(
-        """
+        f"""
         select sip.mode_of_payment, sum(sip.amount) as amount
         from `tabSales Invoice Payment` sip
-        join `tabPOS Invoice` pi on pi.name = sip.parent and sip.parenttype = 'POS Invoice'
+        join `tab{doctype}` pi on pi.name = sip.parent and sip.parenttype = '{doctype}'
         where pi.lumenpos_session = %s and pi.docstatus = 1
         group by sip.mode_of_payment
         """,
@@ -981,8 +1007,8 @@ def _payments_by_mode(session):
         result[row.mode_of_payment] = flt(row.amount)
 
     change = frappe.db.sql(
-        """
-        select coalesce(sum(change_amount), 0) from `tabPOS Invoice`
+        f"""
+        select coalesce(sum(change_amount), 0) from `tab{doctype}`
         where lumenpos_session = %s and docstatus = 1
         """,
         session,

@@ -224,6 +224,7 @@ function txnFilters(start) {
     filters: {
       customer: selected.value.name,
       all_profiles: 1,
+      pos_profile: session.posProfile,
       is_return: txnType.value || null,
       date_from: dateFrom.value || null,
       date_to: dateTo.value || null,

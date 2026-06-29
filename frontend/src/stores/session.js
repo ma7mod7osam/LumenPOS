@@ -11,6 +11,7 @@ export const useSessionStore = defineStore('session', {
     user: null,
     userFullname: '',
     posProfile: null,
+    invoiceMode: 'POS Invoice',
     availableProfiles: [],
     company: null,
     currency: 'USD',
@@ -108,6 +109,7 @@ export const useSessionStore = defineStore('session', {
       this.user = data.user
       this.userFullname = data.user_fullname
       this.posProfile = data.pos_profile
+      this.invoiceMode = data.invoice_mode || 'POS Invoice'
       this.availableProfiles = data.available_profiles || []
       this.company = data.company
       this.currency = data.currency

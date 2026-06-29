@@ -12,6 +12,32 @@ from lumenpos.promotions.loader import get_active_promotions
 INVOICE_DOCTYPE = "POS Invoice"
 
 
+def _sale_doctype(profile):
+    """The document a sale posts as for this POS Profile: a **POS Invoice**
+    (default — consolidated into a Sales Invoice at register close) or a **Sales
+    Invoice** (posted directly, GL immediately, no consolidation)."""
+    return (
+        "Sales Invoice"
+        if profile.get("lumenpos_invoice_mode") == "Sales Invoice"
+        else "POS Invoice"
+    )
+
+
+def _doctype_of(name):
+    """The sale doctype an existing invoice name belongs to (works in either
+    backend — names are unique per doctype)."""
+    return "Sales Invoice" if frappe.db.exists("Sales Invoice", name) else "POS Invoice"
+
+
+def _table_doctype(pos_profile):
+    """Sale doctype for a profile's history queries (defaults to POS Invoice)."""
+    if pos_profile and frappe.db.get_value(
+        "POS Profile", pos_profile, "lumenpos_invoice_mode"
+    ) == "Sales Invoice":
+        return "Sales Invoice"
+    return "POS Invoice"
+
+
 def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passcode=True):
     """Build a fully-priced, fully-taxed but NOT-yet-inserted POS Invoice from
     the cart. Shared by submit_sale (which then attaches payments and submits)
@@ -71,7 +97,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     # promotion engine); a POS Profile can opt back into them.
     ignore_pricing_rule = 0 if profile.get("lumenpos_ignore_pricing_rules") == 0 else 1
 
-    invoice = frappe.new_doc(INVOICE_DOCTYPE)
+    invoice = frappe.new_doc(_sale_doctype(profile))
     invoice.update(
         {
             "is_pos": 1,
@@ -292,7 +318,7 @@ def sell_gift_card(payload):
     if not customer:
         frappe.throw(_("Select a customer (or set a default customer on the POS Profile)"))
 
-    invoice = frappe.new_doc(INVOICE_DOCTYPE)
+    invoice = frappe.new_doc(_sale_doctype(profile))
     invoice.update(
         {
             "is_pos": 1,
@@ -655,12 +681,12 @@ def _split_tags(value):
     return [t.strip() for t in (value or "").split(",") if t.strip()]
 
 
-def _first_column(candidates):
-    """First of the candidate fieldnames that actually exists as a column on
-    the invoice doctype (so history search uses the site's real fields), or
-    None if none exist."""
+def _first_column(candidates, doctype=INVOICE_DOCTYPE):
+    """First of the candidate fieldnames that actually exists as a column on the
+    given sale doctype (so history search uses the site's real fields), or None
+    if none exist."""
     for fieldname in candidates:
-        if frappe.db.has_column(INVOICE_DOCTYPE, fieldname):
+        if frappe.db.has_column(doctype, fieldname):
             return fieldname
     return None
 
@@ -889,7 +915,7 @@ def _build_lines(items, profile, customer_group=None, app_price_list=None):
 
 @frappe.whitelist()
 def get_receipt(invoice):
-    doc = frappe.get_doc(INVOICE_DOCTYPE, invoice)
+    doc = frappe.get_doc(_doctype_of(invoice), invoice)
     doc.check_permission("read")
     earned_points = frappe.db.get_value(
         "Loyalty Point Entry",
@@ -965,13 +991,17 @@ def search_sales(filters=None):
     if isinstance(filters, str):
         filters = json.loads(filters)
     f = frappe._dict(filters or {})
-    if not frappe.has_permission(INVOICE_DOCTYPE, "read"):
+    # Which backend's table to read (POS Invoice by default; Sales Invoice when
+    # the profile posts directly). The client always passes pos_profile so the
+    # mode is known even when listing across profiles.
+    doctype = _table_doctype(f.get("pos_profile"))
+    if not frappe.has_permission(doctype, "read"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-    app_field = _first_column(("custom_app_type", "lumenpos_app_type"))
-    order_field = _first_column(("pick_order_no", "custom_order_id", "lumenpos_order_id"))
-    online_field = _first_column(("online_order", "custom_online_order", "is_online_order"))
-    exchange_field = _first_column(("is_exchange", "custom_is_exchange"))
+    app_field = _first_column(("custom_app_type", "lumenpos_app_type"), doctype)
+    order_field = _first_column(("pick_order_no", "custom_order_id", "lumenpos_order_id"), doctype)
+    online_field = _first_column(("online_order", "custom_online_order", "is_online_order"), doctype)
+    exchange_field = _first_column(("is_exchange", "custom_is_exchange"), doctype)
 
     conds, params = [], {}
 
@@ -987,6 +1017,8 @@ def search_sales(filters=None):
     elif docstatus == "Cancelled":
         conds.append("pi.docstatus = 2")
     # "All" adds no condition
+    if doctype == "Sales Invoice":
+        conds.append("pi.is_pos = 1")  # POS sales only, not desk Sales Invoices
 
     if f.get("customer"):
         conds.append("pi.customer = %(customer)s")
@@ -1035,7 +1067,7 @@ def search_sales(filters=None):
     if f.item:
         params["item"] = f"%{f.item.strip()}%"
         conds.append(
-            "exists (select 1 from `tabPOS Invoice Item` pii"
+            f"exists (select 1 from `tab{doctype} Item` pii"
             " where pii.parent = pi.name"
             " and (pii.item_code like %(item)s or pii.item_name like %(item)s))"
         )
@@ -1044,7 +1076,7 @@ def search_sales(filters=None):
         params["serial_like"] = f"%{f.serial_no.strip()}%"
         params["serial_exact"] = f.serial_no.strip()
         conds.append(
-            "(exists (select 1 from `tabPOS Invoice Item` pis"
+            f"(exists (select 1 from `tab{doctype} Item` pis"
             "   where pis.parent = pi.name and pis.serial_no like %(serial_like)s)"
             " or exists (select 1 from `tabSerial and Batch Bundle` b"
             "   join `tabSerial and Batch Entry` e on e.parent = b.name"
@@ -1054,7 +1086,7 @@ def search_sales(filters=None):
     if f.get("payment_mode"):
         conds.append(
             "exists (select 1 from `tabSales Invoice Payment` sip"
-            " where sip.parent = pi.name and sip.parenttype = 'POS Invoice'"
+            f" where sip.parent = pi.name and sip.parenttype = '{doctype}'"
             " and sip.mode_of_payment = %(payment_mode)s)"
         )
         params["payment_mode"] = f.payment_mode
@@ -1072,7 +1104,7 @@ def search_sales(filters=None):
     pay_modes_select = (
         "(select group_concat(distinct sip.mode_of_payment separator ', ')"
         " from `tabSales Invoice Payment` sip"
-        " where sip.parent = pi.name and sip.parenttype = 'POS Invoice'"
+        f" where sip.parent = pi.name and sip.parenttype = '{doctype}'"
         " and sip.amount != 0) as payment_modes"
     )
     rows = frappe.db.sql(
@@ -1082,7 +1114,7 @@ def search_sales(filters=None):
                pi.status, pi.docstatus, pi.is_return, pi.owner, u.full_name as owner_name,
                {app_select}, {order_select}, {online_select}, {exchange_select},
                {pay_modes_select}
-        from `tabPOS Invoice` pi
+        from `tab{doctype}` pi
         left join `tabCustomer` c on c.name = pi.customer
         left join `tabUser` u on u.name = pi.owner
         where {where}
@@ -1106,20 +1138,21 @@ def search_sales(filters=None):
 @frappe.whitelist()
 def get_returnable(invoice):
     """Per-line quantity still eligible for return (original minus prior returns)."""
-    doc = frappe.get_doc(INVOICE_DOCTYPE, invoice)
+    doctype = _doctype_of(invoice)
+    doc = frappe.get_doc(doctype, invoice)
     doc.check_permission("read")
     if doc.is_return or doc.docstatus != 1:
         return {"items": []}
 
     returned = {}
     return_names = frappe.get_all(
-        INVOICE_DOCTYPE,
+        doctype,
         filters={"return_against": invoice, "docstatus": 1, "is_return": 1},
         pluck="name",
     )
     if return_names:
         for row in frappe.get_all(
-            f"{INVOICE_DOCTYPE} Item",
+            f"{doctype} Item",
             filters={"parent": ["in", return_names]},
             fields=["item_code", "sum(qty) as qty"],
             group_by="item_code",
@@ -1240,7 +1273,8 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
     if not items:
         frappe.throw(_("Select at least one item to return"))
 
-    original = frappe.get_doc(INVOICE_DOCTYPE, invoice)
+    sale_doctype = _doctype_of(invoice)
+    original = frappe.get_doc(sale_doctype, invoice)
     if original.docstatus != 1 or original.is_return:
         frappe.throw(_("{0} cannot be returned").format(invoice))
 
@@ -1290,7 +1324,7 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
 
     from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
-    return_doc = make_return_doc(INVOICE_DOCTYPE, invoice)
+    return_doc = make_return_doc(sale_doctype, invoice)
     # Keep one row per returned item code (a quantity may span duplicate
     # lines on the original; the aggregate returnable check above still holds)
     kept, seen = [], set()

@@ -54,6 +54,7 @@ def get_bootstrap(pos_profile=None):
         "desk_theme": frappe.db.get_value("User", frappe.session.user, "desk_theme")
         or "Automatic",
         "pos_profile": profile_name,
+        "invoice_mode": profile.get("lumenpos_invoice_mode") or "POS Invoice",
         "company": profile.company,
         "currency": currency,
         "price_list": profile.selling_price_list,
