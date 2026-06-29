@@ -100,18 +100,15 @@ Tap **Add a customer** → search by name / mobile / tax ID → select, or creat
 When a customer is attached, the cart shows their **loyalty points** and
 **store credit**, and prices reprice if a price book applies to their group.
 
-### Channel (delivery apps) & Exchange
+### Channel (delivery apps)
 The channel picker defaults to **Walk-in**. Selecting a delivery app
 (configured in Settings → General):
 - forces an **Order ID** if the app requires one (Pay is blocked without it),
 - switches prices to the app's price list if it has one,
 - records the channel on the invoice using your site's existing fields:
   `pick_customer` (checkbox, ticked), `custom_app_type` (the app — must be
-  an option of that Select field), `pick_order_no` (the order ID), and
-  `is_exchange` for exchanges. LumenPOS writes these only if they exist.
-
-The **Exchange** toggle flags the sale as a damaged-product exchange
-(`is_exchange` field).
+  an option of that Select field) and `pick_order_no` (the order ID).
+  LumenPOS writes these only if they exist.
 
 ### Salesperson
 Type a name **or the salesperson number** (`sales_person_no`) and pick.
@@ -395,56 +392,8 @@ customer in the cart and as a payment tile.
 - **Sets return together.** Items sold as a **bundle** or a **Buy X Get Y**
   offer are linked — on a **regular return** you must return the **whole set**
   (every member, full quantity) or none; the screen badges them *Set — return
-  together* and steps the whole set at once, and the server enforces it. Need to
-  give back just one item of a set? Use **Exchange** instead (exchanges are
-  exempt). Each line stores its set in `lumenpos_return_group` at sale time.
-
-### Warranty exchanges (damage replacement)
-
-Exchanges are an optional feature — turn them on with **Settings → General →
-Enable warranty exchanges** (the Exchange button only shows when enabled).
-
-For warranty/damage swaps, open the original sale in **History → click the
-invoice → Exchange** (next to Refund) instead of doing a return and a sale by
-hand. The exchange opens pre‑loaded with that invoice. One guided screen:
-
-1. **Damaged item(s)** coming back — each item is checked against
-   **its own warranty period** (the item's *warranty days*, counted from the
-   sale date); items out of warranty (or with no warranty set) can't be
-   selected. Credited at exactly what the customer paid on that invoice. For
-   serialized items, **scan each serial** coming back (validated against the
-   original). The warranty also shows on every cart line during normal sales.
-   The replacement's warranty is **counted from the original purchase date**,
-   not the exchange date — so the customer keeps only the **remaining** term
-   (e.g. buy with a 24‑month warranty, exchange at month 22 → the replacement
-   has 2 months left). This chains correctly across repeat exchanges.
-2. **Add the replacement item(s)** going out (optional — leave empty for a
-   pure refund). Ticking a damaged item **auto-fills a replacement of the same
-   item at the original price** (a net-zero warranty swap) — change the item,
-   quantity or price, or delete the row if the customer just wants a refund.
-3. LumenPOS shows the **net difference** and you settle it: collect the extra,
-   refund the difference (cash or store credit), or confirm an even swap.
-   - **Override the replacement price**: each replacement line has an editable
-     **unit price** — type a new price to, say, give a pricier item at the same
-     price. When the replacement is dearer, a **"Give as even swap"** button
-     waives the difference in one tap (prices the replacement at the damaged
-     credit, net 0). Overridden lines are flagged and noted on the invoice.
-
-A **return reason** sits next to the settlement, pre-filled with the default
-warranty reason **"استبدال ضمان"** — change it to any other configured reason
-or **Other** (free text) if needed. It's recorded on the damaged-return credit
-note just like a normal refund.
-
-On confirm LumenPOS creates the same two documents you made manually — a
-**return** POS Invoice for the damaged item (`is_return` + `is_exchange`,
-which your hourly script moves to the damage warehouse) and a **sale** POS
-Invoice for the replacement (`is_exchange`) — atomically. Only the net
-difference touches the drawer; the matched value is settled through an
-internal **Exchange Credit** clearing account that nets to zero.
-
-Both documents are stamped with the original sale in **`exchange_against_invoice`**
-(the site's existing POS Invoice field), so an exchange's two legs are always
-traceable back to the invoice they came from.
+  together* and steps the whole set at once, and the server enforces it. Each
+  line stores its set in `lumenpos_return_group` at sale time.
 
 ---
 
@@ -460,10 +409,8 @@ A serialized item can never be sold without its exact serials:
   offline or inside bundles.
 - **Scan-only (optional).** Turn on *Require scanning for serial numbers*
   (Settings → General) to **block manual typing** when **selling** and on
-  **returns** — serials must be read with a barcode scanner. **Exchanges are
-  exempt**: there the damaged item's serial only has to **match one sold on the
-  original invoice**, so the cashier may type it. Leave off if a register has no
-  scanner.
+  **returns** — serials must be read with a barcode scanner. Leave off if a
+  register has no scanner.
 
 ---
 
@@ -538,8 +485,8 @@ site's `online_order` field (falls back to `custom_online_order` /
 `is_online_order`); if no such field exists the filter simply matches nothing.
 Each row shows the **cashier who made the sale**, a clean date/time, the
 **payment method(s)** next to the total, the mobile/order info, and badges:
-channel/ONLINE, DRAFT/CANCELLED, **REFUND**, and **EXCHANGE** (so warranty swaps
-are obvious at a glance). Click → receipt → reprint or refund.
+channel/ONLINE, DRAFT/CANCELLED, and **REFUND**. Click → receipt → reprint or
+refund.
 
 ---
 
@@ -651,9 +598,9 @@ POS activity in one place.
 - Open a customer for their **profile** (phone, email, tax ID, type, member
   since, last purchase), **balances** (loyalty points, store credit) and
   **lifetime stats** (sales count, net spent, returns count).
-- Their **transactions** list shows every till sale / return / exchange (POS
-  Invoices, including consolidated ones), filterable by **type** and **date
-  range**, paginated. Click a row to view / print the receipt.
+- Their **transactions** list shows every till sale and return (POS Invoices,
+  including consolidated ones — or Sales Invoices in direct mode), filterable by
+  **type** and **date range**, paginated. Click a row to view / print the receipt.
 
 **Performance:** every query is server-paginated and scoped to indexed columns,
 and per-customer totals are computed only when you open a customer — never for
