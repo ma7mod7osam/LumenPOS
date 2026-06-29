@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "creation": "2026-06-10 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "applies_to",
+  "item_code",
+  "item_group",
+  "brand",
+  "tag",
+  "exclude",
+  "role",
+  "qty"
+ ],
+ "fields": [
+  {
+   "default": "Item",
+   "fieldname": "applies_to",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Applies To",
+   "options": "Item\nItem Group\nBrand\nTag",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Item'",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Item Group'",
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Brand'",
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Tag'",
+   "description": "An item tag (the tags you add to items in ERPNext)",
+   "fieldname": "tag",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tag",
+   "options": "Tag"
+  },
+  {
+   "default": "0",
+   "description": "Tick to EXCLUDE these products instead of including them (e.g. all products except this brand)",
+   "fieldname": "exclude",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Exclude"
+  },
+  {
+   "default": "Buy",
+   "description": "Only used by Buy X Get Y: 'Buy' rows trigger the offer, 'Get' rows receive the reward. With no 'Get' rows the buy list rewards itself (classic multi-buy).",
+   "fieldname": "role",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Role",
+   "options": "Buy\nGet"
+  },
+  {
+   "default": "1",
+   "description": "Bundle Price only: units of this product required per bundle",
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Promotion Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

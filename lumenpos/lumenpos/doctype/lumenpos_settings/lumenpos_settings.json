@@ -1,0 +1,266 @@
+{
+ "actions": [],
+ "creation": "2026-06-11 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "register_section",
+  "allow_multiple_opening",
+  "offline_stock_only",
+  "show_out_of_stock",
+  "serial_scan_only",
+  "exchanges_enabled",
+  "giftcards_section",
+  "gift_card_expiry_days",
+  "gift_card_mode_of_payment",
+  "gift_card_account",
+  "gift_card_item",
+  "refunds_section",
+  "restrict_refund_to_paid_mode",
+  "refund_rules",
+  "returns_section",
+  "restrict_returns_to_window",
+  "return_window_days",
+  "return_reasons",
+  "discounts_section",
+  "discount_limit_percent",
+  "discount_approval_mode",
+  "approver_role",
+  "column_break_1",
+  "discount_passcode",
+  "approvers_section",
+  "discount_approvers",
+  "channels_section",
+  "delivery_apps"
+ ],
+ "fields": [
+  {
+   "fieldname": "register_section",
+   "fieldtype": "Section Break",
+   "label": "Register"
+  },
+  {
+   "default": "0",
+   "description": "Testing only: lets a cashier open a new register while they still have another open POS Opening Entry. Keep OFF in production.",
+   "fieldname": "allow_multiple_opening",
+   "fieldtype": "Check",
+   "label": "Allow opening a new register while another shift is open"
+  },
+  {
+   "default": "0",
+   "description": "Offline cache only keeps items that have stock in the register's warehouse (smaller, faster cache)",
+   "fieldname": "offline_stock_only",
+   "fieldtype": "Check",
+   "label": "Cache only in-stock items for offline use"
+  },
+  {
+   "default": "0",
+   "description": "Show stock items that are out of stock (qty 0 or less) in the sell grid. Off = only items with stock are shown (non-stock items like services always show).",
+   "fieldname": "show_out_of_stock",
+   "fieldtype": "Check",
+   "label": "Show out-of-stock items in the grid"
+  },
+  {
+   "default": "0",
+   "description": "New gift cards expire this many days after sale. 0 = never expire.",
+   "fieldname": "gift_card_expiry_days",
+   "fieldtype": "Int",
+   "label": "Gift Card Expiry (days)"
+  },
+  {
+   "default": "0",
+   "description": "Serial numbers must be SCANNED with a barcode scanner — manual typing is rejected at the till. Turn off if a scanner is unavailable.",
+   "fieldname": "serial_scan_only",
+   "fieldtype": "Check",
+   "label": "Require scanning for serial numbers (block manual typing)"
+  },
+  {
+   "default": "1",
+   "description": "Show the ⇄ Exchange button at the till. The warranty window for each exchange comes from the item's warranty days, not a global setting.",
+   "fieldname": "exchanges_enabled",
+   "fieldtype": "Check",
+   "label": "Enable warranty exchanges"
+  },
+  {
+   "fieldname": "giftcards_section",
+   "fieldtype": "Section Break",
+   "label": "Gift Cards"
+  },
+  {
+   "description": "Mode of Payment used to redeem gift cards. Leave empty to auto-create/use \"Gift Card\".",
+   "fieldname": "gift_card_mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Gift Card Mode of Payment",
+   "options": "Mode of Payment"
+  },
+  {
+   "description": "Liability account that backs gift cards (selling a card increases it, redeeming decreases it). Leave empty to auto-create \"Gift Cards\".",
+   "fieldname": "gift_card_account",
+   "fieldtype": "Link",
+   "label": "Gift Card Liability Account",
+   "options": "Account"
+  },
+  {
+   "description": "Non-stock item posted when a gift card is sold. Leave empty to auto-create \"GIFT-CARD\".",
+   "fieldname": "gift_card_item",
+   "fieldtype": "Link",
+   "label": "Gift Card Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "refunds_section",
+   "fieldtype": "Section Break",
+   "label": "Refunds"
+  },
+  {
+   "default": "1",
+   "description": "Refunds may only go back to a payment method the customer actually used on the original sale (plus Store Credit). Add rules below to allow extra refund methods per paid method.",
+   "fieldname": "restrict_refund_to_paid_mode",
+   "fieldtype": "Check",
+   "label": "Restrict refunds to the original payment method"
+  },
+  {
+   "depends_on": "restrict_refund_to_paid_mode",
+   "description": "Extra allowed refund methods. Example: if paid with Mada, allow refund as Cash. A method can always be refunded to itself, so you only add the exceptions.",
+   "fieldname": "refund_rules",
+   "fieldtype": "Table",
+   "label": "Refund Method Rules",
+   "options": "POS Refund Rule"
+  },
+  {
+   "fieldname": "returns_section",
+   "fieldtype": "Section Break",
+   "label": "Returns"
+  },
+  {
+   "default": "0",
+   "description": "Block regular returns after the return window below. Past the window, the cashier can send a return-approval request that an Approver Role holder approves while the register is open.",
+   "fieldname": "restrict_returns_to_window",
+   "fieldtype": "Check",
+   "label": "Limit regular returns to a time window"
+  },
+  {
+   "default": "14",
+   "depends_on": "restrict_returns_to_window",
+   "description": "Days after the sale during which a regular return is allowed. 0 = no time limit.",
+   "fieldname": "return_window_days",
+   "fieldtype": "Int",
+   "label": "Return window (days)"
+  },
+  {
+   "description": "Reasons the cashier picks from when refunding an item. Add or remove freely. The till also always offers \"Other\" for a free-text reason.",
+   "fieldname": "return_reasons",
+   "fieldtype": "Table",
+   "label": "Return Reasons",
+   "options": "POS Return Reason"
+  },
+  {
+   "fieldname": "discounts_section",
+   "fieldtype": "Section Break",
+   "label": "Discount Approval"
+  },
+  {
+   "default": "0",
+   "description": "Manual discounts above this percentage need approval. 0 disables the check.",
+   "fieldname": "discount_limit_percent",
+   "fieldtype": "Float",
+   "label": "Discount Limit (%)"
+  },
+  {
+   "default": "Passcode only",
+   "description": "How a cashier clears an over-limit discount. Passcode only = a manager enters the passcode at the till. Request only = the cashier sends a request a role-holder approves while the register is open. Passcode or request = either.",
+   "fieldname": "discount_approval_mode",
+   "fieldtype": "Select",
+   "label": "Over-limit approval method",
+   "options": "Passcode only\nRequest only\nPasscode or request"
+  },
+  {
+   "depends_on": "eval:(doc.discount_approval_mode && doc.discount_approval_mode != \"Passcode only\") || doc.restrict_returns_to_window",
+   "description": "Users holding this role (plus LumenPOS/System Managers) can approve discount AND return requests. Requests can only be approved while the cashier's register is still open.",
+   "fieldname": "approver_role",
+   "fieldtype": "Link",
+   "label": "Approver Role (for requests)",
+   "options": "Role"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "discount_passcode",
+   "fieldtype": "Password",
+   "label": "Manager Passcode"
+  },
+  {
+   "description": "Each manager gets their own passcode; the approver's name is recorded on the invoice. The single Manager Passcode above still works as a master code.",
+   "fieldname": "approvers_section",
+   "fieldtype": "Section Break",
+   "label": "Discount Approvers"
+  },
+  {
+   "fieldname": "discount_approvers",
+   "fieldtype": "Table",
+   "label": "Approvers",
+   "options": "POS Discount Approver"
+  },
+  {
+   "fieldname": "channels_section",
+   "fieldtype": "Section Break",
+   "label": "Delivery Apps"
+  },
+  {
+   "fieldname": "delivery_apps",
+   "fieldtype": "Table",
+   "label": "Delivery Apps",
+   "options": "POS Delivery App"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "LumenPOS Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LumenPOS Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LumenPOS Cashier"
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Sales Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

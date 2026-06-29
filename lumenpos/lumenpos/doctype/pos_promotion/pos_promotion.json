@@ -1,0 +1,409 @@
+{
+ "actions": [],
+ "autoname": "format:PROMO-{####}",
+ "creation": "2026-06-10 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "status",
+  "promotion_type",
+  "column_break_main",
+  "description",
+  "priority",
+  "stackable",
+  "price_basis",
+  "requires_coupon",
+  "coupon_code",
+  "schedule_section",
+  "start_date",
+  "end_date",
+  "column_break_schedule",
+  "start_time",
+  "end_time",
+  "days_section",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "column_break_days",
+  "friday",
+  "saturday",
+  "sunday",
+  "eligibility_section",
+  "pos_profiles",
+  "column_break_eligibility",
+  "customer_eligibility",
+  "customer_groups",
+  "products_section",
+  "apply_on_all",
+  "items",
+  "offer_section",
+  "discount_type",
+  "discount_value",
+  "buy_qty",
+  "get_qty",
+  "column_break_offer",
+  "get_discount_type",
+  "get_discount_value",
+  "max_applications",
+  "min_spend",
+  "basket_discount_type",
+  "basket_discount_value",
+  "bundle_price"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Active\nInactive"
+  },
+  {
+   "default": "Simple Discount",
+   "fieldname": "promotion_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Promotion Type",
+   "options": "Simple Discount\nBuy X Get Y\nSpend and Save\nBundle Price",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "default": "1",
+   "description": "Higher priority wins when two exclusive promotions give the same savings",
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "label": "Priority"
+  },
+  {
+   "default": "0",
+   "description": "Stackable promotions combine with each other. Non-stackable promotions compete and only the best one applies.",
+   "fieldname": "stackable",
+   "fieldtype": "Check",
+   "label": "Can combine with other promotions"
+  },
+  {
+   "default": "Price Book Price",
+   "description": "Which price the discount is calculated from. Price Book Price stacks on an active price book. Standard Price discounts from the regular price and gives the customer the lower of the two (never stacks with a price book).",
+   "fieldname": "price_basis",
+   "fieldtype": "Select",
+   "label": "Calculate discount on",
+   "options": "Price Book Price\nStandard Price"
+  },
+  {
+   "default": "0",
+   "description": "The promotion only applies when the cashier enters this coupon code at the till",
+   "fieldname": "requires_coupon",
+   "fieldtype": "Check",
+   "label": "Requires Coupon Code"
+  },
+  {
+   "depends_on": "eval:doc.requires_coupon",
+   "fieldname": "coupon_code",
+   "fieldtype": "Data",
+   "label": "Coupon Code",
+   "mandatory_depends_on": "eval:doc.requires_coupon"
+  },
+  {
+   "fieldname": "schedule_section",
+   "fieldtype": "Section Break",
+   "label": "Schedule"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional daily window, e.g. Happy Hour 16:00 to 18:00. Wraps midnight if start is after end.",
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "days_section",
+   "fieldtype": "Section Break",
+   "label": "Days of Week"
+  },
+  {
+   "default": "1",
+   "fieldname": "monday",
+   "fieldtype": "Check",
+   "label": "Monday"
+  },
+  {
+   "default": "1",
+   "fieldname": "tuesday",
+   "fieldtype": "Check",
+   "label": "Tuesday"
+  },
+  {
+   "default": "1",
+   "fieldname": "wednesday",
+   "fieldtype": "Check",
+   "label": "Wednesday"
+  },
+  {
+   "default": "1",
+   "fieldname": "thursday",
+   "fieldtype": "Check",
+   "label": "Thursday"
+  },
+  {
+   "fieldname": "column_break_days",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "friday",
+   "fieldtype": "Check",
+   "label": "Friday"
+  },
+  {
+   "default": "1",
+   "fieldname": "saturday",
+   "fieldtype": "Check",
+   "label": "Saturday"
+  },
+  {
+   "default": "1",
+   "fieldname": "sunday",
+   "fieldtype": "Check",
+   "label": "Sunday"
+  },
+  {
+   "fieldname": "eligibility_section",
+   "fieldtype": "Section Break",
+   "label": "Eligibility"
+  },
+  {
+   "description": "Leave empty to run in all outlets",
+   "fieldname": "pos_profiles",
+   "fieldtype": "Table",
+   "label": "Outlets (POS Profiles)",
+   "options": "POS Promotion Profile"
+  },
+  {
+   "fieldname": "column_break_eligibility",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "All Customers",
+   "fieldname": "customer_eligibility",
+   "fieldtype": "Select",
+   "label": "Customer Eligibility",
+   "options": "All Customers\nSelected Customer Groups"
+  },
+  {
+   "depends_on": "eval:doc.customer_eligibility=='Selected Customer Groups'",
+   "fieldname": "customer_groups",
+   "fieldtype": "Table",
+   "label": "Customer Groups",
+   "options": "POS Promotion Customer Group"
+  },
+  {
+   "fieldname": "products_section",
+   "fieldtype": "Section Break",
+   "label": "Products"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply_on_all",
+   "fieldtype": "Check",
+   "label": "Apply on all products"
+  },
+  {
+   "depends_on": "eval:!doc.apply_on_all",
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Products",
+   "options": "POS Promotion Item"
+  },
+  {
+   "fieldname": "offer_section",
+   "fieldtype": "Section Break",
+   "label": "Offer"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Simple Discount'",
+   "fieldname": "discount_type",
+   "fieldtype": "Select",
+   "label": "Discount Type",
+   "mandatory_depends_on": "eval:doc.promotion_type=='Simple Discount'",
+   "options": "Percentage\nAmount\nFixed Price"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Simple Discount'",
+   "fieldname": "discount_value",
+   "fieldtype": "Float",
+   "label": "Discount Value"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Buy X Get Y'",
+   "description": "Quantity the customer must buy to trigger the offer",
+   "fieldname": "buy_qty",
+   "fieldtype": "Int",
+   "label": "Buy Quantity"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Buy X Get Y'",
+   "description": "Quantity rewarded per application (cheapest eligible units)",
+   "fieldname": "get_qty",
+   "fieldtype": "Int",
+   "label": "Get Quantity"
+  },
+  {
+   "fieldname": "column_break_offer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Free",
+   "depends_on": "eval:doc.promotion_type=='Buy X Get Y'",
+   "fieldname": "get_discount_type",
+   "fieldtype": "Select",
+   "label": "Reward",
+   "options": "Free\nPercentage\nAmount\nFixed Price"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Buy X Get Y' && doc.get_discount_type!='Free'",
+   "fieldname": "get_discount_value",
+   "fieldtype": "Float",
+   "label": "Reward Value"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.promotion_type=='Buy X Get Y'",
+   "description": "0 = unlimited repeats per sale",
+   "fieldname": "max_applications",
+   "fieldtype": "Int",
+   "label": "Max Applications per Sale"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Spend and Save'",
+   "fieldname": "min_spend",
+   "fieldtype": "Currency",
+   "label": "Minimum Spend",
+   "mandatory_depends_on": "eval:doc.promotion_type=='Spend and Save'"
+  },
+  {
+   "default": "Percentage",
+   "depends_on": "eval:doc.promotion_type=='Spend and Save'",
+   "fieldname": "basket_discount_type",
+   "fieldtype": "Select",
+   "label": "Basket Discount Type",
+   "options": "Percentage\nAmount"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Spend and Save'",
+   "fieldname": "basket_discount_value",
+   "fieldtype": "Float",
+   "label": "Basket Discount Value"
+  },
+  {
+   "depends_on": "eval:doc.promotion_type=='Bundle Price'",
+   "description": "Customer pays this total for one full set of the products listed above (use the Qty column for multiples). Items stay separate lines on the invoice.",
+   "fieldname": "bundle_price",
+   "fieldtype": "Currency",
+   "label": "Bundle Price",
+   "mandatory_depends_on": "eval:doc.promotion_type=='Bundle Price'"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-06-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Promotion",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LumenPOS Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "LumenPOS Cashier"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Sales User"
+  }
+ ],
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

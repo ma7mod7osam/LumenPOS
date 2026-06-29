@@ -1,0 +1,173 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"lumenpos_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>LumenPOS — Point of Sale</b></span>\",\"col\":12}},{\"id\":\"lumenpos_shortcuts\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open POS\",\"col\":3}},{\"id\":\"sc_promo\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"POS Promotion\",\"col\":3}},{\"id\":\"sc_pbook\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"POS Price Book\",\"col\":3}},{\"id\":\"sc_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"LumenPOS Settings\",\"col\":3}},{\"id\":\"lumenpos_cards_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h5\\\"><b>Records</b></span>\",\"col\":12}},{\"id\":\"card_sales\",\"type\":\"card\",\"data\":{\"card_name\":\"Selling\",\"col\":4}},{\"id\":\"card_promos\",\"type\":\"card\",\"data\":{\"card_name\":\"Promotions & Pricing\",\"col\":4}},{\"id\":\"card_register\",\"type\":\"card\",\"data\":{\"card_name\":\"Register\",\"col\":4}}]",
+ "creation": "2026-06-11 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "retail",
+ "is_hidden": 0,
+ "label": "LumenPOS",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Selling",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Invoice",
+   "link_count": 0,
+   "link_to": "POS Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Parked Sale",
+   "link_count": 0,
+   "link_to": "POS Parked Sale",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Store Credit Entry",
+   "link_count": 0,
+   "link_to": "POS Store Credit Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Promotions & Pricing",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Promotion",
+   "link_count": 0,
+   "link_to": "POS Promotion",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Price Book",
+   "link_count": 0,
+   "link_to": "POS Price Book",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "LumenPOS Settings",
+   "link_count": 0,
+   "link_to": "LumenPOS Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Register",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Register Session",
+   "link_count": 0,
+   "link_to": "POS Register Session",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Opening Entry",
+   "link_count": 0,
+   "link_to": "POS Opening Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Closing Entry",
+   "link_count": 0,
+   "link_to": "POS Closing Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Profile",
+   "link_count": 0,
+   "link_to": "POS Profile",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-06-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "LumenPOS",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 99.0,
+ "shortcuts": [
+  {
+   "label": "Open POS",
+   "type": "URL",
+   "url": "/pos"
+  },
+  {
+   "label": "POS Promotion",
+   "link_to": "POS Promotion",
+   "type": "DocType"
+  },
+  {
+   "label": "POS Price Book",
+   "link_to": "POS Price Book",
+   "type": "DocType"
+  },
+  {
+   "label": "LumenPOS Settings",
+   "link_to": "LumenPOS Settings",
+   "type": "DocType"
+  }
+ ],
+ "title": "LumenPOS"
+}

@@ -1,0 +1,244 @@
+{
+ "actions": [],
+ "autoname": "format:REG-{####}",
+ "creation": "2026-06-10 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "pos_profile",
+  "opened_by",
+  "pos_opening_entry",
+  "column_break_1",
+  "status",
+  "opened_at",
+  "closed_at",
+  "pos_closing_entry",
+  "closing_status",
+  "closing_started_at",
+  "closing_attempts",
+  "closing_error",
+  "float_section",
+  "opening_float",
+  "column_break_2",
+  "closing_note",
+  "movements_section",
+  "cash_movements",
+  "counts_section",
+  "payment_counts",
+  "totals_section",
+  "total_sales",
+  "total_discounts",
+  "column_break_3",
+  "sales_count"
+ ],
+ "fields": [
+  {
+   "fieldname": "pos_profile",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "POS Profile",
+   "options": "POS Profile",
+   "reqd": 1
+  },
+  {
+   "fieldname": "opened_by",
+   "fieldtype": "Link",
+   "label": "Opened By",
+   "options": "User"
+  },
+  {
+   "fieldname": "pos_opening_entry",
+   "fieldtype": "Link",
+   "label": "POS Opening Entry",
+   "options": "POS Opening Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pos_closing_entry",
+   "fieldtype": "Link",
+   "label": "POS Closing Entry",
+   "options": "POS Closing Entry",
+   "read_only": 1
+  },
+  {
+   "default": "Pending",
+   "depends_on": "eval:doc.status==\"Closing\"||doc.closing_status==\"Failed\"",
+   "fieldname": "closing_status",
+   "fieldtype": "Select",
+   "label": "Closing Status",
+   "options": "\nPending\nQueued\nSubmitted\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closing_started_at",
+   "fieldtype": "Datetime",
+   "label": "Closing Started At",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "closing_attempts",
+   "fieldtype": "Int",
+   "label": "Closing Attempts",
+   "read_only": 1
+  },
+  {
+   "depends_on": "closing_error",
+   "fieldname": "closing_error",
+   "fieldtype": "Small Text",
+   "label": "Closing Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nClosing\nClosed"
+  },
+  {
+   "fieldname": "opened_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Opened At"
+  },
+  {
+   "fieldname": "closed_at",
+   "fieldtype": "Datetime",
+   "label": "Closed At"
+  },
+  {
+   "fieldname": "float_section",
+   "fieldtype": "Section Break",
+   "label": "Cash Float"
+  },
+  {
+   "fieldname": "opening_float",
+   "fieldtype": "Currency",
+   "label": "Opening Float"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "closing_note",
+   "fieldtype": "Small Text",
+   "label": "Closing Note"
+  },
+  {
+   "fieldname": "movements_section",
+   "fieldtype": "Section Break",
+   "label": "Cash In / Out"
+  },
+  {
+   "fieldname": "cash_movements",
+   "fieldtype": "Table",
+   "label": "Cash Movements",
+   "options": "POS Cash Movement"
+  },
+  {
+   "fieldname": "counts_section",
+   "fieldtype": "Section Break",
+   "label": "Closing Counts"
+  },
+  {
+   "fieldname": "payment_counts",
+   "fieldtype": "Table",
+   "label": "Payment Counts",
+   "options": "POS Register Payment Count"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Session Totals"
+  },
+  {
+   "fieldname": "total_sales",
+   "fieldtype": "Currency",
+   "label": "Total Sales",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_discounts",
+   "fieldtype": "Currency",
+   "label": "Total Discounts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_count",
+   "fieldtype": "Int",
+   "label": "Number of Sales",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Sales",
+   "link_doctype": "Sales Invoice",
+   "link_fieldname": "lumenpos_session"
+  }
+ ],
+ "modified": "2026-06-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Register Session",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LumenPOS Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LumenPOS Cashier",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
