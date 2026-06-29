@@ -1,6 +1,17 @@
 <template>
   <nav class="rail">
-    <div class="logo">L</div>
+    <div class="logo">
+      <svg viewBox="0 0 100 100" width="32" height="32" aria-label="LumenPOS">
+        <defs><linearGradient id="lp-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A7BFF"/><stop offset="1" stop-color="#0B43B8"/></linearGradient></defs>
+        <rect width="100" height="100" rx="22" fill="url(#lp-logo)"/>
+        <g transform="translate(30,30) scale(0.833)">
+          <rect x="6" y="6" width="7.5" height="38" rx="3.75" fill="#fff"/>
+          <rect x="18" y="25" width="4.5" height="19" rx="2.25" fill="rgba(255,255,255,.62)"/>
+          <rect x="27" y="25" width="7.5" height="19" rx="3.75" fill="#fff"/>
+          <rect x="39" y="25" width="4.5" height="19" rx="2.25" fill="#fff"/>
+        </g>
+      </svg>
+    </div>
     <router-link to="/" class="rail-item" exact-active-class="active">
       <svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM3 2h2.5l3.1 11.6A2 2 0 0 0 10.5 15h8.2a2 2 0 0 0 1.9-1.4L23 6H6.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>{{ t('Sell') }}</span>
@@ -103,15 +114,12 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .logo {
-  height: 52px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: var(--brand);
-  font-weight: 800;
-  font-size: 22px;
 }
+.logo svg { display: block; }
 .rail-item {
   display: flex;
   flex-direction: column;
