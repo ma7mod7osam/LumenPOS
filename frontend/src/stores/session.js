@@ -31,7 +31,6 @@ export const useSessionStore = defineStore('session', {
     settings: {
       delivery_apps: [],
       discount_limit_percent: 0,
-      exchanges_enabled: 0,
       discount_approval_mode: 'Passcode only',
       can_approve_requests: false,
       restrict_returns_to_window: 0,
@@ -51,8 +50,6 @@ export const useSessionStore = defineStore('session', {
     registerOpen: (s) => Boolean(s.registerSession),
     // Cashier-facing return reasons (configured in Settings → Return Reasons).
     returnReasons: (s) => s.settings?.return_reasons || [],
-    // Default reason stamped on a warranty exchange's credit note.
-    exchangeReturnReason: (s) => s.settings?.exchange_return_reason || 'استبدال ضمان',
     // Over-limit discount approval flow (Settings → Discount Approval).
     discountApprovalMode: (s) => s.settings?.discount_approval_mode || 'Passcode only',
     // This user may approve requests AND at least one request type is enabled

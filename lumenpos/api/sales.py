@@ -65,6 +65,10 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         "applied": promo_raw["applied"] + bundle_applied,
     }
 
+    # ERPNext Pricing Rules are bypassed by default (LumenPOS runs its own
+    # promotion engine); a POS Profile can opt back into them.
+    ignore_pricing_rule = 0 if profile.get("lumenpos_ignore_pricing_rules") == 0 else 1
+
     invoice = frappe.new_doc(INVOICE_DOCTYPE)
     invoice.update(
         {
@@ -76,7 +80,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
             "update_stock": profile.update_stock,
             "set_warehouse": profile.warehouse,
             "taxes_and_charges": profile.taxes_and_charges,
-            "ignore_pricing_rule": 1,
+            "ignore_pricing_rule": ignore_pricing_rule,
             "remarks": _build_remarks(payload.get("note"), discount_approver),
         }
     )

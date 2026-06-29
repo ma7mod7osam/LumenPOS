@@ -17,7 +17,6 @@ export const useCartStore = defineStore('cart', {
     salesPerson: null, // persists across sales (shift-based)
     appType: null, // delivery-app channel (null = walk-in)
     orderId: '',
-    isExchange: false,
     discountPasscode: null, // manager passcode for over-limit discounts
     discountRequest: null, // approved POS Discount Request name (role approval)
     activePriceList: null,
@@ -410,7 +409,6 @@ export const useCartStore = defineStore('cart', {
       this.couponCodes = []
       this.appType = null
       this.orderId = ''
-      this.isExchange = false
       this.discountPasscode = null
       this.discountRequest = null
       this.activePriceList = null
@@ -461,7 +459,6 @@ export const useCartStore = defineStore('cart', {
         sales_person: this.salesPerson,
         app_type: this.appType,
         order_id: this.orderId || null,
-        is_exchange: this.isExchange ? 1 : 0,
         note: this.note || null,
       }
     },

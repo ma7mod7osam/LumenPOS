@@ -784,13 +784,6 @@
               <span class="setting-desc">{{ t('Serial numbers must be scanned with a barcode scanner — manual typing is blocked. Turn off if no scanner is available.') }}</span>
             </span>
           </label>
-          <label class="setting-row">
-            <input type="checkbox" class="setting-toggle" v-model="generalForm.exchanges_enabled" :true-value="1" :false-value="0" />
-            <span class="setting-text">
-              <span class="setting-title">{{ t('Enable warranty exchanges') }}</span>
-              <span class="setting-desc">{{ t('Shows the') }} <Icon name="exchange" /> {{ t('Exchange button. Warranty length comes from each item\'s warranty days.') }}</span>
-            </span>
-          </label>
         </div>
       </div>
 
@@ -877,8 +870,7 @@
         <div class="sub-label" style="margin-top: 14px">{{ t('Return reasons') }}</div>
         <p class="muted hint-row" style="padding: 0 0 10px">
           {{ t('Shown at the till when a cashier refunds an item. The till always also offers') }}
-          <b>{{ t('Other') }}</b> {{ t('for a free-text reason. Warranty exchanges default to') }}
-          “{{ session.exchangeReturnReason }}”.
+          <b>{{ t('Other') }}</b> {{ t('for a free-text reason.') }}
         </p>
         <div v-for="(r, i) in generalForm.return_reasons" :key="i" class="item-row">
           <input v-model="generalForm.return_reasons[i]" :placeholder="t('Reason (e.g. منتج تالف)')" />
@@ -1068,7 +1060,6 @@ const generalForm = ref({
   gift_card_mode_of_payment: '',
   gift_card_account: '',
   gift_card_item: '',
-  exchanges_enabled: 1,
   restrict_refund_to_paid_mode: 1,
   refund_rules: [],
   return_reasons: [],
@@ -1123,7 +1114,6 @@ async function load() {
     gift_card_mode_of_payment: info.gift_card_mode_of_payment || '',
     gift_card_account: info.gift_card_account || '',
     gift_card_item: info.gift_card_item || '',
-    exchanges_enabled: info.exchanges_enabled ?? 1,
     restrict_refund_to_paid_mode: info.restrict_refund_to_paid_mode ?? 1,
     refund_rules: JSON.parse(JSON.stringify(info.refund_rules || [])),
     return_reasons: [...(info.return_reasons || [])],

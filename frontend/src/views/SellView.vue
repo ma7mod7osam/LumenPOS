@@ -8,7 +8,8 @@
             ref="searchInput"
             :value="catalog.search"
             :placeholder="t('Search products or scan a barcode')"
-            @input="catalog.setSearch($event.target.value)"
+            @input="onSearchInput($event.target.value)"
+            @keydown="scanGuard.onKeydown"
             @keydown.enter="onSearchEnter"
           />
           <button v-if="catalog.search" class="btn-ghost clear" @click="catalog.clearSearch()"><Icon name="close" /></button>
@@ -114,8 +115,27 @@ import ParkedSalesModal from '../components/ParkedSalesModal.vue'
 import ReceiptModal from '../components/ReceiptModal.vue'
 import SerialModal from '../components/SerialModal.vue'
 import PasscodeModal from '../components/PasscodeModal.vue'
+import { createScanGuard } from '../scanGuard'
 
 const session = useSessionStore()
+const scanGuard = createScanGuard()
+let scanTimer = null
+
+// A barcode scanner fires characters as a fast burst — add the item the instant
+// it's scanned, without waiting for an Enter key (typed searches still need it).
+function onSearchInput(value) {
+  catalog.setSearch(value)
+  clearTimeout(scanTimer)
+  if (!value) {
+    scanGuard.reset()
+    return
+  }
+  if (value.length >= 3 && scanGuard.isScan(value)) {
+    scanTimer = setTimeout(() => {
+      if (catalog.search === value) onSearchEnter()
+    }, 80)
+  }
+}
 const catalog = useCatalogStore()
 const cart = useCartStore()
 
@@ -173,6 +193,8 @@ async function addBundleToCart(bundle) {
 }
 
 async function onSearchEnter() {
+  clearTimeout(scanTimer)
+  scanGuard.reset()
   const term = catalog.search.trim()
   if (!term) return
   // Scanner fast path: barcodes and serial numbers resolve server-side

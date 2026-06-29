@@ -83,7 +83,6 @@ def get_settings():
         "gift_card_mode_of_payment": doc.get("gift_card_mode_of_payment") or "",
         "gift_card_account": doc.get("gift_card_account") or "",
         "gift_card_item": doc.get("gift_card_item") or "",
-        "exchanges_enabled": 1 if doc.get("exchanges_enabled") else 0,
         "restrict_refund_to_paid_mode": 1 if doc.get("restrict_refund_to_paid_mode") else 0,
         "refund_rules": [
             {"paid_mode": r.paid_mode, "refund_mode": r.refund_mode}
@@ -131,7 +130,6 @@ def save_settings(payload):
     doc.gift_card_mode_of_payment = payload.get("gift_card_mode_of_payment") or None
     doc.gift_card_account = payload.get("gift_card_account") or None
     doc.gift_card_item = payload.get("gift_card_item") or None
-    doc.exchanges_enabled = 1 if payload.get("exchanges_enabled") else 0
     doc.restrict_refund_to_paid_mode = 1 if payload.get("restrict_refund_to_paid_mode") else 0
     doc.refund_rules = []
     for row in payload.get("refund_rules") or []:

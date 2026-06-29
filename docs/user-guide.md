@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.1.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.2.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -663,6 +663,13 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 > typography). The version history below is the shared lineage carried over from
 > the original app.
 
+### LumenPOS releases
+| Version | Highlights |
+|---|---|
+| 0.2.0 | **Removed warranty Exchange.** Added: a per-POS-Profile **"Ignore ERPNext Pricing Rules"** toggle (on by default — LumenPOS uses its own promotion engine; off lets Pricing Rules apply); **add-item-on-scan** — a scanned barcode now adds the item instantly without pressing Enter (typed searches still use Enter). |
+| 0.1.0 | Standalone fork of the POS + Lumen brand identity (logomark, blue glow, Plus Jakarta Sans). |
+
+### Inherited lineage (from the original POS)
 | Version | Highlights |
 |---|---|
 | 0.1 | Sell screen, payments, promotions engine (dual py/js), register sessions, parked sales |

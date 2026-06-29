@@ -10,7 +10,6 @@
   "offline_stock_only",
   "show_out_of_stock",
   "serial_scan_only",
-  "exchanges_enabled",
   "giftcards_section",
   "gift_card_expiry_days",
   "gift_card_mode_of_payment",
@@ -74,13 +73,6 @@
    "fieldname": "serial_scan_only",
    "fieldtype": "Check",
    "label": "Require scanning for serial numbers (block manual typing)"
-  },
-  {
-   "default": "1",
-   "description": "Show the ⇄ Exchange button at the till. The warranty window for each exchange comes from the item's warranty days, not a global setting.",
-   "fieldname": "exchanges_enabled",
-   "fieldtype": "Check",
-   "label": "Enable warranty exchanges"
   },
   {
    "fieldname": "giftcards_section",

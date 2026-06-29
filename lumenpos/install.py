@@ -48,10 +48,6 @@ DEFAULT_RETURN_REASONS = [
     "خطأ في الطلب",
 ]
 
-# Default reason stamped on the credit note of a warranty exchange. Kept here so
-# the same wording is used by exchanges.py.
-EXCHANGE_RETURN_REASON = "استبدال ضمان"
-
 
 def ensure_setup():
     """Idempotent setup re-run on every migrate (Frappe Cloud deploy): make
@@ -184,15 +180,6 @@ def make_custom_fields():
             insert_after="lumenpos_promotions",
             read_only=1,
         ),
-        dict(
-            fieldname="lumenpos_warranty_start_date",
-            label="Warranty Start Date",
-            fieldtype="Date",
-            insert_after="lumenpos_return_reason",
-            read_only=1,
-            description="For exchange replacements: the warranty is counted from the "
-            "original purchase date, not the replacement date.",
-        ),
         # Delivery-app channel data is written to the site's OWN fields when
         # present — custom_app_type (Select), pick_order_no (Data),
         # pick_customer (Check), is_exchange (Check). LumenPOS does not create
@@ -202,10 +189,27 @@ def make_custom_fields():
         {
             "POS Profile": [
                 dict(
+                    fieldname="lumenpos_options_section",
+                    label="LumenPOS Options",
+                    fieldtype="Section Break",
+                    insert_after="print_format",
+                    collapsible=1,
+                ),
+                dict(
+                    fieldname="lumenpos_ignore_pricing_rules",
+                    label="Ignore ERPNext Pricing Rules",
+                    fieldtype="Check",
+                    default="1",
+                    insert_after="lumenpos_options_section",
+                    description="On (default): ERPNext Pricing Rules are bypassed and "
+                    "LumenPOS uses its own promotion engine. Off: Pricing Rules apply "
+                    "(they stack on top of any LumenPOS promotions — avoid running both).",
+                ),
+                dict(
                     fieldname="lumenpos_printer_section",
                     label="LumenPOS Receipt Printer",
                     fieldtype="Section Break",
-                    insert_after="print_format",
+                    insert_after="lumenpos_ignore_pricing_rules",
                     collapsible=1,
                 ),
                 dict(

@@ -227,7 +227,6 @@ def _sales_persons():
 
 def _client_settings():
     from lumenpos import __version__
-    from lumenpos.install import EXCHANGE_RETURN_REASON
 
     from frappe.utils import cint
 
@@ -241,13 +240,11 @@ def _client_settings():
         "can_approve_requests": approval_requests.can_approve(),
         "restrict_returns_to_window": 1 if doc.get("restrict_returns_to_window") else 0,
         "return_window_days": cint(doc.get("return_window_days")) or 0,
-        "exchanges_enabled": 1 if doc.get("exchanges_enabled") else 0,
         "show_out_of_stock": 1 if doc.get("show_out_of_stock") else 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
         "return_reasons": [
             r.reason for r in (doc.get("return_reasons") or []) if (r.reason or "").strip()
         ],
-        "exchange_return_reason": EXCHANGE_RETURN_REASON,
         "delivery_apps": [
             {
                 "app_name": row.app_name,

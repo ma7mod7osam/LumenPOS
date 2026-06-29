@@ -137,19 +137,12 @@
       :can-refund="true"
       @close="receipt = null"
       @refund="startRefund"
-      @exchange="startExchange"
     />
     <RefundModal
       v-if="refundInvoice"
       :invoice="refundInvoice"
       @close="refundInvoice = null"
       @done="onRefundDone"
-    />
-    <ExchangeModal
-      v-if="exchangeInvoice"
-      :invoice-no="exchangeInvoice"
-      @close="exchangeInvoice = null"
-      @done="onExchangeDone"
     />
   </div>
 </template>
@@ -163,14 +156,12 @@ import { money, shortTime } from '../format'
 import { t } from '../i18n'
 import ReceiptModal from '../components/ReceiptModal.vue'
 import RefundModal from '../components/RefundModal.vue'
-import ExchangeModal from '../components/ExchangeModal.vue'
 
 const session = useSessionStore()
 const sales = ref([])
 const loading = ref(true)
 const receipt = ref(null)
 const refundInvoice = ref(null)
-const exchangeInvoice = ref(null)
 const showFilters = ref(false)
 const profileFilter = ref('')
 let timer = null
@@ -268,17 +259,6 @@ function startRefund(invoice) {
 async function onRefundDone(returnReceipt) {
   refundInvoice.value = null
   receipt.value = returnReceipt
-  await load()
-}
-
-function startExchange(invoice) {
-  receipt.value = null
-  exchangeInvoice.value = invoice
-}
-
-async function onExchangeDone(exchangeReceipt) {
-  exchangeInvoice.value = null
-  receipt.value = exchangeReceipt
   await load()
 }
 </script>

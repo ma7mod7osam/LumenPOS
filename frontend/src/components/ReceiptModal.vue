@@ -16,15 +16,6 @@
           <Icon name="gift" /> {{ t('Gift card') }} <strong>{{ receipt.gift_card_no }}</strong> —
           {{ t('balance') }} {{ money(receipt.gift_card_balance) }}<span v-if="receipt.gift_card_expiry"> · {{ t('expires') }} {{ receipt.gift_card_expiry }}</span>
         </div>
-        <div v-if="receipt.exchange" class="exchange-banner">
-          <Icon name="exchange" /> {{ t('Exchange against') }} {{ receipt.exchange.original_invoice }} —
-          {{ t('credit') }} {{ money(receipt.exchange.credit_value) }},
-          {{ t('replacement') }} {{ money(receipt.exchange.replacement_value) }},
-          <strong>{{ receipt.exchange.net > 0 ? t('collected ') + money(receipt.exchange.net) : receipt.exchange.net < 0 ? t('refunded ') + money(-receipt.exchange.net) : t('even (no charge)') }}</strong>
-          <div class="muted small">
-            {{ t('Damaged return') }} {{ receipt.exchange.return_invoice }}<span v-if="receipt.exchange.replacement_invoice"> · {{ t('Replacement') }} {{ receipt.exchange.replacement_invoice }}</span>
-          </div>
-        </div>
 
         <div id="receipt-print" class="receipt">
           <div class="receipt-head">
@@ -39,7 +30,6 @@
             <div class="muted small" v-if="receipt.app_type">
               <Icon name="bike" /> {{ receipt.app_type }}<span v-if="receipt.order_id"> · {{ t('Order') }} {{ receipt.order_id }}</span>
             </div>
-            <div class="exchange-stamp" v-if="receipt.is_exchange">{{ t('EXCHANGE') }}</div>
           </div>
           <table class="receipt-table">
             <tbody>
@@ -92,13 +82,6 @@
         >
           {{ t('Refund…') }}
         </button>
-        <button
-          v-if="!receipt.is_return && !receipt.offline && canRefund && session.settings.exchanges_enabled"
-          class="btn btn-outline"
-          @click="$emit('exchange', receipt.name)"
-        >
-          <Icon name="exchange" /> {{ t('Exchange') }}
-        </button>
         <button class="btn btn-outline" :disabled="printing" @click="print">
           {{ printing ? t('Printing…') : t('Print receipt') }}
         </button>
@@ -122,7 +105,7 @@ const props = defineProps({
   receipt: Object,
   canRefund: { type: Boolean, default: false },
 })
-defineEmits(['close', 'refund', 'exchange'])
+defineEmits(['close', 'refund'])
 
 const session = useSessionStore()
 const printing = ref(false)
@@ -165,23 +148,9 @@ async function print() {
   margin-bottom: 16px;
   font-weight: 600;
 }
-.exchange-stamp {
-  color: var(--amber);
-  font-weight: 800;
-  letter-spacing: 0.2em;
-}
 .giftcard-banner {
   background: rgba(46, 91, 255, 0.08);
   color: var(--brand-dark);
-  border-radius: var(--radius);
-  padding: 12px 16px;
-  text-align: center;
-  margin-bottom: 16px;
-  font-weight: 600;
-}
-.exchange-banner {
-  background: rgba(245, 166, 35, 0.12);
-  color: #9a6a0a;
   border-radius: var(--radius);
   padding: 12px 16px;
   text-align: center;
