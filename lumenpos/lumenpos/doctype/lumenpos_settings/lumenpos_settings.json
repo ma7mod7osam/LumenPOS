@@ -30,6 +30,10 @@
   "discount_passcode",
   "approvers_section",
   "discount_approvers",
+  "permissions_section",
+  "price_edit_role",
+  "return_role",
+  "return_exceed_role",
   "channels_section",
   "delivery_apps"
  ],
@@ -195,6 +199,33 @@
    "fieldtype": "Table",
    "label": "Approvers",
    "options": "POS Discount Approver"
+  },
+  {
+   "description": "Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.",
+   "fieldname": "permissions_section",
+   "fieldtype": "Section Break",
+   "label": "Permissions"
+  },
+  {
+   "description": "Only this role (plus managers) may apply a manual discount / edit a price on a sale. Blank = anyone.",
+   "fieldname": "price_edit_role",
+   "fieldtype": "Link",
+   "label": "Edit price / discount role",
+   "options": "Role"
+  },
+  {
+   "description": "Only this role (plus managers) may make returns. Blank = anyone with sell access.",
+   "fieldname": "return_role",
+   "fieldtype": "Link",
+   "label": "Make returns role",
+   "options": "Role"
+  },
+  {
+   "description": "This role (plus managers) may return a sale past the return window WITHOUT an approval request. Blank = nobody bypasses (everyone uses the request flow).",
+   "fieldname": "return_exceed_role",
+   "fieldtype": "Link",
+   "label": "Exceed return window role",
+   "options": "Role"
   },
   {
    "fieldname": "channels_section",

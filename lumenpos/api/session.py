@@ -106,11 +106,17 @@ def get_user_permissions():
             "delete": bool(has(doctype, "delete")),
         }
 
+    from lumenpos.api import permissions as caps_mod
+
     roles = set(frappe.get_roles())
     return {
         "sell": bool(has("POS Invoice", "create")),
         "view_history": bool(has("POS Invoice", "read")),
         "customers": bool(has("Customer", "read")),
+        # LumenPOS capability gates (role-configurable in Settings → Permissions).
+        "can_edit_price": caps_mod.can_edit_price(),
+        "can_return": caps_mod.can_return(),
+        "can_exceed_return_window": caps_mod.can_exceed_return_window(),
         "open_register": bool(has("POS Opening Entry", "create")),
         "close_register": bool(has("POS Closing Entry", "create")),
         "promotions": caps("POS Promotion"),

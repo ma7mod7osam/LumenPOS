@@ -94,6 +94,9 @@ def get_settings():
         "discount_limit_percent": flt(doc.discount_limit_percent),
         "discount_approval_mode": doc.get("discount_approval_mode") or "Passcode only",
         "approver_role": doc.get("approver_role") or "",
+        "price_edit_role": doc.get("price_edit_role") or "",
+        "return_role": doc.get("return_role") or "",
+        "return_exceed_role": doc.get("return_exceed_role") or "",
         "restrict_returns_to_window": 1 if doc.get("restrict_returns_to_window") else 0,
         "return_window_days": cint(doc.get("return_window_days")) or 0,
         "has_passcode": bool(
@@ -150,6 +153,9 @@ def save_settings(payload):
     doc.discount_limit_percent = flt(payload.get("discount_limit_percent"))
     doc.discount_approval_mode = payload.get("discount_approval_mode") or "Passcode only"
     doc.approver_role = payload.get("approver_role") or None
+    doc.price_edit_role = payload.get("price_edit_role") or None
+    doc.return_role = payload.get("return_role") or None
+    doc.return_exceed_role = payload.get("return_exceed_role") or None
     doc.restrict_returns_to_window = 1 if payload.get("restrict_returns_to_window") else 0
     doc.return_window_days = cint(payload.get("return_window_days")) or 0
     if payload.get("discount_passcode"):

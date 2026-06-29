@@ -29,6 +29,8 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     price_list = resolve_price_list(
         profile, customer_group, app.get("price_list") if app else None
     )
+    if check_passcode:
+        _check_price_edit_permission(payload)
     discount_approver = _check_discount_passcode(payload) if check_passcode else None
 
     lines = _build_lines(
@@ -416,6 +418,25 @@ def _resolve_delivery_app(payload):
     if row.require_order_id and not (payload.get("order_id") or "").strip():
         frappe.throw(_("Order ID is required for {0} sales").format(app_name))
     return {"app_name": row.app_name, "price_list": row.price_list}
+
+
+def _check_price_edit_permission(payload):
+    """Block manual discounts / price edits for staff without the edit-price role
+    (LumenPOS Settings → Permissions). A no-op when no discount is applied or no
+    role is configured."""
+    worst = max(
+        (flt(i.get("manual_discount_percent")) for i in payload.get("items", [])),
+        default=0,
+    )
+    if worst <= 0:
+        return
+    from lumenpos.api import permissions
+
+    if not permissions.can_edit_price():
+        frappe.throw(
+            _("You're not allowed to edit prices or apply discounts on a sale."),
+            frappe.PermissionError,
+        )
 
 
 def _check_discount_passcode(payload):
@@ -1204,6 +1225,12 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
     authorizes a return made AFTER the configured return window has passed.
     """
     _require_sell()
+    from lumenpos.api import permissions
+
+    if not permissions.can_return():
+        frappe.throw(
+            _("You're not allowed to make returns."), frappe.PermissionError
+        )
     if isinstance(items, str):
         items = json.loads(items)
     if isinstance(serials, str):
@@ -1217,11 +1244,12 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
     if original.docstatus != 1 or original.is_return:
         frappe.throw(_("{0} cannot be returned").format(invoice))
 
-    # Regular returns are allowed only inside the configured window; a later
-    # return needs an approved Return request (validated/consumed below).
+    # Regular returns are allowed only inside the configured window. Past it, a
+    # holder of the "exceed return window" role (or a manager) may return
+    # directly; everyone else needs an approved Return request.
     window = _return_window(original)
     return_approver = None
-    if not window["within"]:
+    if not window["within"] and not permissions.can_exceed_return_window():
         if not return_request:
             frappe.throw(
                 _("Returns are allowed within {0} days — this invoice is {1} days old. Send a return approval request to continue.").format(

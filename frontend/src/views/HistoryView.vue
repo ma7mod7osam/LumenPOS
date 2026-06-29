@@ -134,7 +134,7 @@
     <ReceiptModal
       v-if="receipt"
       :receipt="receipt"
-      :can-refund="true"
+      :can-refund="session.permissions.can_return !== false"
       @close="receipt = null"
       @refund="startRefund"
     />

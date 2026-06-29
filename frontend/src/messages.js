@@ -842,7 +842,24 @@ const serialsAndGroups = {
     "يجب مسح الأرقام التسلسلية بماسح الباركود — الإدخال اليدوي ممنوع. أوقفه إذا لم يتوفر ماسح.",
 }
 
+// Granular permissions (edit price / make returns / exceed return window).
+const permissions = {
+  "Permissions": "الصلاحيات",
+  "You are not allowed to edit prices": "غير مسموح لك بتعديل الأسعار",
+  "Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.":
+    "تقييد إجراءات نقطة البيع بمن يحمل دورًا معينًا. اترك الدور فارغًا للسماح للجميع. مديرو النظام / LumenPOS دائمًا مسموح لهم.",
+  "Edit price / discount role": "دور تعديل السعر / الخصم",
+  "Make returns role": "دور تنفيذ المرتجعات",
+  "Exceed return window role": "دور تجاوز فترة الإرجاع",
+  "Anyone": "الجميع",
+  "Nobody (use requests)": "لا أحد (عبر الطلبات)",
+  "Exceed return window: this role (plus managers) can return a sale past the window directly; everyone else uses the approval request flow.":
+    "تجاوز فترة الإرجاع: يستطيع هذا الدور (والمديرون) إرجاع الفاتورة بعد انتهاء الفترة مباشرة؛ والبقية يستخدمون مسار طلب الاعتماد.",
+  "This sale is {age} days old (past the {n}-day window) — you are authorized to return it.":
+    "مضى على هذه الفاتورة {age} يومًا (بعد فترة {n} يومًا) — أنت مخوّل بإرجاعها.",
+}
+
 export const messages = {
   en: {},
-  ar: { ...common, ...settings, ...register, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups },
+  ar: { ...common, ...settings, ...register, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions },
 }

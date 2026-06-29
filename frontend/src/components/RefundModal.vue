@@ -9,7 +9,13 @@
       <div class="modal-body">
         <div v-if="loading" class="muted empty">{{ t('Loading…') }}</div>
         <template v-else>
-          <div v-if="overWindow" class="approval-box" :class="reqPhase">
+          <div v-if="overWindow && canExceed" class="approval-box authorized">
+            <div class="ap-ok">
+              <Icon name="check" />
+              {{ t('This sale is {age} days old (past the {n}-day window) — you are authorized to return it.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
+            </div>
+          </div>
+          <div v-else-if="overWindow" class="approval-box" :class="reqPhase">
             <template v-if="returnRequest">
               <div class="ap-ok"><Icon name="check" /> {{ t('Return approved') }}<span v-if="approverName"> · {{ approverName }}</span></div>
             </template>
@@ -172,9 +178,13 @@ const refundTotal = computed(() =>
 )
 
 // Over the regular-return window and not yet approved → the refund is blocked
-// until a manager approves a Return request.
+// until a manager approves a Return request — unless this user is allowed to
+// exceed the window (the "exceed return window" role, or a manager).
 const overWindow = computed(() => returnWindow.value && !returnWindow.value.within)
-const needsApproval = computed(() => overWindow.value && !returnRequest.value)
+const canExceed = computed(() => session.permissions?.can_exceed_return_window === true)
+const needsApproval = computed(
+  () => overWindow.value && !returnRequest.value && !canExceed.value
+)
 
 onMounted(async () => {
   try {

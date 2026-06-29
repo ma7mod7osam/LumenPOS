@@ -77,6 +77,8 @@
           min="0"
           max="100"
           :value="line.manual_discount_percent"
+          :disabled="!canEditPrice"
+          :title="canEditPrice ? '' : t('You are not allowed to edit prices')"
           @input="setDiscount($event.target.value)"
           @change="setDiscount($event.target.value)"
         />
@@ -98,10 +100,14 @@ import Icon from './Icon.vue'
 import { ref } from 'vue'
 import { t } from '../i18n'
 import { useCartStore } from '../stores/cart'
+import { useSessionStore } from '../stores/session'
 import { money, warrantyLabel } from '../format'
 import SerialModal from './SerialModal.vue'
 
 import { computed } from 'vue'
+
+const session = useSessionStore()
+const canEditPrice = computed(() => session.permissions?.can_edit_price !== false)
 
 const props = defineProps({
   line: Object,

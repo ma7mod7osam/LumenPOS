@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.2.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.3.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -666,6 +666,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.3.0 | **Granular permissions** (Settings → General → *Permissions*). Three role gates, each enforced server-side and mirrored in the UI; managers always pass, blank role = anyone: **Edit price / discount** (who may apply a manual discount — the field is disabled otherwise), **Make returns** (who may refund — the Refund button hides otherwise), and **Exceed return window** (this role returns past the window *directly*; everyone else still uses the approval-request flow). |
 | 0.2.0 | **Removed warranty Exchange.** Added: a per-POS-Profile **"Ignore ERPNext Pricing Rules"** toggle (on by default — LumenPOS uses its own promotion engine; off lets Pricing Rules apply); **add-item-on-scan** — a scanned barcode now adds the item instantly without pressing Enter (typed searches still use Enter). |
 | 0.1.0 | Standalone fork of the POS + Lumen brand identity (logomark, blue glow, Plus Jakarta Sans). |
 

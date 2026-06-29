@@ -948,6 +948,31 @@
         </template>
       </div>
 
+      <!-- Permissions -->
+      <div class="sec-card">
+        <div class="sec-title"><Icon name="shield" /> {{ t('Permissions') }}</div>
+        <p class="muted hint-row" style="padding: 0 0 6px">
+          {{ t('Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.') }}
+        </p>
+        <div class="field-grid">
+          <label class="field">
+            <span>{{ t('Edit price / discount role') }}</span>
+            <LinkPicker doctype="Role" v-model="generalForm.price_edit_role" :placeholder="t('Anyone')" />
+          </label>
+          <label class="field">
+            <span>{{ t('Make returns role') }}</span>
+            <LinkPicker doctype="Role" v-model="generalForm.return_role" :placeholder="t('Anyone')" />
+          </label>
+          <label class="field">
+            <span>{{ t('Exceed return window role') }}</span>
+            <LinkPicker doctype="Role" v-model="generalForm.return_exceed_role" :placeholder="t('Nobody (use requests)')" />
+          </label>
+        </div>
+        <p class="muted hint-row">
+          {{ t('Exceed return window: this role (plus managers) can return a sale past the window directly; everyone else uses the approval request flow.') }}
+        </p>
+      </div>
+
       <!-- Sticky footer -->
       <div class="editor-footer">
         <span style="flex: 1" />
@@ -1050,6 +1075,9 @@ const generalForm = ref({
   discount_passcode: '',
   discount_approval_mode: 'Passcode only',
   approver_role: '',
+  price_edit_role: '',
+  return_role: '',
+  return_exceed_role: '',
   restrict_returns_to_window: 0,
   return_window_days: 14,
   allow_multiple_opening: 0,
@@ -1104,6 +1132,9 @@ async function load() {
     discount_passcode: '',
     discount_approval_mode: info.discount_approval_mode || 'Passcode only',
     approver_role: info.approver_role || '',
+    price_edit_role: info.price_edit_role || '',
+    return_role: info.return_role || '',
+    return_exceed_role: info.return_exceed_role || '',
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,
     allow_multiple_opening: info.allow_multiple_opening || 0,
