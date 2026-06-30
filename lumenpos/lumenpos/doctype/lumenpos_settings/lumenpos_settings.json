@@ -10,6 +10,8 @@
   "offline_stock_only",
   "show_out_of_stock",
   "serial_scan_only",
+  "companies_section",
+  "company_settings",
   "giftcards_section",
   "gift_card_expiry_days",
   "gift_card_mode_of_payment",
@@ -112,6 +114,18 @@
    "fieldname": "serial_scan_only",
    "fieldtype": "Check",
    "label": "Require scanning for serial numbers (block manual typing)"
+  },
+  {
+   "description": "Per-company accounts. On a multi-company site each company posts gift cards / service charge to its OWN accounts. Leave empty to use the global defaults (or auto-create).",
+   "fieldname": "companies_section",
+   "fieldtype": "Section Break",
+   "label": "Company Accounts"
+  },
+  {
+   "fieldname": "company_settings",
+   "fieldtype": "Table",
+   "label": "Company Accounts",
+   "options": "LumenPOS Company Setting"
   },
   {
    "fieldname": "giftcards_section",
@@ -302,11 +316,10 @@
   },
   {
    "depends_on": "enable_service_charge",
-   "description": "Income account the service charge posts to.",
+   "description": "Global fallback income account for the service charge. Prefer a per-company account under Company Accounts.",
    "fieldname": "service_charge_account",
    "fieldtype": "Link",
-   "label": "Service charge account",
-   "mandatory_depends_on": "enable_service_charge",
+   "label": "Service charge account (global fallback)",
    "options": "Account"
   },
   {

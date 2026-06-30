@@ -112,6 +112,15 @@ def get_settings():
         "receipt_show_terms": 1 if doc.get("receipt_show_terms") else 0,
         "receipt_terms": doc.get("receipt_terms") or "",
         "gift_card_expiry_days": doc.get("gift_card_expiry_days") or 0,
+        "companies": frappe.get_all("Company", pluck="name", order_by="name asc"),
+        "company_settings": [
+            {
+                "company": r.company,
+                "gift_card_account": r.gift_card_account or "",
+                "service_charge_account": r.service_charge_account or "",
+            }
+            for r in (doc.get("company_settings") or [])
+        ],
         "gift_card_mode_of_payment": doc.get("gift_card_mode_of_payment") or "",
         "gift_card_account": doc.get("gift_card_account") or "",
         "gift_card_item": doc.get("gift_card_item") or "",
@@ -198,6 +207,16 @@ def save_settings(payload):
     doc.receipt_show_terms = 1 if payload.get("receipt_show_terms") else 0
     doc.receipt_terms = payload.get("receipt_terms") or None
     doc.gift_card_expiry_days = int(payload.get("gift_card_expiry_days") or 0)
+    doc.set("company_settings", [])
+    for row in payload.get("company_settings") or []:
+        comp = (row.get("company") or "").strip()
+        gc = row.get("gift_card_account") or None
+        sc = row.get("service_charge_account") or None
+        if comp and (gc or sc):
+            doc.append(
+                "company_settings",
+                {"company": comp, "gift_card_account": gc, "service_charge_account": sc},
+            )
     doc.gift_card_mode_of_payment = payload.get("gift_card_mode_of_payment") or None
     doc.gift_card_account = payload.get("gift_card_account") or None
     doc.gift_card_item = payload.get("gift_card_item") or None
@@ -292,6 +311,20 @@ def verify_passcode(passcode):
         "valid": bool(result),
         "approver": result if isinstance(result, str) else None,
     }
+
+
+def company_setting(company, field):
+    """Per-company account override (LumenPOS Settings → Company Accounts).
+    Returns the value configured for this company/field, or None so the caller
+    falls back to the global default. Lets every company on a multi-company site
+    post gift cards / service charge to its OWN chart of accounts."""
+    if not company:
+        return None
+    doc = frappe.get_cached_doc("LumenPOS Settings")
+    for row in doc.get("company_settings") or []:
+        if row.company == company:
+            return row.get(field) or None
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -1243,7 +1276,7 @@ def disable_gift_card(card_no):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def link_options(doctype, search=""):
+def link_options(doctype, search="", company=None):
     allowed = {
         "Item": ["name", "item_name"],
         "Item Group": ["name"],
@@ -1269,8 +1302,12 @@ def link_options(doctype, search=""):
         filters["is_group"] = 0
     if doctype == "Account":
         # Any postable account (loyalty wants Expense, gift cards want a
-        # Liability account) — the field label guides the choice.
+        # Liability account) — the field label guides the choice. On a
+        # multi-company site, scope to the chosen company so its chart of
+        # accounts isn't mixed with the others'.
         filters["is_group"] = 0
+        if company:
+            filters["company"] = company
     if doctype == "Mode of Payment":
         filters["enabled"] = 1
     if doctype == "Role":

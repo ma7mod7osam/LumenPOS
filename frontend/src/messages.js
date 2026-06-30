@@ -635,6 +635,15 @@ const features = {
   "SN": "تسلسلي",
   "Note": "ملاحظة",
   "Qty": "الكمية",
+  "Company accounts": "حسابات الشركة",
+  "Each company posts gift cards and the service charge to its OWN accounts. Pick a company, then choose its accounts — the lists show only that company's chart of accounts. Leave blank to auto-create / use a default.": "تُرحّل كل شركة بطاقات الهدايا ورسوم الخدمة إلى حساباتها الخاصة. اختر شركة ثم حدّد حساباتها — تعرض القوائم دليل حسابات تلك الشركة فقط. اترك فارغًا للإنشاء التلقائي / استخدام الافتراضي.",
+  "Company": "الشركة",
+  "Gift card liability account": "حساب التزام بطاقة الهدية",
+  "Service charge account": "حساب رسوم الخدمة",
+  "Auto-create if empty": "إنشاء تلقائي إذا تُرك فارغًا",
+  "redeems gift cards; the": "يسترد بطاقات الهدايا؛ و",
+  "is set per company above. Leave any field blank to auto-create the default.": "يُضبط لكل شركة بالأعلى. اترك أي حقل فارغًا لإنشاء الافتراضي تلقائيًا.",
+  "Set the income account per company under": "اضبط حساب الإيرادات لكل شركة ضمن",
 }
 
 // Sell screen, cart, product grid.

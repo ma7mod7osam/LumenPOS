@@ -869,10 +869,9 @@
             <span>{{ t('Service charge %') }}</span>
             <input type="number" min="0" max="100" step="0.5" v-model.number="generalForm.service_charge_percent" />
           </label>
-          <label class="field">
-            <span>{{ t('Service charge account *') }}</span>
-            <LinkPicker doctype="Account" v-model="generalForm.service_charge_account" :placeholder="t('Income account…')" />
-          </label>
+          <p class="muted small" style="align-self: end; padding-bottom: 8px">
+            {{ t('Set the income account per company under') }} <b>{{ t('Company accounts') }}</b>.
+          </p>
         </div>
         <template v-if="generalForm.enable_quick_keys">
           <div class="sub-label" style="margin-top: 14px">{{ t('Favourite items (one-tap on the sell screen)') }}</div>
@@ -958,20 +957,54 @@
         </div>
       </div>
 
+      <!-- Company accounts (multi-company) -->
+      <div class="sec-card">
+        <div class="sec-title"><Icon name="bank" /> {{ t('Company accounts') }}</div>
+        <p class="muted hint-row" style="padding: 0 0 10px">
+          {{ t('Each company posts gift cards and the service charge to its OWN accounts. Pick a company, then choose its accounts — the lists show only that company\'s chart of accounts. Leave blank to auto-create / use a default.') }}
+        </p>
+        <div class="field-grid">
+          <label class="field">
+            <span>{{ t('Company') }}</span>
+            <select v-model="selectedCompany">
+              <option v-for="c in companies" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </label>
+        </div>
+        <div v-if="selectedCompany" class="field-grid" style="margin-top: 10px">
+          <label class="field">
+            <span>{{ t('Gift card liability account') }}</span>
+            <LinkPicker
+              :key="'gc-' + selectedCompany"
+              doctype="Account"
+              :filters="{ company: selectedCompany }"
+              v-model="companyRow.gift_card_account"
+              :placeholder="t('Auto-create if empty')"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('Service charge account') }}</span>
+            <LinkPicker
+              :key="'sc-' + selectedCompany"
+              doctype="Account"
+              :filters="{ company: selectedCompany }"
+              v-model="companyRow.service_charge_account"
+              :placeholder="t('Income account…')"
+            />
+          </label>
+        </div>
+      </div>
+
       <!-- Gift cards mapping -->
       <div class="sec-card">
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
         <p class="muted hint-row" style="padding: 0">
-          {{ t('Map gift cards to your own accounting, or leave any field blank to auto-create the default. The') }} <b>{{ t('liability account') }}</b> {{ t('backs the cards (a sale increases it, redemption decreases it) and the') }} <b>{{ t('mode of payment') }}</b> {{ t('redeems them.') }}
+          {{ t('The') }} <b>{{ t('mode of payment') }}</b> {{ t('redeems gift cards; the') }} <b>{{ t('liability account') }}</b> {{ t('is set per company above. Leave any field blank to auto-create the default.') }}
         </p>
         <div class="field-grid">
           <label class="field">
             <span>{{ t('Mode of payment') }}</span>
             <LinkPicker doctype="Mode of Payment" v-model="generalForm.gift_card_mode_of_payment" :placeholder="t('Default: Gift Card')" />
-          </label>
-          <label class="field">
-            <span>{{ t('Liability account') }}</span>
-            <LinkPicker doctype="Account" v-model="generalForm.gift_card_account" :placeholder="t('Default: Gift Cards')" />
           </label>
           <label class="field">
             <span>{{ t('Gift card item') }}</span>
@@ -1335,6 +1368,7 @@ const generalForm = ref({
   receipt_address: '',
   receipt_show_terms: 0,
   receipt_terms: '',
+  company_settings: [],
   gift_card_expiry_days: 0,
   gift_card_mode_of_payment: '',
   gift_card_account: '',
@@ -1345,6 +1379,17 @@ const generalForm = ref({
   approvers: [],
 })
 const logoError = ref(false)
+
+// ---- per-company accounts ----
+const selectedCompany = ref(session.company || '')
+const companies = computed(() => settingsInfo.value.companies || [])
+const companyRow = computed(
+  () =>
+    generalForm.value.company_settings.find((r) => r.company === selectedCompany.value) || {
+      gift_card_account: '',
+      service_charge_account: '',
+    }
+)
 
 // ---- receipt designer ----
 const RECEIPT_TEMPLATES = ['Compact', 'Standard', 'Detailed']
@@ -1485,6 +1530,7 @@ async function load() {
     receipt_address: info.receipt_address || '',
     receipt_show_terms: info.receipt_show_terms || 0,
     receipt_terms: info.receipt_terms || '',
+    company_settings: (info.company_settings || []).map((r) => ({ ...r })),
     gift_card_expiry_days: info.gift_card_expiry_days || 0,
     gift_card_mode_of_payment: info.gift_card_mode_of_payment || '',
     gift_card_account: info.gift_card_account || '',
@@ -1497,6 +1543,20 @@ async function load() {
       has_passcode: approver.has_passcode,
       passcode: '',
     })),
+  }
+  // One editable row per company for the Company Accounts picker (empty rows
+  // are dropped on save).
+  for (const c of info.companies || []) {
+    if (!generalForm.value.company_settings.some((r) => r.company === c)) {
+      generalForm.value.company_settings.push({
+        company: c,
+        gift_card_account: '',
+        service_charge_account: '',
+      })
+    }
+  }
+  if ((info.companies || []).length && !info.companies.includes(selectedCompany.value)) {
+    selectedCompany.value = info.companies[0]
   }
   promotions.value = await call('lumenpos.api.settings.list_promotions')
   priceBooks.value = await call('lumenpos.api.settings.list_price_books')

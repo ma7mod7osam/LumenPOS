@@ -89,9 +89,20 @@ def ensure_setup(company):
 
 
 def _account(company):
-    """The mapped gift-card liability account, else auto-create the default."""
-    configured = _setting("gift_card_account")
-    if configured and frappe.db.exists("Account", configured):
+    """The mapped gift-card liability account, else auto-create the default.
+
+    Honours a per-company override (LumenPOS Settings → Company Accounts) and
+    only uses a configured account that ACTUALLY belongs to this company — so on
+    a multi-company site a global account set for one company is never posted to
+    another's GL (it auto-creates the right one instead)."""
+    from lumenpos.api.settings import company_setting
+
+    configured = company_setting(company, "gift_card_account") or _setting("gift_card_account")
+    if (
+        configured
+        and frappe.db.exists("Account", configured)
+        and frappe.db.get_value("Account", configured, "company") == company
+    ):
         return configured
     return _get_or_create_account(company)
 

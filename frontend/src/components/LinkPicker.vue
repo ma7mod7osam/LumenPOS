@@ -47,6 +47,8 @@ const props = defineProps({
   modelValue: { type: String, default: '' },
   label: { type: String, default: '' }, // display label when value preset
   placeholder: { type: String, default: () => t('Search…') },
+  // Extra server-side filters merged into the lookup (e.g. { company }).
+  filters: { type: Object, default: () => ({}) },
 })
 const emit = defineEmits(['update:modelValue', 'picked'])
 
@@ -82,6 +84,7 @@ async function search(term) {
     results.value = await call('lumenpos.api.settings.link_options', {
       doctype: props.doctype,
       search: term,
+      ...props.filters,
     })
     highlighted.value = 0
   } catch {

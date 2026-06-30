@@ -216,10 +216,14 @@ def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
     amount = flt(base * pct / 100.0, invoice.precision("grand_total"))
     if amount <= 0:
         return
-    account = settings.get("service_charge_account")
+    from lumenpos.api.settings import company_setting
+
+    account = company_setting(profile.company, "service_charge_account") or settings.get(
+        "service_charge_account"
+    )
     if not account:
         frappe.throw(
-            _("Set a Service charge account in LumenPOS Settings → Features before charging it.")
+            _("Set a Service charge account for {0} in LumenPOS Settings → Company Accounts (or the global default).").format(profile.company)
         )
     invoice.append(
         "taxes",
