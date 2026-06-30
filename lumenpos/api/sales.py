@@ -403,6 +403,14 @@ def sell_gift_card(payload):
     invoice.set_missing_values()
     invoice.taxes = []
 
+    # A gift card is a NON-STOCK liability sale (update_stock=0), so no warehouse
+    # is needed. Clear any warehouse set_missing_values defaulted in — on a
+    # multi-company site it can pull a warehouse from the wrong company and trip
+    # ERPNext's "Warehouse … doesn't belong to Company …" validation.
+    invoice.set("set_warehouse", None)
+    for row in invoice.items:
+        row.warehouse = None
+
     paid_total = 0.0
     for payment in payload.get("payments", []):
         pay_amount = flt(payment.get("amount"))
