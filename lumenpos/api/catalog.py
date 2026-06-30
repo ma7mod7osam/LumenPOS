@@ -216,6 +216,96 @@ def _app_price_list(app_type):
 
 
 @frappe.whitelist()
+def price_check(pos_profile, query):
+    """Look up an item's live price + stock WITHOUT adding it to a sale
+    (Settings → Features → Price / stock checker). Matches a barcode, serial,
+    exact item code, or a name fragment. Returns up to 10 matches, each priced
+    on the profile's active list with stock at the register's warehouse and the
+    company-wide total."""
+    q = (query or "").strip()
+    if not q:
+        return {"matches": []}
+    profile = frappe.get_cached_doc("POS Profile", pos_profile)
+
+    # 1) Exact match: barcode -> item, serial -> item, or an item code.
+    item_codes = []
+    barcode_item = frappe.db.get_value("Item Barcode", {"barcode": q}, "parent")
+    if barcode_item:
+        item_codes = [barcode_item]
+    else:
+        sn_item = frappe.db.get_value("Serial No", q, "item_code")
+        if sn_item:
+            item_codes = [sn_item]
+        elif frappe.db.exists("Item", q):
+            item_codes = [q]
+
+    # 2) Otherwise a name / code fragment search.
+    if not item_codes:
+        rows = frappe.get_all(
+            "Item",
+            filters={"disabled": 0, "is_sales_item": 1},
+            or_filters={"item_name": ["like", f"%{q}%"], "name": ["like", f"%{q}%"]},
+            fields=["name"],
+            order_by="item_name asc",
+            limit=10,
+        )
+        item_codes = [r.name for r in rows]
+
+    if not item_codes:
+        return {"matches": []}
+
+    fields = [
+        "name as item_code", "item_name", "item_group", "brand",
+        "stock_uom", "is_stock_item",
+    ]
+    items = frappe.get_all(
+        "Item",
+        filters={"name": ["in", item_codes], "disabled": 0, "is_sales_item": 1},
+        fields=fields,
+    )
+    codes = [i["item_code"] for i in items]
+    uom_map = {i["item_code"]: i["stock_uom"] for i in items}
+    prices = effective_prices(profile, codes, None, None, uom_map)
+    stds = standard_prices(profile, codes, uom_map)
+
+    # Stock: the register's warehouse, plus the company-wide total.
+    here = {}
+    if profile.warehouse and codes:
+        for b in frappe.get_all(
+            "Bin",
+            filters={"item_code": ["in", codes], "warehouse": profile.warehouse},
+            fields=["item_code", "actual_qty"],
+        ):
+            here[b.item_code] = b.actual_qty
+    totals = {}
+    if codes:
+        for b in frappe.get_all(
+            "Bin", filters={"item_code": ["in", codes]}, fields=["item_code", "actual_qty"]
+        ):
+            totals[b.item_code] = (totals.get(b.item_code) or 0) + flt(b.actual_qty)
+
+    matches = []
+    for i in items:
+        code = i["item_code"]
+        matches.append(
+            {
+                "item_code": code,
+                "item_name": i["item_name"],
+                "item_group": i["item_group"],
+                "brand": i["brand"],
+                "uom": i["stock_uom"],
+                "is_stock_item": i["is_stock_item"],
+                "price": prices.get(code, 0),
+                "standard_price": stds.get(code) or prices.get(code, 0),
+                "stock_here": flt(here.get(code, 0)),
+                "stock_total": flt(totals.get(code, 0)),
+                "barcode": frappe.db.get_value("Item Barcode", {"parent": code}, "barcode"),
+            }
+        )
+    return {"warehouse": profile.warehouse, "matches": matches}
+
+
+@frappe.whitelist()
 def validate_serial(pos_profile, item_code, serial_no):
     """Strict check used live at the cart and re-run on submit: the serial
     must exist, belong to this item, be Active stock, and sit in the

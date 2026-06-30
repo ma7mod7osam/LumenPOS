@@ -509,6 +509,57 @@ const register = {
   "Closing failed again — check the error and retry": "فشل الإغلاق مرة أخرى — تحقق من الخطأ وأعد المحاولة",
 }
 
+// Feature toggles + the features they unlock (order discount, service charge,
+// price checker, X-report, receipt branding).
+const features = {
+  "Features": "الميزات",
+  "Turn till features on or off. Each control is independent.": "فعّل ميزات الصندوق أو عطّلها. كل عنصر تحكم مستقل.",
+  "Order discount": "خصم الطلب",
+  "Order-level (whole-cart) discount": "خصم على مستوى الطلب (السلة كاملة)",
+  "Adds one discount field on the cart, spread across every line. Still subject to the discount limit and edit-price role.": "يضيف حقل خصم واحدًا على السلة يوزَّع على كل سطر. ويظل خاضعًا لحد الخصم وصلاحية تعديل السعر.",
+  "Service charge / tip": "رسوم خدمة / إكرامية",
+  "Service charge": "رسوم الخدمة",
+  "Service charge ({pct}%)": "رسوم الخدمة ({pct}٪)",
+  "Adds a flat-percent charge to every sale, posted to the income account you choose below.": "يضيف رسمًا بنسبة ثابتة على كل عملية بيع، يُرحَّل إلى حساب الإيرادات الذي تختاره أدناه.",
+  "Service charge %": "رسوم الخدمة ٪",
+  "Service charge account *": "حساب رسوم الخدمة *",
+  "Income account…": "حساب الإيرادات…",
+  "Price / stock checker": "فاحص السعر/المخزون",
+  "Adds a Price check button on the sell screen to look up an item's price and stock without selling it.": "يضيف زر فحص السعر في شاشة البيع للاطلاع على سعر الصنف ومخزونه دون بيعه.",
+  "Price check": "فحص السعر",
+  "Look up a price without selling": "ابحث عن سعر دون بيع",
+  "Price & stock check": "فحص السعر والمخزون",
+  "Scan a barcode or type a name…": "امسح باركود أو اكتب اسمًا…",
+  "Checking…": "جارٍ الفحص…",
+  "Check": "فحص",
+  "No item matches “{q}”.": "لا يوجد صنف يطابق «{q}».",
+  "{qty} in stock": "{qty} في المخزون",
+  "{qty} all stores": "{qty} كل الفروع",
+  "Non-stock": "بدون مخزون",
+  "X-report": "تقرير X",
+  "X-report (mid-shift read)": "تقرير X (قراءة منتصف الوردية)",
+  "Adds an X-report button on the register screen — a read-only drawer snapshot that does NOT close the shift.": "يضيف زر تقرير X في شاشة الصندوق — لقطة للقراءة فقط لحالة الدرج لا تُغلق الوردية.",
+  "(mid-shift read)": "(قراءة منتصف الوردية)",
+  "A read-only snapshot of the shift so far. It does NOT close the register or post anything.": "لقطة للقراءة فقط للوردية حتى الآن. لا تُغلق الصندوق ولا تُرحّل أي شيء.",
+  "X-REPORT": "تقرير X",
+  "Opened": "فُتحت",
+  "Printed": "طُبع",
+  "Expected by payment": "المتوقع حسب طريقة الدفع",
+  "drawer": "الدرج",
+  "No takings recorded yet.": "لا توجد إيرادات مسجلة بعد.",
+  "Cash drawer": "درج النقد",
+  "Cash in": "إيداع نقدي",
+  "Cash out": "سحب نقدي",
+  "Continues — not a Z-report.": "مستمرة — ليست تقرير Z.",
+  "Receipt branding": "هوية الإيصال",
+  "Shown on the on-screen and browser-printed receipt. (A POS Profile Print Format, if set, takes over instead.)": "تظهر على الإيصال المعروض والمطبوع عبر المتصفح. (إن وُجد تنسيق طباعة في ملف نقطة البيع فإنه يحل محلها.)",
+  "Logo URL or path": "رابط الشعار أو مساره",
+  "Header line (under the company name)": "سطر الترويسة (تحت اسم الشركة)",
+  "Footer line": "سطر التذييل",
+  "e.g. Return within 14 days with receipt": "مثال: الإرجاع خلال 14 يومًا مع الإيصال",
+  "Could not load that image — check the URL/path.": "تعذّر تحميل الصورة — تحقق من الرابط/المسار.",
+}
+
 // Sell screen, cart, product grid.
 const sell = {
   "Search products or scan a barcode": "ابحث عن المنتجات أو امسح الباركود",
@@ -861,5 +912,5 @@ const permissions = {
 
 export const messages = {
   en: {},
-  ar: { ...common, ...settings, ...register, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions },
 }

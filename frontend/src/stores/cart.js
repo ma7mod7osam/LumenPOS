@@ -17,6 +17,7 @@ export const useCartStore = defineStore('cart', {
     salesPerson: null, // persists across sales (shift-based)
     appType: null, // delivery-app channel (null = walk-in)
     orderId: '',
+    orderDiscountPercent: 0, // whole-cart discount (Settings → Features)
     discountPasscode: null, // manager passcode for over-limit discounts
     discountRequest: null, // approved POS Discount Request name (role approval)
     activePriceList: null,
@@ -158,12 +159,42 @@ export const useCartStore = defineStore('cart', {
       return this.evaluation.total_savings
     },
 
+    // Whole-cart discount, applied AFTER line-level discounts (promo + manual
+    // + bundle). Gated by the Settings → Features toggle; disabling it makes
+    // any lingering percent inert. Mirrored on the server in _line_discounts.
+    orderDiscountTotal(state) {
+      const session = useSessionStore()
+      if (!session.settings?.enable_order_discount) return 0
+      const pct = state.orderDiscountPercent || 0
+      if (pct <= 0) return 0
+      const base = Math.max(
+        0,
+        this.subtotal - this.promoSavings - this.manualDiscountTotal - this.bundleSavings
+      )
+      return round2((base * pct) / 100)
+    },
+
     // Net of all discounts, before exclusive taxes
     netTotal() {
       return Math.max(
         0,
-        this.subtotal - this.promoSavings - this.manualDiscountTotal - this.bundleSavings
+        this.subtotal -
+          this.promoSavings -
+          this.manualDiscountTotal -
+          this.bundleSavings -
+          this.orderDiscountTotal
       )
+    },
+
+    // Optional flat-percent service charge / tip, added AFTER taxes as its own
+    // line (so it is not itself taxed — matches the common "tip line" model).
+    // The percent is server-authoritative (read from Settings), never the cart.
+    serviceCharge() {
+      const session = useSessionStore()
+      if (!session.settings?.enable_service_charge) return 0
+      const pct = session.settings?.service_charge_percent || 0
+      if (pct <= 0) return 0
+      return round2((this.netTotal * pct) / 100)
     },
 
     // Mirror ERPNext's tax math on the profile's template so the displayed
@@ -203,13 +234,21 @@ export const useCartStore = defineStore('cart', {
     },
 
     total() {
-      return round2(this.netTotal + this.taxBreakdown.exclusiveTotal)
+      return round2(
+        this.netTotal + this.taxBreakdown.exclusiveTotal + this.serviceCharge
+      )
     },
 
     itemCount: (state) => state.lines.reduce((sum, l) => sum + l.qty, 0),
 
+    // The largest single discount on the sale — the per-line max OR the
+    // whole-cart percent, whichever is bigger. Drives the approval gate so an
+    // order-level discount is policed by the same limit as a line discount.
     maxManualDiscount: (state) =>
-      state.lines.reduce((max, l) => Math.max(max, l.manual_discount_percent || 0), 0),
+      Math.max(
+        state.lines.reduce((max, l) => Math.max(max, l.manual_discount_percent || 0), 0),
+        state.orderDiscountPercent || 0
+      ),
 
     needsDiscountApproval(state) {
       const session = useSessionStore()
@@ -409,6 +448,7 @@ export const useCartStore = defineStore('cart', {
       this.couponCodes = []
       this.appType = null
       this.orderId = ''
+      this.orderDiscountPercent = 0
       this.discountPasscode = null
       this.discountRequest = null
       this.activePriceList = null
@@ -440,6 +480,18 @@ export const useCartStore = defineStore('cart', {
       this.couponCodes = this.couponCodes.filter((c) => c !== code)
     },
 
+    // Whole-cart discount. Clamped to 0–100; changing it invalidates any
+    // previously granted over-limit approval so a higher value must be
+    // re-approved (mirrors the per-line discount flow).
+    setOrderDiscount(percent) {
+      const pct = Math.max(0, Math.min(100, Number(percent) || 0))
+      if (pct !== this.orderDiscountPercent) {
+        this.discountPasscode = null
+        this.discountRequest = null
+      }
+      this.orderDiscountPercent = pct
+    },
+
     // Cart fields the server needs to price the sale, WITHOUT payment/auth
     // details. Shared by submit() and quoteTotal() so the server prices both
     // identically.
@@ -459,6 +511,7 @@ export const useCartStore = defineStore('cart', {
         sales_person: this.salesPerson,
         app_type: this.appType,
         order_id: this.orderId || null,
+        order_discount_percent: this.orderDiscountPercent || 0,
         note: this.note || null,
       }
     },

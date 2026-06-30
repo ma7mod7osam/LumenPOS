@@ -179,8 +179,48 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         else:
             item_row.discount_percentage = 0
         item_row.discount_amount = 0
+
+    _apply_service_charge(invoice, profile, lines, per_unit_discounts)
+
     invoice.run_method("calculate_taxes_and_totals")
     return invoice, customer
+
+
+def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
+    """Optional flat-percent service charge / tip (LumenPOS Settings → Features).
+    Posted as a FINAL non-taxed 'Actual' charge so it lands in the grand total
+    exactly as the till displayed it. The percent is server-authoritative — read
+    from Settings, never the cart — and the base is the discounted, VAT-inclusive
+    line total so it mirrors the client's `serviceCharge` getter. No-op on
+    returns (negative qty) and when the feature/percent is off."""
+    settings = frappe.get_cached_doc("LumenPOS Settings")
+    if not settings.get("enable_service_charge"):
+        return
+    pct = flt(settings.get("service_charge_percent"))
+    if pct <= 0:
+        return
+    base = sum(
+        (flt(lines[i]["price"]) - flt(per_unit_discounts[i])) * (lines[i]["qty"] or 0)
+        for i in range(len(lines))
+    )
+    amount = flt(base * pct / 100.0, invoice.precision("grand_total"))
+    if amount <= 0:
+        return
+    account = settings.get("service_charge_account")
+    if not account:
+        frappe.throw(
+            _("Set a Service charge account in LumenPOS Settings → Features before charging it.")
+        )
+    invoice.append(
+        "taxes",
+        {
+            "charge_type": "Actual",
+            "account_head": account,
+            "description": _("Service charge ({0}%)").format(pct),
+            "tax_amount": amount,
+            "cost_center": profile.get("cost_center"),
+        },
+    )
 
 
 @frappe.whitelist()
@@ -451,8 +491,11 @@ def _check_price_edit_permission(payload):
     (LumenPOS Settings → Permissions). A no-op when no discount is applied or no
     role is configured."""
     worst = max(
-        (flt(i.get("manual_discount_percent")) for i in payload.get("items", [])),
-        default=0,
+        flt(payload.get("order_discount_percent")),
+        max(
+            (flt(i.get("manual_discount_percent")) for i in payload.get("items", [])),
+            default=0,
+        ),
     )
     if worst <= 0:
         return
@@ -475,8 +518,11 @@ def _check_discount_passcode(payload):
     if limit <= 0:
         return None
     worst = max(
-        (flt(i.get("manual_discount_percent")) for i in payload.get("items", [])),
-        default=0,
+        flt(payload.get("order_discount_percent")),
+        max(
+            (flt(i.get("manual_discount_percent")) for i in payload.get("items", [])),
+            default=0,
+        ),
     )
     if worst <= limit:
         return None
@@ -753,17 +799,23 @@ def _line_discounts(payload, lines, promo_result, bundle_discounts):
                 biggest = max(eligible, key=lambda i: net[i])
                 whole[biggest] += remainder
 
+    # Whole-cart discount stacks on top of every line-level discount. Bundles
+    # are priced as a fixed package and never participate.
+    order_pct = flt(payload.get("order_discount_percent"))
     per_unit = [0.0] * n
     for i in range(n):
         qty = lines[i]["qty"] or 1
         promo_per_unit = whole[i] / qty
+        is_bundle = bool(payload["items"][i].get("bundle_key"))
         manual_pct = (
-            0
-            if payload["items"][i].get("bundle_key")
-            else flt(payload["items"][i].get("manual_discount_percent"))
+            0 if is_bundle else flt(payload["items"][i].get("manual_discount_percent"))
         )
         manual_per_unit = (lines[i]["price"] - promo_per_unit) * manual_pct / 100.0
-        per_unit[i] = max(0.0, promo_per_unit + manual_per_unit)
+        unit_discount = promo_per_unit + manual_per_unit
+        if order_pct and not is_bundle:
+            net_after_line = lines[i]["price"] - unit_discount
+            unit_discount += net_after_line * order_pct / 100.0
+        per_unit[i] = max(0.0, unit_discount)
     return per_unit
 
 

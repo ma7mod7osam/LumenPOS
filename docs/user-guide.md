@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.4.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.5.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -619,6 +619,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.5.0 | **Five new till features, each with its own on/off control** (Settings → General → *Features*). **Order-level discount** — one whole-cart discount field, spread proportionally across every non-bundle line, policed by the same discount limit + edit-price role as a line discount. **Service charge / tip** — a flat percent added to every sale as a final non-taxed charge, posted to a chosen income account (account is required when on). **Price / stock checker** — a *Price check* button on the sell screen looks up any item's live price + stock (here and across all stores) by barcode, serial, code or name, without touching the cart. **X-report** — a *read-only* mid-shift drawer snapshot on the Register screen (sales, takings, discounts, expected by payment, cash in/out) that prints but does **not** close the shift. **Receipt branding** — optional logo, header line and footer line on the on-screen + browser-printed receipt. Every control is independent and persists in LumenPOS Settings. |
 | 0.4.0 | **Invoice backend choice** (POS Profile → *LumenPOS Options* → **Sale posts as**). **POS Invoice** (default) keeps the shift + consolidation flow unchanged. **Sales Invoice** posts each sale as a Sales Invoice **directly** (GL immediately, no consolidation) with a **lightweight LumenPOS cash shift** — open a float, cash in/out, close with counts + X/Z, **no POS Opening/Closing Entry** (so it works on v14/v15). Sales, returns, history, the customer ledger and the close report are all backend-aware; the self-healer/consolidation never touches a direct-mode shift. |
 | 0.3.0 | **Granular permissions** (Settings → General → *Permissions*). Three role gates, each enforced server-side and mirrored in the UI; managers always pass, blank role = anyone: **Edit price / discount** (who may apply a manual discount — the field is disabled otherwise), **Make returns** (who may refund — the Refund button hides otherwise), and **Exceed return window** (this role returns past the window *directly*; everyone else still uses the approval-request flow). |
 | 0.2.0 | **Removed warranty Exchange.** Added: a per-POS-Profile **"Ignore ERPNext Pricing Rules"** toggle (on by default — LumenPOS uses its own promotion engine; off lets Pricing Rules apply); **add-item-on-scan** — a scanned barcode now adds the item instantly without pressing Enter (typed searches still use Enter). |

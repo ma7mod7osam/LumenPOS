@@ -113,6 +113,30 @@
         <span class="muted">{{ t('Manual discounts') }}</span>
         <span>-{{ money(cart.manualDiscountTotal) }}</span>
       </div>
+      <div
+        v-if="session.settings.enable_order_discount && cart.lines.length"
+        class="row order-discount-row"
+      >
+        <span class="muted">{{ t('Order discount') }}</span>
+        <span class="od-control">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            inputmode="decimal"
+            class="od-input"
+            :value="cart.orderDiscountPercent || ''"
+            placeholder="0"
+            :disabled="session.permissions.can_edit_price === false"
+            @input="cart.setOrderDiscount($event.target.value)"
+          />
+          <span class="od-pct">%</span>
+          <span v-if="cart.orderDiscountTotal > 0" class="od-amt"
+            >-{{ money(cart.orderDiscountTotal) }}</span
+          >
+        </span>
+      </div>
       <div v-for="tax in cart.taxBreakdown.exclusive" :key="'x' + tax.description" class="row">
         <span class="muted">{{ tax.description }}</span>
         <span>+{{ money(tax.amount) }}</span>
@@ -120,6 +144,10 @@
       <div v-for="tax in cart.taxBreakdown.included" :key="'i' + tax.description" class="row tax-included">
         <span class="muted">{{ t('{description} (included)', { description: tax.description }) }}</span>
         <span class="muted">{{ money(tax.amount) }}</span>
+      </div>
+      <div v-if="cart.serviceCharge > 0" class="row">
+        <span class="muted">{{ t('Service charge ({pct}%)', { pct: session.settings.service_charge_percent }) }}</span>
+        <span>+{{ money(cart.serviceCharge) }}</span>
       </div>
       <div class="row grand">
         <span>{{ t('Total') }} <span class="muted small">{{ t('({count} items)', { count: cart.itemCount }) }}</span></span>
@@ -412,6 +440,19 @@ html[data-theme='dark'] .suggestion:hover { background: rgba(150, 100, 255, 0.3)
 .promo-row { color: var(--promo); font-weight: 600; }
 .bundle-row { color: var(--brand-dark); font-weight: 600; }
 .tax-included { font-size: 12px; }
+.order-discount-row { align-items: center; }
+.od-control { display: inline-flex; align-items: center; gap: 4px; }
+.od-input {
+  width: 56px;
+  padding: 3px 6px;
+  font-size: 13px;
+  text-align: right;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.od-input:disabled { opacity: 0.5; }
+.od-pct { color: var(--text-muted); font-size: 12px; }
+.od-amt { color: var(--promo); font-weight: 700; margin-inline-start: 6px; }
 .bundle-badge-sm {
   display: inline-flex;
   align-items: center;

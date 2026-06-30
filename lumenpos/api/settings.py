@@ -79,6 +79,15 @@ def get_settings():
         "offline_stock_only": doc.get("offline_stock_only") or 0,
         "show_out_of_stock": doc.get("show_out_of_stock") or 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
+        "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
+        "enable_service_charge": 1 if doc.get("enable_service_charge") else 0,
+        "service_charge_percent": flt(doc.get("service_charge_percent")),
+        "service_charge_account": doc.get("service_charge_account") or "",
+        "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
+        "enable_xreport": 1 if doc.get("enable_xreport") else 0,
+        "receipt_logo": doc.get("receipt_logo") or "",
+        "receipt_header": doc.get("receipt_header") or "",
+        "receipt_footer": doc.get("receipt_footer") or "",
         "gift_card_expiry_days": doc.get("gift_card_expiry_days") or 0,
         "gift_card_mode_of_payment": doc.get("gift_card_mode_of_payment") or "",
         "gift_card_account": doc.get("gift_card_account") or "",
@@ -129,6 +138,15 @@ def save_settings(payload):
     doc.offline_stock_only = 1 if payload.get("offline_stock_only") else 0
     doc.show_out_of_stock = 1 if payload.get("show_out_of_stock") else 0
     doc.serial_scan_only = 1 if payload.get("serial_scan_only") else 0
+    doc.enable_order_discount = 1 if payload.get("enable_order_discount") else 0
+    doc.enable_service_charge = 1 if payload.get("enable_service_charge") else 0
+    doc.service_charge_percent = flt(payload.get("service_charge_percent"))
+    doc.service_charge_account = payload.get("service_charge_account") or None
+    doc.enable_price_checker = 1 if payload.get("enable_price_checker") else 0
+    doc.enable_xreport = 1 if payload.get("enable_xreport") else 0
+    doc.receipt_logo = payload.get("receipt_logo") or None
+    doc.receipt_header = payload.get("receipt_header") or None
+    doc.receipt_footer = payload.get("receipt_footer") or None
     doc.gift_card_expiry_days = int(payload.get("gift_card_expiry_days") or 0)
     doc.gift_card_mode_of_payment = payload.get("gift_card_mode_of_payment") or None
     doc.gift_card_account = payload.get("gift_card_account") or None

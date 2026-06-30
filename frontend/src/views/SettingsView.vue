@@ -787,6 +787,80 @@
         </div>
       </div>
 
+      <!-- Features -->
+      <div class="sec-card">
+        <div class="sec-title"><Icon name="bulb" /> {{ t('Features') }}</div>
+        <p class="muted hint-row" style="padding: 0 0 6px">
+          {{ t('Turn till features on or off. Each control is independent.') }}
+        </p>
+        <div class="setting-list">
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_order_discount" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Order-level (whole-cart) discount') }}</span>
+              <span class="setting-desc">{{ t('Adds one discount field on the cart, spread across every line. Still subject to the discount limit and edit-price role.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_price_checker" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Price / stock checker') }}</span>
+              <span class="setting-desc">{{ t('Adds a Price check button on the sell screen to look up an item\'s price and stock without selling it.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_xreport" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('X-report (mid-shift read)') }}</span>
+              <span class="setting-desc">{{ t('Adds an X-report button on the register screen — a read-only drawer snapshot that does NOT close the shift.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_service_charge" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Service charge / tip') }}</span>
+              <span class="setting-desc">{{ t('Adds a flat-percent charge to every sale, posted to the income account you choose below.') }}</span>
+            </span>
+          </label>
+        </div>
+        <div v-if="generalForm.enable_service_charge" class="field-grid" style="margin-top: 12px">
+          <label class="field">
+            <span>{{ t('Service charge %') }}</span>
+            <input type="number" min="0" max="100" step="0.5" v-model.number="generalForm.service_charge_percent" />
+          </label>
+          <label class="field">
+            <span>{{ t('Service charge account *') }}</span>
+            <LinkPicker doctype="Account" v-model="generalForm.service_charge_account" :placeholder="t('Income account…')" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Receipt branding -->
+      <div class="sec-card">
+        <div class="sec-title"><Icon name="image" /> {{ t('Receipt branding') }}</div>
+        <p class="muted hint-row" style="padding: 0 0 10px">
+          {{ t('Shown on the on-screen and browser-printed receipt. (A POS Profile Print Format, if set, takes over instead.)') }}
+        </p>
+        <div class="field-grid">
+          <label class="field span-2">
+            <span>{{ t('Logo URL or path') }}</span>
+            <input v-model="generalForm.receipt_logo" :placeholder="t('/files/logo.png or https://…')" @input="logoError = false" />
+          </label>
+          <label class="field span-2">
+            <span>{{ t('Header line (under the company name)') }}</span>
+            <input v-model="generalForm.receipt_header" :placeholder="t('e.g. VAT 3001234567 · Main Branch')" />
+          </label>
+          <label class="field span-2">
+            <span>{{ t('Footer line') }}</span>
+            <input v-model="generalForm.receipt_footer" :placeholder="t('e.g. Return within 14 days with receipt')" />
+          </label>
+        </div>
+        <div v-if="generalForm.receipt_logo" class="logo-preview">
+          <img :src="generalForm.receipt_logo" alt="" @error="logoError = true" @load="logoError = false" />
+          <span v-if="logoError" class="muted small">{{ t('Could not load that image — check the URL/path.') }}</span>
+        </div>
+      </div>
+
       <!-- Gift cards mapping -->
       <div class="sec-card">
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
@@ -1084,6 +1158,15 @@ const generalForm = ref({
   offline_stock_only: 0,
   show_out_of_stock: 0,
   serial_scan_only: 0,
+  enable_order_discount: 1,
+  enable_service_charge: 0,
+  service_charge_percent: 0,
+  service_charge_account: '',
+  enable_price_checker: 1,
+  enable_xreport: 1,
+  receipt_logo: '',
+  receipt_header: '',
+  receipt_footer: '',
   gift_card_expiry_days: 0,
   gift_card_mode_of_payment: '',
   gift_card_account: '',
@@ -1093,6 +1176,7 @@ const generalForm = ref({
   return_reasons: [],
   approvers: [],
 })
+const logoError = ref(false)
 
 // Payment methods offered in the refund-rule dropdowns.
 const payModeOptions = computed(() => {
@@ -1141,6 +1225,15 @@ async function load() {
     offline_stock_only: info.offline_stock_only || 0,
     show_out_of_stock: info.show_out_of_stock || 0,
     serial_scan_only: info.serial_scan_only || 0,
+    enable_order_discount: info.enable_order_discount ?? 1,
+    enable_service_charge: info.enable_service_charge || 0,
+    service_charge_percent: info.service_charge_percent || 0,
+    service_charge_account: info.service_charge_account || '',
+    enable_price_checker: info.enable_price_checker ?? 1,
+    enable_xreport: info.enable_xreport ?? 1,
+    receipt_logo: info.receipt_logo || '',
+    receipt_header: info.receipt_header || '',
+    receipt_footer: info.receipt_footer || '',
     gift_card_expiry_days: info.gift_card_expiry_days || 0,
     gift_card_mode_of_payment: info.gift_card_mode_of_payment || '',
     gift_card_account: info.gift_card_account || '',
@@ -1736,6 +1829,14 @@ async function saveGeneral() {
     session.settings.return_reasons = info.return_reasons || []
     session.settings.show_out_of_stock = info.show_out_of_stock || 0
     session.settings.serial_scan_only = info.serial_scan_only || 0
+    session.settings.enable_order_discount = info.enable_order_discount ?? 1
+    session.settings.enable_service_charge = info.enable_service_charge || 0
+    session.settings.service_charge_percent = info.service_charge_percent || 0
+    session.settings.enable_price_checker = info.enable_price_checker ?? 1
+    session.settings.enable_xreport = info.enable_xreport ?? 1
+    session.settings.receipt_logo = info.receipt_logo || ''
+    session.settings.receipt_header = info.receipt_header || ''
+    session.settings.receipt_footer = info.receipt_footer || ''
     session.notify(t('Settings saved'))
   } catch (e) {
     session.notify(e.message, true)
@@ -1783,6 +1884,21 @@ const filteredBooks = computed(() => {
   max-width: 920px;
   margin: 0 auto;
   width: 100%;
+}
+.logo-preview {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-preview img {
+  max-height: 60px;
+  max-width: 220px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  background: #fff;
 }
 
 /* ---- Segmented pill tab bar ---- */

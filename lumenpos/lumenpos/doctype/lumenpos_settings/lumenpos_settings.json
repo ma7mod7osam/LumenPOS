@@ -35,7 +35,19 @@
   "return_role",
   "return_exceed_role",
   "channels_section",
-  "delivery_apps"
+  "delivery_apps",
+  "features_section",
+  "enable_order_discount",
+  "enable_service_charge",
+  "service_charge_percent",
+  "service_charge_account",
+  "features_col",
+  "enable_price_checker",
+  "enable_xreport",
+  "receipt_section",
+  "receipt_logo",
+  "receipt_header",
+  "receipt_footer"
  ],
  "fields": [
   {
@@ -237,6 +249,83 @@
    "fieldtype": "Table",
    "label": "Delivery Apps",
    "options": "POS Delivery App"
+  },
+  {
+   "description": "Turn till features on or off. Each control is independent.",
+   "fieldname": "features_section",
+   "fieldtype": "Section Break",
+   "label": "Features"
+  },
+  {
+   "default": "1",
+   "description": "Allow a single discount on the whole cart (subject to the discount limit + edit-price role).",
+   "fieldname": "enable_order_discount",
+   "fieldtype": "Check",
+   "label": "Order-level (whole-cart) discount"
+  },
+  {
+   "default": "0",
+   "description": "Add a service charge to every sale (e.g. restaurants / salons).",
+   "fieldname": "enable_service_charge",
+   "fieldtype": "Check",
+   "label": "Service charge"
+  },
+  {
+   "default": "0",
+   "depends_on": "enable_service_charge",
+   "fieldname": "service_charge_percent",
+   "fieldtype": "Float",
+   "label": "Service charge (%)"
+  },
+  {
+   "depends_on": "enable_service_charge",
+   "description": "Income account the service charge posts to.",
+   "fieldname": "service_charge_account",
+   "fieldtype": "Link",
+   "label": "Service charge account",
+   "mandatory_depends_on": "enable_service_charge",
+   "options": "Account"
+  },
+  {
+   "fieldname": "features_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Show a Price check button to look up an item's price + stock without selling it.",
+   "fieldname": "enable_price_checker",
+   "fieldtype": "Check",
+   "label": "Price / stock checker"
+  },
+  {
+   "default": "1",
+   "description": "Allow printing an X-report (mid-shift drawer read) without closing the register.",
+   "fieldname": "enable_xreport",
+   "fieldtype": "Check",
+   "label": "X-report (mid-shift read)"
+  },
+  {
+   "fieldname": "receipt_section",
+   "fieldtype": "Section Break",
+   "label": "Receipt Branding"
+  },
+  {
+   "description": "Logo shown at the top of the printed/on-screen receipt.",
+   "fieldname": "receipt_logo",
+   "fieldtype": "Attach Image",
+   "label": "Receipt logo"
+  },
+  {
+   "description": "Extra line under the company name (e.g. VAT no., branch).",
+   "fieldname": "receipt_header",
+   "fieldtype": "Small Text",
+   "label": "Receipt header"
+  },
+  {
+   "description": "Footer line (e.g. return policy, thank-you, social).",
+   "fieldname": "receipt_footer",
+   "fieldtype": "Small Text",
+   "label": "Receipt footer"
   }
  ],
  "index_web_pages_for_search": 0,

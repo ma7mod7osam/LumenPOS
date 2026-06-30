@@ -14,6 +14,14 @@
           />
           <button v-if="catalog.search" class="btn-ghost clear" @click="catalog.clearSearch()"><Icon name="close" /></button>
         </div>
+        <button
+          v-if="session.settings.enable_price_checker"
+          class="btn btn-outline"
+          :title="t('Look up a price without selling')"
+          @click="priceCheckOpen = true"
+        >
+          <Icon name="search" /> {{ t('Price check') }}
+        </button>
         <button class="btn btn-outline" @click="parkedOpen = true">
           {{ t('Retrieve Sale') }}
         </button>
@@ -83,6 +91,7 @@
       @close="passcodeOpen = false"
       @approved="onDiscountApproved"
     />
+    <PriceCheckModal v-if="priceCheckOpen" @close="priceCheckOpen = false" />
 
     <div v-if="parkOpen" class="modal-backdrop" @click.self="parkOpen = false">
       <div class="modal" style="width: 420px">
@@ -115,6 +124,7 @@ import ParkedSalesModal from '../components/ParkedSalesModal.vue'
 import ReceiptModal from '../components/ReceiptModal.vue'
 import SerialModal from '../components/SerialModal.vue'
 import PasscodeModal from '../components/PasscodeModal.vue'
+import PriceCheckModal from '../components/PriceCheckModal.vue'
 import { createScanGuard } from '../scanGuard'
 
 const session = useSessionStore()
@@ -146,6 +156,7 @@ const parkNote = ref('')
 const receipt = ref(null)
 const searchInput = ref(null)
 const serialItem = ref(null)
+const priceCheckOpen = ref(false)
 
 onMounted(() => searchInput.value?.focus())
 

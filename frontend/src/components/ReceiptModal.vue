@@ -19,7 +19,16 @@
 
         <div id="receipt-print" class="receipt">
           <div class="receipt-head">
+            <img
+              v-if="session.settings.receipt_logo"
+              :src="session.settings.receipt_logo"
+              class="receipt-logo"
+              alt=""
+            />
             <div class="receipt-company">{{ receipt.company }}</div>
+            <div v-if="session.settings.receipt_header" class="muted small receipt-extra">
+              {{ session.settings.receipt_header }}
+            </div>
             <div v-if="receipt.is_return" class="return-stamp">{{ t('REFUND') }}</div>
             <div class="muted small">
               {{ receipt.name }} · {{ receipt.posting_date }} {{ String(receipt.posting_time || '').split('.')[0] }}
@@ -71,7 +80,12 @@
           <div v-if="receipt.loyalty_points_earned" class="receipt-promos muted small">
             {{ t('Points earned:') }} {{ receipt.loyalty_points_earned }}
           </div>
-          <div class="receipt-foot muted small">{{ t('Thank you!') }}</div>
+          <div class="receipt-foot muted small">
+            <div v-if="session.settings.receipt_footer" class="receipt-extra">
+              {{ session.settings.receipt_footer }}
+            </div>
+            {{ t('Thank you!') }}
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -173,7 +187,15 @@ async function print() {
   font-size: 13px;
 }
 .receipt-head { text-align: center; margin-bottom: 12px; }
+.receipt-logo {
+  max-height: 64px;
+  max-width: 70%;
+  object-fit: contain;
+  margin: 0 auto 8px;
+  display: block;
+}
 .receipt-company { font-weight: 800; font-size: 15px; }
+.receipt-extra { white-space: pre-line; margin: 3px 0; }
 .return-stamp {
   color: var(--red);
   font-weight: 800;

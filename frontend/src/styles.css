@@ -228,8 +228,10 @@ html[dir='rtl'] #receipt-print { direction: rtl; }
 
 @media print {
   body * { visibility: hidden; }
-  #receipt-print, #receipt-print * { visibility: visible; }
-  #receipt-print {
+  #receipt-print, #receipt-print *,
+  #xreport-print, #xreport-print * { visibility: visible; }
+  #receipt-print,
+  #xreport-print {
     position: absolute;
     left: 0;
     top: 0;
@@ -238,5 +240,6 @@ html[dir='rtl'] #receipt-print { direction: rtl; }
     background: #fff !important;
     color: #000 !important;
   }
-  #receipt-print * { color: #000 !important; }
+  #receipt-print *,
+  #xreport-print * { color: #000 !important; }
 }

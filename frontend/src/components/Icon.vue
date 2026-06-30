@@ -17,6 +17,7 @@ const STROKE = new Set([
   'close', 'shield', 'bulb', 'ticket', 'store', 'person', 'company', 'bank',
   'card', 'cash', 'hourglass', 'exchange', 'refresh', 'download', 'upload',
   'ban', 'barcode', 'gift', 'bike', 'plus', 'check', 'warning',
+  'search', 'tag', 'report', 'image',
 ])
 
 const PATHS = {
@@ -60,6 +61,15 @@ const PATHS = {
   upload: '<path d="M12 21V9M8 13l4-4 4 4M5 3h14"/>',
   ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6 18.4 18.4"/>',
   barcode: '<path d="M4 5v14M7 5v14M10 5v14M13 5v14M17 5v14M20 5v14"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  tag:
+    '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/>',
+  report:
+    '<path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>' +
+    '<path d="M14 3v5h5M9 13h6M9 17h6M9 9h2"/>',
+  image:
+    '<rect x="3" y="4" width="18" height="16" rx="2"/>' +
+    '<circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 19 5-5 4 4 3-3 5 5"/>',
   // filled
   star:
     '<path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.15 1 5.85L12 17.05 6.75 19.6l1-5.85L3.5 9.7l5.9-.9z"/>',

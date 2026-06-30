@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import flt
 
 from lumenpos.promotions.loader import get_active_promotions
 
@@ -249,6 +250,14 @@ def _client_settings():
         "return_window_days": cint(doc.get("return_window_days")) or 0,
         "show_out_of_stock": 1 if doc.get("show_out_of_stock") else 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
+        "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
+        "enable_service_charge": 1 if doc.get("enable_service_charge") else 0,
+        "service_charge_percent": flt(doc.get("service_charge_percent")),
+        "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
+        "enable_xreport": 1 if doc.get("enable_xreport") else 0,
+        "receipt_logo": doc.get("receipt_logo") or "",
+        "receipt_header": doc.get("receipt_header") or "",
+        "receipt_footer": doc.get("receipt_footer") or "",
         "return_reasons": [
             r.reason for r in (doc.get("return_reasons") or []) if (r.reason or "").strip()
         ],
