@@ -10,6 +10,7 @@ import HistoryView from './views/HistoryView.vue'
 import CustomersView from './views/CustomersView.vue'
 import RegisterView from './views/RegisterView.vue'
 import SettingsView from './views/SettingsView.vue'
+import CustomerDisplayView from './views/CustomerDisplayView.vue'
 import './styles.css'
 
 const router = createRouter({
@@ -20,6 +21,8 @@ const router = createRouter({
     { path: '/customers', component: CustomersView },
     { path: '/register', component: RegisterView },
     { path: '/settings', component: SettingsView },
+    // Second-screen customer-facing display — chrome-free, no bootstrap.
+    { path: '/display', component: CustomerDisplayView },
   ],
 })
 

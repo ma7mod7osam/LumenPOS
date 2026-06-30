@@ -22,6 +22,14 @@
         >
           <Icon name="search" /> {{ t('Price check') }}
         </button>
+        <button
+          v-if="session.settings.enable_customer_display"
+          class="btn btn-outline"
+          :title="t('Open the customer-facing display')"
+          @click="openCustomerDisplay"
+        >
+          <Icon name="store" /> {{ t('Display') }}
+        </button>
         <button class="btn btn-outline" @click="parkedOpen = true">
           {{ t('Retrieve Sale') }}
         </button>
@@ -222,6 +230,12 @@ async function toggleFavourites() {
   showFavourites.value = !showFavourites.value
   showBundles.value = false
   if (showFavourites.value && !favourites.value.length) await loadFavourites()
+}
+
+function openCustomerDisplay() {
+  // Same SPA, hash route — opens (or focuses) a dedicated second-screen window.
+  const url = window.location.href.replace(/#.*$/, '') + '#/display'
+  window.open(url, 'lumenpos-customer-display', 'width=1024,height=720')
 }
 
 async function loadFavourites() {

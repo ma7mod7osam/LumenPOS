@@ -591,6 +591,14 @@ const features = {
   "Register close": "إغلاق الصندوق",
   "Settings change": "تغيير الإعدادات",
   "Till unlock": "فتح قفل الصندوق",
+  "Record sensitive actions to the audit log (viewable in the Audit Log tab).": "سجّل الإجراءات الحساسة في سجل التدقيق (يظهر في تبويب سجل التدقيق).",
+  "Customer-facing display": "شاشة مواجهة للعميل",
+  "Adds a Display button on the sell screen that opens a second-screen window mirroring the cart for the customer.": "يضيف زر شاشة في شاشة البيع يفتح نافذة على شاشة ثانية تعرض السلة للعميل.",
+  "Display": "شاشة",
+  "Open the customer-facing display": "افتح الشاشة المواجهة للعميل",
+  "Welcome": "أهلاً وسهلاً",
+  "You save": "وفّرت",
+  "{count} items": "{count} صنف",
 }
 
 // Sell screen, cart, product grid.

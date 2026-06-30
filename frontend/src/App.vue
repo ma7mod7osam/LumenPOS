@@ -1,5 +1,9 @@
 ﻿<template>
-  <div class="shell" v-if="session.loaded && !session.error">
+  <!-- Customer-facing display: a chrome-free second screen, no app shell and
+       no bootstrap — it only listens for cart snapshots over BroadcastChannel. -->
+  <router-view v-if="isDisplay" />
+
+  <div class="shell" v-else-if="session.loaded && !session.error">
     <NavRail />
     <div class="main">
       <header class="topbar">
@@ -41,7 +45,7 @@
     </div>
   </div>
 
-  <div v-else-if="session.error" class="boot-error">
+  <div v-else-if="!isDisplay && session.error" class="boot-error">
     <div class="card boot-card">
       <h2>{{ t('LumenPOS could not start') }}</h2>
       <p>{{ session.error }}</p>
@@ -53,17 +57,44 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSessionStore } from './stores/session'
 import { useCatalogStore } from './stores/catalog'
+import { useCartStore } from './stores/cart'
+import { money } from './format'
+import { publishCart, onDisplayRequest } from './customerDisplay'
 import { t, locale, toggleLocale } from './i18n'
 import NavRail from './components/NavRail.vue'
 import OpenRegisterOverlay from './components/OpenRegisterOverlay.vue'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
+const cart = useCartStore()
 const route = useRoute()
+const isDisplay = computed(() => route.path === '/display')
+
+// Push a fully-formatted cart snapshot to any open customer display.
+function publishDisplaySnapshot() {
+  if (!session.settings?.enable_customer_display) return
+  const saved =
+    cart.promoSavings + cart.bundleSavings + cart.manualDiscountTotal + cart.orderDiscountTotal
+  publishCart({
+    company: session.company,
+    logo: session.settings?.receipt_logo || '',
+    customer: cart.customer?.customer_name || '',
+    items: cart.lines.map((l) => ({
+      name: l.item_name,
+      qty: l.qty,
+      rate: money(l.price),
+      amount: money(l.price * l.qty),
+    })),
+    count: cart.itemCount,
+    subtotal: money(cart.subtotal),
+    total: money(cart.total),
+    savings: saved > 0.005 ? money(saved) : '',
+  })
+}
 
 const pageTitle = computed(
   () =>
@@ -77,12 +108,20 @@ const pageTitle = computed(
 )
 
 onMounted(async () => {
+  // The display window is a passive mirror — no bootstrap, no catalog, no shell.
+  if (isDisplay.value) return
+
   session.watchConnection()
   await session.bootstrap()
   if (session.loaded && !session.error) {
     catalog.fetch()
     catalog.cacheFullCatalog() // background fill of the offline cache
     if (session.queuedCount && !session.offline) session.flushQueue()
+    // Mirror the cart to any open customer display, and answer a display that
+    // opens later and asks for the current state.
+    cart.$subscribe(() => publishDisplaySnapshot())
+    onDisplayRequest(publishDisplaySnapshot)
+    watch(() => session.settings?.enable_customer_display, publishDisplaySnapshot)
   }
 })
 </script>

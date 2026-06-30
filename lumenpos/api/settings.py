@@ -87,6 +87,7 @@ def get_settings():
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
         "enable_audit_log": 1 if doc.get("enable_audit_log") else 0,
         "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
+        "enable_customer_display": 1 if doc.get("enable_customer_display") else 0,
         "enable_quick_keys": 1 if doc.get("enable_quick_keys") else 0,
         "quick_keys": [
             {"item_code": r.item_code, "label": r.label or ""}
@@ -153,6 +154,7 @@ def save_settings(payload):
     doc.enable_xreport = 1 if payload.get("enable_xreport") else 0
     doc.enable_audit_log = 1 if payload.get("enable_audit_log") else 0
     doc.enable_email_receipt = 1 if payload.get("enable_email_receipt") else 0
+    doc.enable_customer_display = 1 if payload.get("enable_customer_display") else 0
     doc.enable_quick_keys = 1 if payload.get("enable_quick_keys") else 0
     doc.set("quick_keys", [])
     for row in payload.get("quick_keys") or []:

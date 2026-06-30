@@ -46,6 +46,7 @@
   "enable_xreport",
   "enable_audit_log",
   "enable_email_receipt",
+  "enable_customer_display",
   "enable_quick_keys",
   "quick_keys_section",
   "quick_keys",
@@ -322,6 +323,13 @@
    "fieldname": "enable_email_receipt",
    "fieldtype": "Check",
    "label": "Email receipt"
+  },
+  {
+   "default": "0",
+   "description": "Enable a second-screen customer-facing display (mirrors the cart on another monitor/window).",
+   "fieldname": "enable_customer_display",
+   "fieldtype": "Check",
+   "label": "Customer-facing display"
   },
   {
    "default": "0",

@@ -822,6 +822,34 @@
               <span class="setting-desc">{{ t('Adds a flat-percent charge to every sale, posted to the income account you choose below.') }}</span>
             </span>
           </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_quick_keys" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Quick keys / favourites') }}</span>
+              <span class="setting-desc">{{ t('Show a Favourites grid of one-tap items on the sell screen.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_email_receipt" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Email receipt') }}</span>
+              <span class="setting-desc">{{ t('Show an Email receipt button so a copy can be sent to the customer\'s email.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_customer_display" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Customer-facing display') }}</span>
+              <span class="setting-desc">{{ t('Adds a Display button on the sell screen that opens a second-screen window mirroring the cart for the customer.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_audit_log" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Audit log') }}</span>
+              <span class="setting-desc">{{ t('Record sensitive actions to the audit log (viewable in the Audit Log tab).') }}</span>
+            </span>
+          </label>
         </div>
         <div v-if="generalForm.enable_service_charge" class="field-grid" style="margin-top: 12px">
           <label class="field">
@@ -1233,6 +1261,7 @@ const generalForm = ref({
   enable_xreport: 1,
   enable_audit_log: 1,
   enable_email_receipt: 0,
+  enable_customer_display: 0,
   enable_quick_keys: 0,
   quick_keys: [],
   receipt_logo: '',
@@ -1341,6 +1370,7 @@ async function load() {
     enable_xreport: info.enable_xreport ?? 1,
     enable_audit_log: info.enable_audit_log ?? 1,
     enable_email_receipt: info.enable_email_receipt || 0,
+    enable_customer_display: info.enable_customer_display || 0,
     enable_quick_keys: info.enable_quick_keys || 0,
     quick_keys: (info.quick_keys || []).map((r) => ({ item_code: r.item_code, label: r.label || '' })),
     receipt_logo: info.receipt_logo || '',
@@ -1946,6 +1976,9 @@ async function saveGeneral() {
     session.settings.service_charge_percent = info.service_charge_percent || 0
     session.settings.enable_price_checker = info.enable_price_checker ?? 1
     session.settings.enable_xreport = info.enable_xreport ?? 1
+    session.settings.enable_email_receipt = info.enable_email_receipt || 0
+    session.settings.enable_customer_display = info.enable_customer_display || 0
+    session.settings.enable_quick_keys = info.enable_quick_keys || 0
     session.settings.receipt_logo = info.receipt_logo || ''
     session.settings.receipt_header = info.receipt_header || ''
     session.settings.receipt_footer = info.receipt_footer || ''

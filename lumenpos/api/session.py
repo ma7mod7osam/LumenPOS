@@ -256,6 +256,7 @@ def _client_settings():
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
         "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
+        "enable_customer_display": 1 if doc.get("enable_customer_display") else 0,
         "enable_quick_keys": 1 if doc.get("enable_quick_keys") else 0,
         "receipt_logo": doc.get("receipt_logo") or "",
         "receipt_header": doc.get("receipt_header") or "",
