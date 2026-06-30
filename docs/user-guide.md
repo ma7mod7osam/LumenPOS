@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.11.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.11.2. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.11.2 | **Non-stock items (services, fees) never carry a warehouse.** Extends the 0.11.1 gift-card fix to every sale: after building the invoice, any **non-stock** line (a service like *Installation*, a fee, etc.) has its warehouse cleared — it never moves stock, so a warehouse is meaningless and it should never be subject to the warehouse↔company check. **Stock** items keep the POS Profile's warehouse (which must belong to the profile's company). So a multi-company site can sell services on any company's profile without a warehouse error. |
 | 0.11.1 | **Fix: selling a gift card failed on a multi-company site** with *"Warehouse … doesn't belong to Company …"*. A gift card is a non-stock liability sale (no stock moves), but `set_missing_values` was defaulting a warehouse onto the line — and on a multi-company site that could be another company's warehouse, tripping ERPNext's warehouse↔company check. The gift-card sale now clears the line + `set_warehouse` after building (no warehouse is needed), so it posts cleanly regardless of company. |
 | 0.11.0 | **Multi-company accounts (Settings → General → Company Accounts).** Fixes account pickers listing *every* company's chart of accounts (which could post a sale to the wrong company's GL). A new **Company** dropdown scopes the company-specific accounts — the **gift-card liability account** and **service-charge account** — and the account lists now show **only the selected company's** accounts (new `company` filter on the link lookup). At sale time each is resolved from the **POS Profile's company** (per-company override → global fallback → auto-create), and gift cards now **refuse to use an account that doesn't belong to the sale's company** (auto-creates the right one instead) — so several companies can share one site safely. New child doctype *LumenPOS Company Setting*; the global gift-card/service-charge account fields remain as fallbacks. |
 | 0.10.0 | **Receipt designer (Settings → General → Receipt).** Choose one of **three templates** — *Compact*, *Standard*, *Detailed* (layout/density) — and tick exactly what each receipt shows: **item code, barcode, serial numbers, unit price (qty × rate), payment methods, the sale note, tax/VAT ID, store address, terms & conditions**, plus the existing logo / header / footer. A **live preview** renders as you change options. The on-screen and browser-printed receipt (a shared `ReceiptView` component) honours all of it; the sale note is now stored on the invoice (`lumenpos_note`) and barcodes/serials are returned with the receipt. (The optional ESC/POS thermal-printer path keeps its fixed layout for now.) |

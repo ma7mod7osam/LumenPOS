@@ -170,6 +170,24 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
 
     invoice.set_missing_values()
 
+    # Non-stock lines (services, fees, gift-card-like items) never move stock, so
+    # they shouldn't carry a warehouse. Clearing it keeps them out of ERPNext's
+    # warehouse-belongs-to-company check on a multi-company site (set_missing_values
+    # can default a warehouse from the wrong company). Stock items keep the
+    # profile's warehouse, which must belong to the profile's company.
+    if invoice.items:
+        non_stock = {
+            r.name
+            for r in frappe.get_all(
+                "Item",
+                filters={"name": ["in", [i.item_code for i in invoice.items]], "is_stock_item": 0},
+                fields=["name"],
+            )
+        }
+        for item_row in invoice.items:
+            if item_row.item_code in non_stock:
+                item_row.warehouse = None
+
     # Apply discounts AFTER set_missing_values (it resets them otherwise).
     # CRITICAL: with Pricing Rules off, ERPNext's calculate_taxes_and_totals
     # honours ONLY discount_percentage (it recomputes discount_amount from
