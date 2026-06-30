@@ -893,29 +893,68 @@
         </template>
       </div>
 
-      <!-- Receipt branding -->
+      <!-- Receipt -->
       <div class="sec-card">
-        <div class="sec-title"><Icon name="image" /> {{ t('Receipt branding') }}</div>
+        <div class="sec-title"><Icon name="image" /> {{ t('Receipt') }}</div>
         <p class="muted hint-row" style="padding: 0 0 10px">
-          {{ t('Shown on the on-screen and browser-printed receipt. (A POS Profile Print Format, if set, takes over instead.)') }}
+          {{ t('Design the receipt shown on screen and printed from the browser. (A POS Profile Print Format, if set, takes over instead.)') }}
         </p>
-        <div class="field-grid">
-          <label class="field span-2">
-            <span>{{ t('Logo URL or path') }}</span>
-            <input v-model="generalForm.receipt_logo" :placeholder="t('/files/logo.png or https://…')" @input="logoError = false" />
-          </label>
-          <label class="field span-2">
-            <span>{{ t('Header line (under the company name)') }}</span>
-            <input v-model="generalForm.receipt_header" :placeholder="t('e.g. VAT 3001234567 · Main Branch')" />
-          </label>
-          <label class="field span-2">
-            <span>{{ t('Footer line') }}</span>
-            <input v-model="generalForm.receipt_footer" :placeholder="t('e.g. Return within 14 days with receipt')" />
-          </label>
-        </div>
-        <div v-if="generalForm.receipt_logo" class="logo-preview">
-          <img :src="generalForm.receipt_logo" alt="" @error="logoError = true" @load="logoError = false" />
-          <span v-if="logoError" class="muted small">{{ t('Could not load that image — check the URL/path.') }}</span>
+        <div class="receipt-config">
+          <div class="rc-controls">
+            <div class="seg-field">
+              <span class="seg-label">{{ t('Template') }}</span>
+              <div class="segmented">
+                <button
+                  v-for="tpl in RECEIPT_TEMPLATES"
+                  :key="tpl"
+                  class="seg-btn"
+                  :class="{ on: generalForm.receipt_template === tpl }"
+                  @click="generalForm.receipt_template = tpl"
+                >
+                  {{ t(tpl) }}
+                </button>
+              </div>
+            </div>
+
+            <div class="field-grid" style="margin-top: 14px">
+              <label class="field span-2">
+                <span>{{ t('Logo URL or path') }}</span>
+                <input v-model="generalForm.receipt_logo" :placeholder="t('/files/logo.png or https://…')" />
+              </label>
+              <label class="field span-2">
+                <span>{{ t('Header line (under the company name)') }}</span>
+                <input v-model="generalForm.receipt_header" :placeholder="t('e.g. Main Branch · 0500000000')" />
+              </label>
+              <label class="field span-2">
+                <span>{{ t('Footer line') }}</span>
+                <input v-model="generalForm.receipt_footer" :placeholder="t('e.g. Thank you for shopping with us')" />
+              </label>
+            </div>
+
+            <div class="sub-label" style="margin-top: 14px">{{ t('Show on the receipt') }}</div>
+            <div class="rc-toggles">
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_item_code" :true-value="1" :false-value="0" /> {{ t('Item code') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_barcode" :true-value="1" :false-value="0" /> {{ t('Barcode') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_serial" :true-value="1" :false-value="0" /> {{ t('Serial numbers') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_unit_price" :true-value="1" :false-value="0" /> {{ t('Unit price (qty × rate)') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_payments" :true-value="1" :false-value="0" /> {{ t('Payment methods') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_note" :true-value="1" :false-value="0" /> {{ t('Sale note') }}</label>
+            </div>
+
+            <div class="rc-textfields">
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_tax_id" :true-value="1" :false-value="0" /> {{ t('Tax / VAT ID') }}</label>
+              <input v-if="generalForm.receipt_show_tax_id" v-model="generalForm.receipt_tax_id" :placeholder="t('e.g. 3001234567')" />
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_address" :true-value="1" :false-value="0" /> {{ t('Store address') }}</label>
+              <textarea v-if="generalForm.receipt_show_address" v-model="generalForm.receipt_address" rows="2" :placeholder="t('Street, city…')"></textarea>
+              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_terms" :true-value="1" :false-value="0" /> {{ t('Terms & conditions') }}</label>
+              <textarea v-if="generalForm.receipt_show_terms" v-model="generalForm.receipt_terms" rows="2" :placeholder="t('Return within 14 days with the receipt…')"></textarea>
+            </div>
+          </div>
+
+          <div class="rc-preview">
+            <div class="rc-preview-label muted small">{{ t('Live preview') }}</div>
+            <ReceiptView :receipt="sampleReceipt" :settings="generalForm" />
+          </div>
         </div>
       </div>
 
@@ -1200,6 +1239,7 @@ import { useCatalogStore } from '../stores/catalog'
 import { catalogCount } from '../offline'
 import LinkPicker from '../components/LinkPicker.vue'
 import PriceListEditor from '../components/PriceListEditor.vue'
+import ReceiptView from '../components/ReceiptView.vue'
 import { t } from '../i18n'
 
 const session = useSessionStore()
@@ -1279,9 +1319,22 @@ const generalForm = ref({
   auto_lock_minutes: 0,
   enable_quick_keys: 0,
   quick_keys: [],
+  receipt_template: 'Standard',
   receipt_logo: '',
   receipt_header: '',
   receipt_footer: '',
+  receipt_show_item_code: 0,
+  receipt_show_barcode: 0,
+  receipt_show_serial: 1,
+  receipt_show_unit_price: 1,
+  receipt_show_payments: 1,
+  receipt_show_note: 1,
+  receipt_show_tax_id: 0,
+  receipt_tax_id: '',
+  receipt_show_address: 0,
+  receipt_address: '',
+  receipt_show_terms: 0,
+  receipt_terms: '',
   gift_card_expiry_days: 0,
   gift_card_mode_of_payment: '',
   gift_card_account: '',
@@ -1292,6 +1345,32 @@ const generalForm = ref({
   approvers: [],
 })
 const logoError = ref(false)
+
+// ---- receipt designer ----
+const RECEIPT_TEMPLATES = ['Compact', 'Standard', 'Detailed']
+const sampleReceipt = {
+  name: 'INV-2026-00042',
+  company: session.company || 'Your Store',
+  customer_name: 'Walk-in Customer',
+  sales_person: 'Cashier',
+  posting_date: '2026-06-30',
+  posting_time: '14:32:00',
+  note: 'Gift wrap requested',
+  is_return: false,
+  items: [
+    { item_code: 'BACKPACK', item_name: 'Backpack', barcode: '6291041500213', serial_no: null, qty: 1, rate: 500, amount: 500 },
+    { item_code: 'CAMERA-DSLR', item_name: 'DSLR Camera', barcode: '6291041500220', serial_no: 'SN-00123', qty: 1, rate: 900, amount: 900 },
+  ],
+  discount_amount: 0,
+  taxes: [{ description: 'VAT 15%', tax_amount: 182.61 }],
+  grand_total: 1400,
+  rounded_total: 1400,
+  payments: [{ mode_of_payment: 'Mada', amount: 1400 }],
+  loyalty_amount: 0,
+  change_amount: 0,
+  applied_promotions: [],
+  loyalty_points_earned: 14,
+}
 
 // ---- audit log viewer ----
 const AUDIT_ACTIONS = [
@@ -1390,9 +1469,22 @@ async function load() {
     auto_lock_minutes: info.auto_lock_minutes || 0,
     enable_quick_keys: info.enable_quick_keys || 0,
     quick_keys: (info.quick_keys || []).map((r) => ({ item_code: r.item_code, label: r.label || '' })),
+    receipt_template: info.receipt_template || 'Standard',
     receipt_logo: info.receipt_logo || '',
     receipt_header: info.receipt_header || '',
     receipt_footer: info.receipt_footer || '',
+    receipt_show_item_code: info.receipt_show_item_code || 0,
+    receipt_show_barcode: info.receipt_show_barcode || 0,
+    receipt_show_serial: info.receipt_show_serial ?? 1,
+    receipt_show_unit_price: info.receipt_show_unit_price ?? 1,
+    receipt_show_payments: info.receipt_show_payments ?? 1,
+    receipt_show_note: info.receipt_show_note ?? 1,
+    receipt_show_tax_id: info.receipt_show_tax_id || 0,
+    receipt_tax_id: info.receipt_tax_id || '',
+    receipt_show_address: info.receipt_show_address || 0,
+    receipt_address: info.receipt_address || '',
+    receipt_show_terms: info.receipt_show_terms || 0,
+    receipt_terms: info.receipt_terms || '',
     gift_card_expiry_days: info.gift_card_expiry_days || 0,
     gift_card_mode_of_payment: info.gift_card_mode_of_payment || '',
     gift_card_account: info.gift_card_account || '',
@@ -1998,9 +2090,9 @@ async function saveGeneral() {
     session.settings.enable_till_lock = info.enable_till_lock || 0
     session.settings.auto_lock_minutes = info.auto_lock_minutes || 0
     session.settings.enable_quick_keys = info.enable_quick_keys || 0
-    session.settings.receipt_logo = info.receipt_logo || ''
-    session.settings.receipt_header = info.receipt_header || ''
-    session.settings.receipt_footer = info.receipt_footer || ''
+    for (const k of Object.keys(info)) {
+      if (k.startsWith('receipt_')) session.settings[k] = info[k]
+    }
     session.notify(t('Settings saved'))
   } catch (e) {
     session.notify(e.message, true)
@@ -2064,6 +2156,14 @@ const filteredBooks = computed(() => {
   padding: 6px;
   background: #fff;
 }
+.receipt-config { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+.rc-controls { flex: 1; min-width: 280px; }
+.rc-preview { width: 320px; flex-shrink: 0; position: sticky; top: 8px; }
+.rc-preview-label { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 6px; }
+.rc-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-bottom: 12px; }
+.rc-textfields { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.rc-textfields input, .rc-textfields textarea { width: 100%; font-size: 13px; }
+.rc-textfields textarea { resize: vertical; }
 .audit-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .audit-filters select, .audit-filters input { padding: 7px 10px; font-size: 13px; }
 .audit-table { width: 100%; border-collapse: collapse; }

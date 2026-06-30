@@ -122,6 +122,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         }
     )
     _set_custom(invoice, ("lumenpos_promotions",), json.dumps(promo_result["applied"]))
+    _set_custom(invoice, ("lumenpos_note",), payload.get("note"))
     if app:
         # Use the site's existing channel fields: pick_customer (the checkbox
         # that reveals the app fields), custom_app_type (Select) and
@@ -1048,8 +1049,20 @@ def get_receipt(invoice):
         {"invoice": doc.name, "loyalty_points": [">", 0]},
         "loyalty_points",
     )
+    # Barcodes for the receipt (optional column, gated client-side).
+    barcode_map = {}
+    codes = [row.item_code for row in doc.items]
+    if codes:
+        for b in frappe.get_all(
+            "Item Barcode",
+            filters={"parent": ["in", codes]},
+            fields=["parent", "barcode"],
+            order_by="idx asc",
+        ):
+            barcode_map.setdefault(b.parent, b.barcode)
     return {
         "name": doc.name,
+        "note": _get_custom(doc, ("lumenpos_note",)) or "",
         "is_return": doc.is_return,
         "return_against": doc.return_against,
         "loyalty_points_earned": cint(earned_points),
@@ -1074,6 +1087,8 @@ def get_receipt(invoice):
                 "rate": row.rate,
                 "amount": row.amount,
                 "discount_amount": row.discount_amount,
+                "barcode": barcode_map.get(row.item_code),
+                "serial_no": (row.get("serial_no") or "").strip() or None,
             }
             for row in doc.items
         ],

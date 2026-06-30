@@ -95,9 +95,22 @@ def get_settings():
             {"item_code": r.item_code, "label": r.label or ""}
             for r in (doc.get("quick_keys") or [])
         ],
+        "receipt_template": doc.get("receipt_template") or "Standard",
         "receipt_logo": doc.get("receipt_logo") or "",
         "receipt_header": doc.get("receipt_header") or "",
         "receipt_footer": doc.get("receipt_footer") or "",
+        "receipt_show_item_code": 1 if doc.get("receipt_show_item_code") else 0,
+        "receipt_show_barcode": 1 if doc.get("receipt_show_barcode") else 0,
+        "receipt_show_serial": 1 if doc.get("receipt_show_serial") else 0,
+        "receipt_show_unit_price": 1 if doc.get("receipt_show_unit_price") else 0,
+        "receipt_show_payments": 1 if doc.get("receipt_show_payments") else 0,
+        "receipt_show_note": 1 if doc.get("receipt_show_note") else 0,
+        "receipt_show_tax_id": 1 if doc.get("receipt_show_tax_id") else 0,
+        "receipt_tax_id": doc.get("receipt_tax_id") or "",
+        "receipt_show_address": 1 if doc.get("receipt_show_address") else 0,
+        "receipt_address": doc.get("receipt_address") or "",
+        "receipt_show_terms": 1 if doc.get("receipt_show_terms") else 0,
+        "receipt_terms": doc.get("receipt_terms") or "",
         "gift_card_expiry_days": doc.get("gift_card_expiry_days") or 0,
         "gift_card_mode_of_payment": doc.get("gift_card_mode_of_payment") or "",
         "gift_card_account": doc.get("gift_card_account") or "",
@@ -168,9 +181,22 @@ def save_settings(payload):
                 "quick_keys",
                 {"item_code": code, "label": (row.get("label") or "").strip() or None},
             )
+    doc.receipt_template = payload.get("receipt_template") or "Standard"
     doc.receipt_logo = payload.get("receipt_logo") or None
     doc.receipt_header = payload.get("receipt_header") or None
     doc.receipt_footer = payload.get("receipt_footer") or None
+    doc.receipt_show_item_code = 1 if payload.get("receipt_show_item_code") else 0
+    doc.receipt_show_barcode = 1 if payload.get("receipt_show_barcode") else 0
+    doc.receipt_show_serial = 1 if payload.get("receipt_show_serial") else 0
+    doc.receipt_show_unit_price = 1 if payload.get("receipt_show_unit_price") else 0
+    doc.receipt_show_payments = 1 if payload.get("receipt_show_payments") else 0
+    doc.receipt_show_note = 1 if payload.get("receipt_show_note") else 0
+    doc.receipt_show_tax_id = 1 if payload.get("receipt_show_tax_id") else 0
+    doc.receipt_tax_id = payload.get("receipt_tax_id") or None
+    doc.receipt_show_address = 1 if payload.get("receipt_show_address") else 0
+    doc.receipt_address = payload.get("receipt_address") or None
+    doc.receipt_show_terms = 1 if payload.get("receipt_show_terms") else 0
+    doc.receipt_terms = payload.get("receipt_terms") or None
     doc.gift_card_expiry_days = int(payload.get("gift_card_expiry_days") or 0)
     doc.gift_card_mode_of_payment = payload.get("gift_card_mode_of_payment") or None
     doc.gift_card_account = payload.get("gift_card_account") or None

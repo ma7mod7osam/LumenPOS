@@ -53,9 +53,24 @@
   "quick_keys_section",
   "quick_keys",
   "receipt_section",
+  "receipt_template",
   "receipt_logo",
   "receipt_header",
-  "receipt_footer"
+  "receipt_footer",
+  "receipt_fields_section",
+  "receipt_show_item_code",
+  "receipt_show_barcode",
+  "receipt_show_serial",
+  "receipt_show_unit_price",
+  "receipt_show_payments",
+  "receipt_show_note",
+  "receipt_fields_col",
+  "receipt_show_tax_id",
+  "receipt_tax_id",
+  "receipt_show_address",
+  "receipt_address",
+  "receipt_show_terms",
+  "receipt_terms"
  ],
  "fields": [
   {
@@ -372,7 +387,15 @@
   {
    "fieldname": "receipt_section",
    "fieldtype": "Section Break",
-   "label": "Receipt Branding"
+   "label": "Receipt"
+  },
+  {
+   "default": "Standard",
+   "description": "Receipt layout/density. Compact = tight; Standard = balanced; Detailed = spacious with a full store header + terms block.",
+   "fieldname": "receipt_template",
+   "fieldtype": "Select",
+   "label": "Receipt template",
+   "options": "Compact\nStandard\nDetailed"
   },
   {
    "description": "Logo shown at the top of the printed/on-screen receipt.",
@@ -381,16 +404,100 @@
    "label": "Receipt logo"
   },
   {
-   "description": "Extra line under the company name (e.g. VAT no., branch).",
+   "description": "Extra line under the company name (e.g. branch / slogan).",
    "fieldname": "receipt_header",
    "fieldtype": "Small Text",
    "label": "Receipt header"
   },
   {
-   "description": "Footer line (e.g. return policy, thank-you, social).",
+   "description": "Footer line (e.g. thank-you, social).",
    "fieldname": "receipt_footer",
    "fieldtype": "Small Text",
    "label": "Receipt footer"
+  },
+  {
+   "description": "Choose exactly what each receipt shows.",
+   "fieldname": "receipt_fields_section",
+   "fieldtype": "Section Break",
+   "label": "Receipt Fields"
+  },
+  {
+   "default": "0",
+   "fieldname": "receipt_show_item_code",
+   "fieldtype": "Check",
+   "label": "Show item code"
+  },
+  {
+   "default": "0",
+   "fieldname": "receipt_show_barcode",
+   "fieldtype": "Check",
+   "label": "Show item barcode"
+  },
+  {
+   "default": "1",
+   "fieldname": "receipt_show_serial",
+   "fieldtype": "Check",
+   "label": "Show serial numbers"
+  },
+  {
+   "default": "1",
+   "fieldname": "receipt_show_unit_price",
+   "fieldtype": "Check",
+   "label": "Show unit price (qty × rate)"
+  },
+  {
+   "default": "1",
+   "fieldname": "receipt_show_payments",
+   "fieldtype": "Check",
+   "label": "Show payment method lines"
+  },
+  {
+   "default": "1",
+   "fieldname": "receipt_show_note",
+   "fieldtype": "Check",
+   "label": "Show the sale note"
+  },
+  {
+   "fieldname": "receipt_fields_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "receipt_show_tax_id",
+   "fieldtype": "Check",
+   "label": "Show tax / VAT ID"
+  },
+  {
+   "depends_on": "receipt_show_tax_id",
+   "description": "Your VAT / tax registration number.",
+   "fieldname": "receipt_tax_id",
+   "fieldtype": "Data",
+   "label": "Tax / VAT ID"
+  },
+  {
+   "default": "0",
+   "fieldname": "receipt_show_address",
+   "fieldtype": "Check",
+   "label": "Show store address"
+  },
+  {
+   "depends_on": "receipt_show_address",
+   "fieldname": "receipt_address",
+   "fieldtype": "Small Text",
+   "label": "Store address"
+  },
+  {
+   "default": "0",
+   "fieldname": "receipt_show_terms",
+   "fieldtype": "Check",
+   "label": "Show terms & conditions"
+  },
+  {
+   "depends_on": "receipt_show_terms",
+   "description": "Return policy / terms printed at the bottom of the receipt.",
+   "fieldname": "receipt_terms",
+   "fieldtype": "Small Text",
+   "label": "Terms & conditions"
   }
  ],
  "index_web_pages_for_search": 0,

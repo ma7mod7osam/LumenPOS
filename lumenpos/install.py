@@ -180,6 +180,13 @@ def make_custom_fields():
             insert_after="lumenpos_promotions",
             read_only=1,
         ),
+        dict(
+            fieldname="lumenpos_note",
+            label="POS Note",
+            fieldtype="Small Text",
+            insert_after="lumenpos_return_reason",
+            read_only=1,
+        ),
         # Delivery-app channel data is written to the site's OWN fields when
         # present — custom_app_type (Select), pick_order_no (Data),
         # pick_customer (Check), is_exchange (Check). LumenPOS does not create
