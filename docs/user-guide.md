@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.8.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.8.1. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -619,6 +619,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.8.1 | **Fix: sales failing with `'POSProfile' object has no attribute 'update_stock'`.** Some ERPNext versions don't expose `update_stock` on the POS Profile, so the direct attribute read threw and blocked every sale at *Complete Sale*. LumenPOS now reads it defensively — it honours the profile's setting when the field exists, and otherwise defaults to **Update Stock = on** (a POS reduces stock at the point of sale; Sales-Invoice-direct mode needs it to move stock at all). |
 | 0.8.0 | **Lock screen (PIN to unlock)** (Settings → General → *Features*). A **Lock** button in the top bar (and optional **auto-lock after N minutes** of inactivity) covers the whole till with a PIN screen, protecting an unattended register. A **manager** (System / LumenPOS Manager) always unlocks; everyone else enters a **manager/approver PIN** (the same PINs used for discount approval) — so set a Master passcode or an approver PIN first. Unlocks are throttled server-side and recorded in the audit log. *Note: this is a screen lock for a shared till, not per-cashier login/session switching.* |
 | 0.7.0 | **Customer-facing display** (Settings → General → *Features* → Customer-facing display). A **Display** button on the sell screen opens a chrome-free second-screen window (`#/display`) that mirrors the live cart for the customer — item lines, savings and a big running total, with the store logo and a welcome screen when idle. Sync is local-only over a **BroadcastChannel** (no server round-trips); a display opened later asks the till for the current cart so it's never blank. Designed for a second monitor on the same machine/browser. |
 | 0.6.0 | **Three more toggleable features** (Settings → General → *Features*). **Quick keys / favourites** — pick favourite items in Settings; a *Favourites* tab on the sell screen adds any of them with one tap (each shows live price + stock). **Email receipt** — an *Email receipt* button on the receipt sends a copy (with the POS Profile's Print Format attached) to the customer's email, or any address you type; needs an outgoing Email Account on the site. **Audit log** — sensitive actions (over-limit discounts, returns, register open/close, emailed receipts, settings changes) are recorded to a new **LumenPOS Audit Log**, viewable by managers in a new **Audit Log** settings tab with action/date filters. New doctypes: *POS Quick Key*, *LumenPOS Audit Log*. |

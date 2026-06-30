@@ -97,6 +97,15 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     # promotion engine); a POS Profile can opt back into them.
     ignore_pricing_rule = 0 if profile.get("lumenpos_ignore_pricing_rules") == 0 else 1
 
+    # Some ERPNext versions don't carry `update_stock` on the POS Profile, so a
+    # direct attribute access throws ('POSProfile' object has no attribute
+    # 'update_stock') and kills the sale. Read it defensively: honour the
+    # profile's setting when present, otherwise default to 1 — a POS reduces
+    # stock at the point of sale (and Sales-Invoice-direct mode needs it to move
+    # stock at all, since there is no consolidation step).
+    _update_stock = profile.get("update_stock")
+    update_stock = 1 if _update_stock is None else cint(_update_stock)
+
     invoice = frappe.new_doc(_sale_doctype(profile))
     invoice.update(
         {
@@ -105,7 +114,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
             "company": profile.company,
             "customer": customer,
             "selling_price_list": price_list,
-            "update_stock": profile.update_stock,
+            "update_stock": update_stock,
             "set_warehouse": profile.warehouse,
             "taxes_and_charges": profile.taxes_and_charges,
             "ignore_pricing_rule": ignore_pricing_rule,
