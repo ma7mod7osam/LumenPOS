@@ -93,9 +93,11 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         "applied": promo_raw["applied"] + bundle_applied,
     }
 
-    # ERPNext Pricing Rules are bypassed by default (LumenPOS runs its own
-    # promotion engine); a POS Profile can opt back into them.
-    ignore_pricing_rule = 0 if profile.get("lumenpos_ignore_pricing_rules") == 0 else 1
+    # LumenPOS owns POS pricing (price books + its own promotion engine), and the
+    # till/cart NEVER applies ERPNext Pricing Rules — so POS sales always ignore
+    # them. Otherwise the posted invoice would diverge from what the till charged
+    # and land "Partly Paid". (ERPNext Pricing Rules still apply to non-POS docs.)
+    ignore_pricing_rule = 1
 
     # Some ERPNext versions don't carry `update_stock` on the POS Profile, so a
     # direct attribute access throws ('POSProfile' object has no attribute
@@ -208,9 +210,8 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         # price book — the till already collected the LumenPOS price, so the
         # posted invoice diverges and lands "Partly Paid". Clear the stamp so the
         # price we set is what posts.
-        if ignore_pricing_rule:
-            item_row.pricing_rules = ""
-            item_row.is_free_item = 0
+        item_row.pricing_rules = ""
+        item_row.is_free_item = 0
         if price > 0 and per_unit > 0:
             item_row.discount_percentage = flt(min(per_unit, price) / price * 100, 6)
         else:

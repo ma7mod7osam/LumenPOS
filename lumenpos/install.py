@@ -55,9 +55,20 @@ def ensure_setup():
     ensure_roles()
     grant_core_permissions()
     make_custom_fields()
+    drop_deprecated_custom_fields()
     migrate_price_books()
     ensure_return_reasons()
     migrate_coupon_limits()
+
+
+def drop_deprecated_custom_fields():
+    """Remove POS Profile custom fields LumenPOS no longer uses. Idempotent.
+    `lumenpos_ignore_pricing_rules` was retired in v0.12.0 — POS sales now ALWAYS
+    ignore ERPNext Pricing Rules (the till never applies them), so the toggle
+    only invited the price-book-vs-Pricing-Rule mismatch."""
+    for name in ("POS Profile-lumenpos_ignore_pricing_rules",):
+        if frappe.db.exists("Custom Field", name):
+            frappe.delete_doc("Custom Field", name, ignore_permissions=True)
 
 
 def migrate_coupon_limits():
@@ -229,20 +240,10 @@ def make_custom_fields():
                     "lightweight cash shift with no opening/closing entry.",
                 ),
                 dict(
-                    fieldname="lumenpos_ignore_pricing_rules",
-                    label="Ignore ERPNext Pricing Rules",
-                    fieldtype="Check",
-                    default="1",
-                    insert_after="lumenpos_si_opening_closing",
-                    description="On (default): ERPNext Pricing Rules are bypassed and "
-                    "LumenPOS uses its own promotion engine. Off: Pricing Rules apply "
-                    "(they stack on top of any LumenPOS promotions — avoid running both).",
-                ),
-                dict(
                     fieldname="lumenpos_printer_section",
                     label="LumenPOS Receipt Printer",
                     fieldtype="Section Break",
-                    insert_after="lumenpos_ignore_pricing_rules",
+                    insert_after="lumenpos_si_opening_closing",
                     collapsible=1,
                 ),
                 dict(
