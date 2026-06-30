@@ -29,17 +29,25 @@
 
       <div class="group-bar">
         <button
+          v-if="session.settings.enable_quick_keys"
+          class="chip chip-fav"
+          :class="{ active: showFavourites }"
+          @click="toggleFavourites"
+        >
+          <Icon name="star" /> {{ t('Favourites') }}
+        </button>
+        <button
           v-if="session.bundles.length"
           class="chip chip-bundle"
           :class="{ active: showBundles }"
-          @click="showBundles = !showBundles"
+          @click="showBundles = !showBundles; showFavourites = false"
         >
           <Icon name="gift" /> {{ t('Bundles') }}
         </button>
         <button
           class="chip"
-          :class="{ active: !catalog.itemGroup && !showBundles }"
-          @click="showBundles = false; catalog.itemGroup = ''; catalog.fetch()"
+          :class="{ active: !catalog.itemGroup && !showBundles && !showFavourites }"
+          @click="showBundles = false; showFavourites = false; catalog.itemGroup = ''; catalog.fetch()"
         >
           {{ t('All') }}
         </button>
@@ -71,6 +79,19 @@
           </div>
         </div>
         <div v-if="!session.bundles.length" class="muted">{{ t('No bundles configured') }}</div>
+      </div>
+      <div v-else-if="showFavourites" class="fav-grid">
+        <button
+          v-for="fav in favourites"
+          :key="fav.item_code"
+          class="fav-card card"
+          @click="addToCart(fav)"
+        >
+          <div class="fav-name">{{ fav.quick_label || fav.item_name }}</div>
+          <div class="fav-price">{{ money(fav.price) }}</div>
+          <div v-if="fav.is_stock_item" class="muted small">{{ t('{qty} in stock', { qty: fav.actual_qty }) }}</div>
+        </button>
+        <div v-if="!favourites.length" class="muted">{{ favLoading ? t('Loading…') : t('No favourites configured — add some in Settings → Features.') }}</div>
       </div>
       <ProductGrid v-else @select="addToCart" />
     </section>
@@ -193,6 +214,29 @@ function onSerialScanned(serial) {
 }
 
 const showBundles = ref(false)
+const showFavourites = ref(false)
+const favourites = ref([])
+const favLoading = ref(false)
+
+async function toggleFavourites() {
+  showFavourites.value = !showFavourites.value
+  showBundles.value = false
+  if (showFavourites.value && !favourites.value.length) await loadFavourites()
+}
+
+async function loadFavourites() {
+  favLoading.value = true
+  try {
+    const res = await call('lumenpos.api.catalog.get_quick_keys', {
+      pos_profile: session.posProfile,
+    })
+    favourites.value = res.items || []
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    favLoading.value = false
+  }
+}
 
 async function addBundleToCart(bundle) {
   try {
@@ -349,6 +393,31 @@ function onDiscountApproved(result) {
   color: #fff;
 }
 .chip-bundle { font-weight: 700; }
+.chip-fav { font-weight: 700; }
+.chip-fav.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.fav-grid {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  align-content: start;
+  padding-bottom: 20px;
+}
+.fav-card {
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: start;
+  border: 1px solid var(--border);
+  transition: border-color 0.1s, transform 0.05s;
+}
+.fav-card:hover { border-color: var(--brand); }
+.fav-card:active { transform: scale(0.98); }
+.fav-name { font-weight: 700; font-size: 14px; }
+.fav-price { font-weight: 800; font-size: 16px; color: var(--brand-dark); }
 .bundle-grid {
   flex: 1;
   overflow-y: auto;

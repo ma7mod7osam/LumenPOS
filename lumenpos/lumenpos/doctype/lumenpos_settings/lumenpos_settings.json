@@ -44,6 +44,11 @@
   "features_col",
   "enable_price_checker",
   "enable_xreport",
+  "enable_audit_log",
+  "enable_email_receipt",
+  "enable_quick_keys",
+  "quick_keys_section",
+  "quick_keys",
   "receipt_section",
   "receipt_logo",
   "receipt_header",
@@ -303,6 +308,41 @@
    "fieldname": "enable_xreport",
    "fieldtype": "Check",
    "label": "X-report (mid-shift read)"
+  },
+  {
+   "default": "1",
+   "description": "Record sensitive actions (over-limit discounts, returns, price edits, register open/close) to the LumenPOS Audit Log.",
+   "fieldname": "enable_audit_log",
+   "fieldtype": "Check",
+   "label": "Audit log"
+  },
+  {
+   "default": "0",
+   "description": "Show an Email receipt button so a copy can be sent to the customer's email.",
+   "fieldname": "enable_email_receipt",
+   "fieldtype": "Check",
+   "label": "Email receipt"
+  },
+  {
+   "default": "0",
+   "description": "Show a Favourites grid of one-tap items on the sell screen.",
+   "fieldname": "enable_quick_keys",
+   "fieldtype": "Check",
+   "label": "Quick keys / favourites"
+  },
+  {
+   "depends_on": "enable_quick_keys",
+   "fieldname": "quick_keys_section",
+   "fieldtype": "Section Break",
+   "label": "Quick Keys"
+  },
+  {
+   "depends_on": "enable_quick_keys",
+   "description": "Items shown as one-tap buttons on the sell screen.",
+   "fieldname": "quick_keys",
+   "fieldtype": "Table",
+   "label": "Quick keys",
+   "options": "POS Quick Key"
   },
   {
    "fieldname": "receipt_section",

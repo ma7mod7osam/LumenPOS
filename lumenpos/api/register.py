@@ -105,7 +105,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     # float, no ERPNext POS Opening Entry. Sales post as Sales Invoices directly,
     # so there's nothing to consolidate at close.
     if si_mode:
-        frappe.get_doc(
+        sess = frappe.get_doc(
             {
                 "doctype": "POS Register Session",
                 "pos_profile": profile.name,
@@ -114,7 +114,9 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
                 "status": "Open",
                 "opening_float": opening_float,
             }
-        ).insert()
+        )
+        sess.insert()
+        _audit_register("open", sess.name, profile.name, opening_float)
         return get_open_session(pos_profile)
 
     if resume_opening_entry:
@@ -184,7 +186,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     opening_entry.insert(ignore_permissions=True)
     opening_entry.submit()
 
-    frappe.get_doc(
+    sess = frappe.get_doc(
         {
             "doctype": "POS Register Session",
             "pos_profile": profile.name,
@@ -194,7 +196,9 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             "opening_float": opening_float,
             "pos_opening_entry": opening_entry.name,
         }
-    ).insert()
+    )
+    sess.insert()
+    _audit_register("open", sess.name, profile.name, opening_float)
     return get_open_session(pos_profile)
 
 
@@ -484,7 +488,29 @@ def close_register(session, counted, closing_note=None):
         doc.closing_status = "Submitted"
         queued = False
 
+    _audit_register(
+        "close",
+        doc.name,
+        doc.pos_profile,
+        doc.total_sales,
+        detail=_("{0} sales · takings {1}").format(doc.sales_count, doc.total_sales),
+    )
     return _close_result(doc, queued=queued)
+
+
+def _audit_register(kind, session_name, profile_name, amount, detail=None):
+    """Best-effort audit entry for opening/closing the till."""
+    from lumenpos.api import audit
+
+    action = audit.REGISTER_OPEN if kind == "open" else audit.REGISTER_CLOSE
+    audit.log(
+        action,
+        detail=detail or (_("Opened with float {0}").format(amount) if kind == "open" else None),
+        amount=amount,
+        reference_doctype="POS Register Session",
+        reference_name=session_name,
+        pos_profile=profile_name,
+    )
 
 
 def _close_result(doc, queued):

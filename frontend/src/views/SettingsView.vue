@@ -833,6 +833,23 @@
             <LinkPicker doctype="Account" v-model="generalForm.service_charge_account" :placeholder="t('Income account…')" />
           </label>
         </div>
+        <template v-if="generalForm.enable_quick_keys">
+          <div class="sub-label" style="margin-top: 14px">{{ t('Favourite items (one-tap on the sell screen)') }}</div>
+          <div v-for="(row, i) in generalForm.quick_keys" :key="i" class="item-row">
+            <LinkPicker
+              doctype="Item"
+              v-model="row.item_code"
+              :label="row.label"
+              :placeholder="t('Search by name, code or barcode…')"
+              @picked="(option) => (row.label = row.label || option?.item_name || '')"
+            />
+            <input v-model="row.label" :placeholder="t('Button label (optional)')" style="max-width: 200px" />
+            <button class="btn-ghost" @click="generalForm.quick_keys.splice(i, 1)"><Icon name="close" /></button>
+          </div>
+          <button class="btn btn-outline add-row" @click="generalForm.quick_keys.push({ item_code: '', label: '' })">
+            {{ t('+ Add favourite') }}
+          </button>
+        </template>
       </div>
 
       <!-- Receipt branding -->
@@ -1057,6 +1074,55 @@
       <p v-if="!canManage" class="muted hint-row">{{ t('You need write access to LumenPOS Settings to change these. Ask an administrator to grant the LumenPOS Manager role.') }}</p>
     </section>
 
+    <!-- ============ AUDIT LOG ============ -->
+    <section v-if="activeTab === 'Audit Log'" class="tab-body">
+      <div class="sec-card">
+        <div class="sec-title"><Icon name="shield" /> {{ t('Audit log') }}</div>
+        <p class="muted hint-row" style="padding: 0 0 10px">
+          {{ t('Sensitive till actions — over-limit discounts, returns, register open/close, emailed receipts and settings changes. Turn it on/off in') }}
+          <b>{{ t('General → Features') }}</b>.
+        </p>
+        <div class="audit-filters">
+          <select v-model="auditFilter.action" @change="reloadAudit">
+            <option value="">{{ t('All actions') }}</option>
+            <option v-for="a in AUDIT_ACTIONS" :key="a" :value="a">{{ t(a) }}</option>
+          </select>
+          <input type="date" v-model="auditFilter.from_date" @change="reloadAudit" :title="t('From')" />
+          <input type="date" v-model="auditFilter.to_date" @change="reloadAudit" :title="t('To')" />
+          <button class="btn btn-outline" @click="reloadAudit"><Icon name="refresh" /> {{ t('Refresh') }}</button>
+        </div>
+        <div v-if="!auditLogs.length" class="muted empty">
+          {{ auditLoading ? t('Loading…') : t('No audit entries for this filter.') }}
+        </div>
+        <table v-else class="audit-table">
+          <thead>
+            <tr>
+              <th>{{ t('When') }}</th><th>{{ t('Action') }}</th><th>{{ t('User') }}</th>
+              <th class="right">{{ t('Amount') }}</th><th>{{ t('Detail') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in auditLogs" :key="row.name">
+              <td class="muted small">{{ shortTime(row.creation) }}</td>
+              <td><span class="audit-tag">{{ t(row.action) }}</span></td>
+              <td class="small">{{ row.user }}</td>
+              <td class="right">{{ row.amount ? money(row.amount) : '—' }}</td>
+              <td class="small">
+                {{ row.detail }}
+                <span v-if="row.reference_name" class="muted">· {{ row.reference_name }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="auditLogs.length && auditMore" class="editor-actions" style="margin-top: 12px">
+          <button class="btn btn-outline" :disabled="auditLoading" @click="loadMoreAudit">
+            {{ auditLoading ? t('Loading…') : t('Load more') }}
+          </button>
+          <span style="flex: 1" />
+        </div>
+      </div>
+    </section>
+
     <!-- ============ STATUS ============ -->
     <section v-if="activeTab === 'Status'" class="tab-body">
       <div class="status-grid">
@@ -1085,9 +1151,9 @@
 
 <script setup>
 import Icon from '../components/Icon.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { call } from '../api'
-import { money } from '../format'
+import { money, shortTime } from '../format'
 import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { catalogCount } from '../offline'
@@ -1099,7 +1165,7 @@ const session = useSessionStore()
 const catalog = useCatalogStore()
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-const ALL_TABS = ['Promotions', 'Bundles', 'Price Books', 'Loyalty & Gift Cards', 'General', 'Status']
+const ALL_TABS = ['Promotions', 'Bundles', 'Price Books', 'Loyalty & Gift Cards', 'General', 'Audit Log', 'Status']
 const perms = computed(() => session.permissions || {})
 
 function tabAllowed(tab) {
@@ -1109,6 +1175,7 @@ function tabAllowed(tab) {
   if (tab === 'Price Books') return p.price_books?.read
   if (tab === 'Loyalty & Gift Cards') return p.loyalty || p.gift_cards
   if (tab === 'General') return p.settings
+  if (tab === 'Audit Log') return Boolean(p.is_manager)
   return true // Status is read-only info
 }
 const tabs = computed(() => ALL_TABS.filter(tabAllowed))
@@ -1164,6 +1231,10 @@ const generalForm = ref({
   service_charge_account: '',
   enable_price_checker: 1,
   enable_xreport: 1,
+  enable_audit_log: 1,
+  enable_email_receipt: 0,
+  enable_quick_keys: 0,
+  quick_keys: [],
   receipt_logo: '',
   receipt_header: '',
   receipt_footer: '',
@@ -1177,6 +1248,43 @@ const generalForm = ref({
   approvers: [],
 })
 const logoError = ref(false)
+
+// ---- audit log viewer ----
+const AUDIT_ACTIONS = [
+  'Sale', 'Return', 'Over-limit discount', 'Price edit',
+  'Register open', 'Register close', 'Settings change', 'Email receipt', 'Till unlock',
+]
+const auditLogs = ref([])
+const auditFilter = ref({ action: '', from_date: '', to_date: '' })
+const auditLoading = ref(false)
+const auditMore = ref(false)
+const AUDIT_PAGE = 50
+
+async function loadAudit(append = false) {
+  auditLoading.value = true
+  try {
+    const rows = await call('lumenpos.api.audit.list_logs', {
+      action: auditFilter.value.action || undefined,
+      from_date: auditFilter.value.from_date || undefined,
+      to_date: auditFilter.value.to_date || undefined,
+      start: append ? auditLogs.value.length : 0,
+      limit: AUDIT_PAGE,
+    })
+    auditLogs.value = append ? [...auditLogs.value, ...rows] : rows
+    auditMore.value = rows.length === AUDIT_PAGE
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    auditLoading.value = false
+  }
+}
+const reloadAudit = () => loadAudit(false)
+const loadMoreAudit = () => loadAudit(true)
+
+// Load the audit log the first time its tab is opened (and refresh on re-entry).
+watch(activeTab, (tab) => {
+  if (tab === 'Audit Log') loadAudit(false)
+})
 
 // Payment methods offered in the refund-rule dropdowns.
 const payModeOptions = computed(() => {
@@ -1231,6 +1339,10 @@ async function load() {
     service_charge_account: info.service_charge_account || '',
     enable_price_checker: info.enable_price_checker ?? 1,
     enable_xreport: info.enable_xreport ?? 1,
+    enable_audit_log: info.enable_audit_log ?? 1,
+    enable_email_receipt: info.enable_email_receipt || 0,
+    enable_quick_keys: info.enable_quick_keys || 0,
+    quick_keys: (info.quick_keys || []).map((r) => ({ item_code: r.item_code, label: r.label || '' })),
     receipt_logo: info.receipt_logo || '',
     receipt_header: info.receipt_header || '',
     receipt_footer: info.receipt_footer || '',
@@ -1899,6 +2011,31 @@ const filteredBooks = computed(() => {
   border-radius: 8px;
   padding: 6px;
   background: #fff;
+}
+.audit-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.audit-filters select, .audit-filters input { padding: 7px 10px; font-size: 13px; }
+.audit-table { width: 100%; border-collapse: collapse; }
+.audit-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.audit-table th.right { text-align: right; }
+.audit-table td { padding: 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.audit-table td.right { text-align: right; }
+.audit-tag {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  background: rgba(20, 99, 255, 0.1);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
 }
 
 /* ---- Segmented pill tab bar ---- */

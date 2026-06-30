@@ -85,6 +85,13 @@ def get_settings():
         "service_charge_account": doc.get("service_charge_account") or "",
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
+        "enable_audit_log": 1 if doc.get("enable_audit_log") else 0,
+        "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
+        "enable_quick_keys": 1 if doc.get("enable_quick_keys") else 0,
+        "quick_keys": [
+            {"item_code": r.item_code, "label": r.label or ""}
+            for r in (doc.get("quick_keys") or [])
+        ],
         "receipt_logo": doc.get("receipt_logo") or "",
         "receipt_header": doc.get("receipt_header") or "",
         "receipt_footer": doc.get("receipt_footer") or "",
@@ -144,6 +151,17 @@ def save_settings(payload):
     doc.service_charge_account = payload.get("service_charge_account") or None
     doc.enable_price_checker = 1 if payload.get("enable_price_checker") else 0
     doc.enable_xreport = 1 if payload.get("enable_xreport") else 0
+    doc.enable_audit_log = 1 if payload.get("enable_audit_log") else 0
+    doc.enable_email_receipt = 1 if payload.get("enable_email_receipt") else 0
+    doc.enable_quick_keys = 1 if payload.get("enable_quick_keys") else 0
+    doc.set("quick_keys", [])
+    for row in payload.get("quick_keys") or []:
+        code = (row.get("item_code") or "").strip()
+        if code:
+            doc.append(
+                "quick_keys",
+                {"item_code": code, "label": (row.get("label") or "").strip() or None},
+            )
     doc.receipt_logo = payload.get("receipt_logo") or None
     doc.receipt_header = payload.get("receipt_header") or None
     doc.receipt_footer = payload.get("receipt_footer") or None
@@ -209,6 +227,9 @@ def save_settings(payload):
             },
         )
     doc.save()
+    from lumenpos.api import audit
+
+    audit.log(audit.SETTINGS_CHANGE, detail="LumenPOS Settings updated")
     return get_settings()
 
 

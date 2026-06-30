@@ -96,6 +96,14 @@
         >
           {{ t('Refund…') }}
         </button>
+        <button
+          v-if="session.settings.enable_email_receipt && !receipt.offline"
+          class="btn btn-outline"
+          :disabled="emailing"
+          @click="emailReceipt"
+        >
+          {{ emailing ? t('Sending…') : t('Email receipt') }}
+        </button>
         <button class="btn btn-outline" :disabled="printing" @click="print">
           {{ printing ? t('Printing…') : t('Print receipt') }}
         </button>
@@ -123,6 +131,33 @@ defineEmits(['close', 'refund'])
 
 const session = useSessionStore()
 const printing = ref(false)
+const emailing = ref(false)
+
+async function emailReceipt() {
+  emailing.value = true
+  try {
+    // Try the address on file first; if there is none (or it fails), ask once.
+    const res = await call('lumenpos.api.sales.email_receipt', { invoice: props.receipt.name })
+    session.notify(t('Receipt emailed to {email}', { email: res.email }))
+  } catch (e) {
+    const typed = (window.prompt(t('Email the receipt to:'), '') || '').trim()
+    if (!typed) {
+      if (e.message) session.notify(e.message, true)
+      return
+    }
+    try {
+      const res = await call('lumenpos.api.sales.email_receipt', {
+        invoice: props.receipt.name,
+        email: typed,
+      })
+      session.notify(t('Receipt emailed to {email}', { email: res.email }))
+    } catch (e2) {
+      session.notify(e2.message, true)
+    }
+  } finally {
+    emailing.value = false
+  }
+}
 
 async function print() {
   // Priority: ESC/POS network printer -> the POS Profile's Print Format

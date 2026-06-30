@@ -306,6 +306,71 @@ def price_check(pos_profile, query):
 
 
 @frappe.whitelist()
+def get_quick_keys(pos_profile):
+    """Resolve the configured favourites (Settings → Features → Quick keys) into
+    sell-grid item cards, preserving the configured order + any custom labels.
+    Codes that no longer resolve (disabled/deleted) are silently dropped."""
+    settings = frappe.get_cached_doc("LumenPOS Settings")
+    if not settings.get("enable_quick_keys"):
+        return {"items": []}
+    rows = [(r.item_code, r.label) for r in (settings.get("quick_keys") or []) if r.item_code]
+    if not rows:
+        return {"items": []}
+    profile = frappe.get_cached_doc("POS Profile", pos_profile)
+    label_map = {code: (label or "") for code, label in rows}
+
+    wf = warranty_field()
+    fields = [
+        "name as item_code", "item_name", "item_group", "brand", "stock_uom",
+        "image", "is_stock_item", "has_serial_no", "has_batch_no", "_user_tags",
+    ]
+    if wf:
+        fields.append(f"`{wf}` as warranty_days")
+    found = frappe.get_all(
+        "Item",
+        filters={"name": ["in", list(label_map)], "disabled": 0, "is_sales_item": 1},
+        fields=fields,
+    )
+    by_code = {i["item_code"]: i for i in found}
+    fcodes = list(by_code.keys())
+    if not fcodes:
+        return {"items": []}
+
+    uom_map = {i["item_code"]: i["stock_uom"] for i in found}
+    price_map = effective_prices(profile, fcodes, None, None, uom_map)
+    standard_map = standard_prices(profile, fcodes, uom_map)
+    stock_map = {}
+    if profile.warehouse:
+        for b in frappe.get_all(
+            "Bin",
+            filters={"item_code": ["in", fcodes], "warehouse": profile.warehouse},
+            fields=["item_code", "actual_qty"],
+        ):
+            stock_map[b.item_code] = b.actual_qty
+    barcode_map = {}
+    for row in frappe.get_all(
+        "Item Barcode", filters={"parent": ["in", fcodes]}, fields=["parent", "barcode"], order_by="idx asc"
+    ):
+        barcode_map.setdefault(row.parent, row.barcode)
+
+    items = []
+    seen = set()
+    for code, _label in rows:
+        item = by_code.get(code)
+        if not item or code in seen:
+            continue
+        seen.add(code)
+        item["price"] = price_map.get(code, 0)
+        item["standard_price"] = standard_map.get(code) or item["price"]
+        item["actual_qty"] = stock_map.get(code, 0)
+        item["barcode"] = barcode_map.get(code)
+        item["tags"] = [t.strip() for t in (item.pop("_user_tags", "") or "").split(",") if t.strip()]
+        item["quick_label"] = label_map.get(code) or item["item_name"]
+        items.append(item)
+    return {"items": items}
+
+
+@frappe.whitelist()
 def validate_serial(pos_profile, item_code, serial_no):
     """Strict check used live at the cart and re-run on submit: the serial
     must exist, belong to this item, be Active stock, and sit in the

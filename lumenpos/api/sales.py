@@ -540,14 +540,31 @@ def _check_discount_passcode(payload):
             frappe.throw(
                 _("Wrong approver passcode for the {0}% discount.").format(worst)
             )
-        return result if isinstance(result, str) else None
+        approver = result if isinstance(result, str) else None
+        from lumenpos.api import audit
+
+        audit.log(
+            audit.OVER_LIMIT_DISCOUNT,
+            detail=_("{0}% discount cleared by passcode").format(worst)
+            + (f" ({approver})" if approver else ""),
+            pos_profile=payload.get("pos_profile"),
+        )
+        return approver
 
     # 2) An approved discount request (approver was elsewhere). Validated here;
     #    submit_sale consumes it after the invoice posts.
     if allow_request and payload.get("discount_request"):
-        from lumenpos.api import approval_requests
+        from lumenpos.api import approval_requests, audit
 
-        return approval_requests.validate_discount(payload["discount_request"], worst)
+        approver = approval_requests.validate_discount(payload["discount_request"], worst)
+        audit.log(
+            audit.OVER_LIMIT_DISCOUNT,
+            detail=_("{0}% discount cleared by approved request {1}").format(
+                worst, payload["discount_request"]
+            ),
+            pos_profile=payload.get("pos_profile"),
+        )
+        return approver
 
     if mode == "Request only":
         frappe.throw(
@@ -963,6 +980,54 @@ def _build_lines(items, profile, customer_group=None, app_price_list=None):
             }
         )
     return lines
+
+
+@frappe.whitelist()
+def email_receipt(invoice, email=None):
+    """Email a copy of the receipt to the customer (Settings → Features → Email
+    receipt). Uses the explicit address, else the invoice contact, else the
+    customer's email. Attaches the POS Profile's Print Format if one is set.
+    Requires an outgoing Email Account on the site."""
+    settings = frappe.get_cached_doc("LumenPOS Settings")
+    if not settings.get("enable_email_receipt"):
+        frappe.throw(_("Email receipts are turned off (Settings → Features)."))
+    doctype = _doctype_of(invoice)
+    if not doctype:
+        frappe.throw(_("Sale {0} not found").format(invoice))
+    doc = frappe.get_doc(doctype, invoice)
+    doc.check_permission("read")
+
+    recipient = (email or "").strip() or doc.get("contact_email")
+    if not recipient and doc.get("customer"):
+        recipient = frappe.db.get_value("Customer", doc.customer, "email_id")
+    if not recipient:
+        frappe.throw(_("No email address — add one to the customer or type it in."))
+
+    print_format = frappe.db.get_value("POS Profile", doc.get("pos_profile"), "print_format")
+    attachment = None
+    try:
+        attachment = frappe.attach_print(doctype, invoice, print_format=print_format or None)
+    except Exception:
+        # Fall back to a plain-text message if the print format can't render.
+        frappe.clear_last_message()
+    frappe.sendmail(
+        recipients=[recipient],
+        subject=_("Your receipt from {0} — {1}").format(doc.get("company") or "", invoice),
+        message=_("Thank you for your purchase. Your receipt {0} is attached.").format(invoice),
+        attachments=[attachment] if attachment else None,
+        reference_doctype=doctype,
+        reference_name=invoice,
+    )
+    from lumenpos.api import audit
+
+    audit.log(
+        "Email receipt",
+        detail=f"Receipt emailed to {recipient}",
+        reference_doctype=doctype,
+        reference_name=invoice,
+        pos_profile=doc.get("pos_profile"),
+    )
+    return {"sent": True, "email": recipient}
 
 
 @frappe.whitelist()
@@ -1449,6 +1514,22 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
         from lumenpos.api import approval_requests
 
         approval_requests.consume(return_request, return_doc.name)
+
+    from lumenpos.api import audit
+
+    detail = _("Refund as {0}").format(refund_mode)
+    if return_reason:
+        detail += f" · {return_reason}"
+    if return_approver:
+        detail += f" · {_('late return approved by {0}').format(return_approver)}"
+    audit.log(
+        audit.RETURN,
+        detail=detail,
+        amount=abs(refund_amount),
+        reference_doctype=return_doc.doctype,
+        reference_name=return_doc.name,
+        pos_profile=original.get("pos_profile"),
+    )
 
     return get_receipt(return_doc.name)
 
