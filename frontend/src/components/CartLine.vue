@@ -185,7 +185,7 @@ function setDiscount(value) {
   font-size: 11px;
   font-weight: 700;
   color: var(--brand-dark);
-  background: rgba(46, 91, 255, 0.1);
+  background: rgba(20, 99, 255, 0.1);
   border-radius: 999px;
   padding: 2px 9px;
 }

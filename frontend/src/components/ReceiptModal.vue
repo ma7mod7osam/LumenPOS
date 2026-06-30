@@ -198,7 +198,7 @@ async function print() {
   font-weight: 600;
 }
 .giftcard-banner {
-  background: rgba(46, 91, 255, 0.08);
+  background: rgba(20, 99, 255, 0.08);
   color: var(--brand-dark);
   border-radius: var(--radius);
   padding: 12px 16px;
@@ -207,7 +207,7 @@ async function print() {
   font-weight: 600;
 }
 .change-banner {
-  background: rgba(46, 91, 255, 0.1);
+  background: rgba(20, 99, 255, 0.1);
   color: var(--brand-dark);
   border-radius: var(--radius);
   padding: 12px 16px;

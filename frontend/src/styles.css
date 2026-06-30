@@ -3,9 +3,9 @@
 /* LumenPOS design tokens — Lumen brand identity.
    Primary blue #1463FF (light) / #2F7BFF (dark); type: Plus Jakarta Sans. */
 :root {
-  --nav-bg: #0a0d14;        /* Lumen "night" sidebar */
-  --nav-active: #16213b;
-  --topbar-bg: #131722;
+  --nav-bg: #0a0e1c;        /* Lumen "night" sidebar — navy, not charcoal */
+  --nav-active: #16294f;    /* brand-blue-tinted active rail item */
+  --topbar-bg: #0c1226;     /* cohesive Lumen navy chrome */
   --page-bg: #f4f6fa;
   --card-bg: #ffffff;
   --surface-2: #f0f3f8;     /* subtle hover / inset surfaces */

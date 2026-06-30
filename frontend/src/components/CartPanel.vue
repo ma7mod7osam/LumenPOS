@@ -343,7 +343,7 @@ function discard() {
   padding: 6px 16px;
   font-size: 12px;
   color: var(--brand-dark);
-  background: rgba(46, 91, 255, 0.06);
+  background: rgba(20, 99, 255, 0.06);
   border-bottom: 1px solid var(--border);
 }
 .salesperson-row {
@@ -361,7 +361,7 @@ function discard() {
   font-size: 12.5px;
   font-weight: 700;
   color: var(--brand-dark);
-  background: rgba(46, 91, 255, 0.08);
+  background: rgba(20, 99, 255, 0.08);
   border-radius: 999px;
   padding: 4px 11px;
 }
@@ -414,7 +414,7 @@ html[data-theme='dark'] .suggestion:hover { background: rgba(150, 100, 255, 0.3)
   font-size: 12px;
   font-weight: 700;
   color: var(--brand-dark);
-  background: rgba(46, 91, 255, 0.1);
+  background: rgba(20, 99, 255, 0.1);
   border-radius: 999px;
   padding: 3px 10px;
 }
@@ -457,7 +457,7 @@ html[data-theme='dark'] .suggestion:hover { background: rgba(150, 100, 255, 0.3)
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(46, 91, 255, 0.1);
+  background: rgba(20, 99, 255, 0.1);
   font-size: 11.5px;
   font-weight: 700;
   border-radius: 999px;

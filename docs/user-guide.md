@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.9.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.9.1. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.9.1 | **Brand-colour cleanup.** The fork left the old VPOS indigo `#2E5BFF` hardcoded as `rgba(46,91,255,…)` in ~22 places (cart chips, tags, hovers, badges, the register pill, receipts…) and used a washed-out periwinkle `--brand-soft` (`#7fa8ff`) for *active* states (Settings tab, promo-type selector, selected refund serial, active customer row). All now use the real Lumen blue **#1463FF** — crisp brand fills on active/selected states, correct-hue tints everywhere else. The dark nav rail + top bar were retuned to a cleaner **Lumen navy** (blue undertone, brand-blue-tinted active rail item) instead of flat charcoal. No layout changes. |
 | 0.9.0 | **POS Opening/Closing Entries in Sales Invoice mode (cash control).** New POS Profile option **Use POS Opening/Closing Entries** (LumenPOS Options, shown only in *Sale posts as = Sales Invoice*). When on, opening the register creates a real **POS Opening Entry** and closing creates a **POS Closing Entry** — opening float, expected-by-payment (sourced from the shift's *Sales Invoices*), counted amounts, differences, cash in/out — so cash is supervised on the standard ERPNext POS documents/reports. There is **no consolidation** (sales already post as Sales Invoices; the closing entry's invoice table stays empty and the close finalizes directly). Off (default) keeps the lightweight cash shift. The register screen behaves like POS Invoice mode (close → finalising → Closed with a POS Closing Entry link). |
 | 0.8.1 | **Fix: sales failing with `'POSProfile' object has no attribute 'update_stock'`.** Some ERPNext versions don't expose `update_stock` on the POS Profile, so the direct attribute read threw and blocked every sale at *Complete Sale*. LumenPOS now reads it defensively — it honours the profile's setting when the field exists, and otherwise defaults to **Update Stock = on** (a POS reduces stock at the point of sale; Sales-Invoice-direct mode needs it to move stock at all). |
 | 0.8.0 | **Lock screen (PIN to unlock)** (Settings → General → *Features*). A **Lock** button in the top bar (and optional **auto-lock after N minutes** of inactivity) covers the whole till with a PIN screen, protecting an unattended register. A **manager** (System / LumenPOS Manager) always unlocks; everyone else enters a **manager/approver PIN** (the same PINs used for discount approval) — so set a Master passcode or an approver PIN first. Unlocks are throttled server-side and recorded in the audit log. *Note: this is a screen lock for a shared till, not per-cashier login/session switching.* |

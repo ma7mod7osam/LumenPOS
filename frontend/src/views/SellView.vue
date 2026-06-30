@@ -444,7 +444,7 @@ function onDiscountApproved(result) {
 }
 .bundle-card {
   padding: 14px 16px;
-  border: 1.5px solid rgba(46, 91, 255, 0.35);
+  border: 1.5px solid rgba(20, 99, 255, 0.35);
   display: flex;
   flex-direction: column;
 }

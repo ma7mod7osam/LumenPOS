@@ -2112,7 +2112,7 @@ const filteredBooks = computed(() => {
   transition: background 0.12s ease, color 0.12s ease;
 }
 .tab:hover { color: var(--text); }
-.tab.active { background: var(--brand-soft); color: #fff; }
+.tab.active { background: var(--brand); color: #fff; }
 
 .tab-body { display: flex; flex-direction: column; gap: 14px; }
 
@@ -2174,7 +2174,7 @@ const filteredBooks = computed(() => {
   color: var(--text-muted);
   white-space: nowrap;
 }
-.status-pill.on { background: rgba(46, 91, 255, 0.1); color: var(--brand-dark); }
+.status-pill.on { background: rgba(20, 99, 255, 0.1); color: var(--brand-dark); }
 .status-pill.expired { background: rgba(226, 48, 48, 0.12); color: var(--red); }
 html[data-theme='dark'] .status-pill.expired { background: rgba(255, 120, 120, 0.18); color: #ff9b9b; }
 
@@ -2243,7 +2243,7 @@ button.sec-title.collapsible + * { margin-top: 14px; }
   color: var(--text-muted);
 }
 .seg-btn:hover { color: var(--text); }
-.seg-btn.on { background: var(--brand-soft); color: #fff; }
+.seg-btn.on { background: var(--brand); color: #fff; }
 
 .toggle-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
 
@@ -2375,7 +2375,7 @@ button.sec-title.collapsible + * { margin-top: 14px; }
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  background: rgba(46, 91, 255, 0.08);
+  background: rgba(20, 99, 255, 0.08);
   color: var(--brand-dark);
   border-radius: 999px;
   padding: 4px 11px;

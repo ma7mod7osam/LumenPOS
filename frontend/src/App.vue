@@ -198,7 +198,7 @@ function setupAutoLock() {
 }
 .register-pill:hover { filter: brightness(1.2); }
 .register-pill.open {
-  background: rgba(46, 91, 255, 0.28);
+  background: rgba(20, 99, 255, 0.28);
   color: #aebfff;
 }
 .lang-pill {

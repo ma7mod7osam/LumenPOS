@@ -381,7 +381,7 @@ async function submit() {
   padding: 2px 8px;
   margin-inline-start: 6px;
   border-radius: 999px;
-  background: rgba(46, 91, 255, 0.12);
+  background: rgba(20, 99, 255, 0.12);
   color: var(--brand-dark);
   white-space: nowrap;
 }
@@ -401,8 +401,8 @@ async function submit() {
   color: var(--text-muted);
 }
 .serial-chip.selected {
-  background: var(--brand-soft);
-  border-color: var(--brand-soft);
+  background: var(--brand);
+  border-color: var(--brand);
   color: #fff;
 }
 .serial-count {
@@ -435,7 +435,7 @@ async function submit() {
   background: rgba(245, 166, 35, 0.12);
 }
 .approval-box.approved,
-.approval-box:has(.ap-ok) { background: rgba(46, 91, 255, 0.1); }
+.approval-box:has(.ap-ok) { background: rgba(20, 99, 255, 0.1); }
 .ap-warn { flex: 1; min-width: 220px; font-weight: 600; color: #9a6a0a; }
 .ap-text { flex: 1; min-width: 160px; font-weight: 600; }
 .ap-ok { flex: 1; font-weight: 700; color: var(--brand-dark); display: flex; align-items: center; gap: 6px; }
