@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.12.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.12.1. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.12.1 | **Fix: "Require scanning for serial numbers" was bypassable from the search box.** The serial **modal** enforced scan-only, but typing a serial straight into the sell **search box** and pressing Enter resolved + added it without the check. The search-box path now applies the **same scan-vs-typed guard** (`scanGuard`): a serial that was *scanned* (fast burst) is accepted, a *typed* one is rejected with "Manual entry is off — scan the serial with the scanner." when the setting is on. |
 | 0.12.0 | **POS sales always ignore ERPNext Pricing Rules** (the *Ignore ERPNext Pricing Rules* POS-Profile toggle is retired). LumenPOS prices every sale with its own **price books + promotion engine**, and the till/cart never applies ERPNext Pricing Rules — so letting them touch the invoice could only ever make it diverge from what the cashier collected (the 0.11.x "Partly Paid" bug). POS sales now bypass them unconditionally; the now-pointless toggle is removed on migrate. **ERPNext Pricing Rules still work normally for non-POS documents.** Do POS discounting with **price books / LumenPOS promotions**. |
 | 0.11.3 | **Fix: ERPNext Pricing Rule overriding the price book → "Partly Paid".** With *Ignore ERPNext Pricing Rules* ON, a sale could still post with the Pricing Rule's price instead of the price book: `set_missing_values` stamps the rule on the item row, and ERPNext **re-applies it on submit**, overriding the price LumenPOS set. The till had already collected the LumenPOS price, so the posted invoice diverged and landed **Partly Paid**. LumenPOS now **clears the stamped Pricing Rule** from each line when *Ignore* is on, so the price book / promotion price is what posts (and the payment matches → fully paid). *Note: with the toggle OFF, ERPNext Pricing Rules apply to the invoice but the till/cart never does — so they'll mismatch and partial-pay; keep the toggle ON unless you stop using LumenPOS price books/promotions.* |
 | 0.11.2 | **Non-stock items (services, fees) never carry a warehouse.** Extends the 0.11.1 gift-card fix to every sale: after building the invoice, any **non-stock** line (a service like *Installation*, a fee, etc.) has its warehouse cleared — it never moves stock, so a warehouse is meaningless and it should never be subject to the warehouse↔company check. **Stock** items keep the POS Profile's warehouse (which must belong to the profile's company). So a multi-company site can sell services on any company's profile without a warehouse error. |

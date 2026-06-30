@@ -263,6 +263,9 @@ async function addBundleToCart(bundle) {
 
 async function onSearchEnter() {
   clearTimeout(scanTimer)
+  // Was this entry SCANNED (fast burst) or typed? Capture before resetting the
+  // guard — it's needed to enforce "scan only" on a serial entered here.
+  const wasScan = scanGuard.isScan(catalog.search)
   scanGuard.reset()
   const term = catalog.search.trim()
   if (!term) return
@@ -276,6 +279,13 @@ async function onSearchEnter() {
         app_type: cart.appType,
       })
       if (result.found) {
+        // Scan-only: a serial TYPED into the search box must not bypass the rule
+        // (same guard as the serial modal). A scanned serial (burst) is allowed.
+        if (result.serial && session.settings.serial_scan_only && !wasScan) {
+          session.notify(t('Manual entry is off — scan the serial with the scanner.'), true)
+          catalog.clearSearch()
+          return
+        }
         addToCart(result.item, result.serial)
         catalog.clearSearch()
         return
