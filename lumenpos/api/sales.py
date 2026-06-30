@@ -202,6 +202,15 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         item_row.margin_rate_or_amount = 0
         item_row.rate_with_margin = 0
         item_row.rate = 0  # force recompute from discount_percentage
+        # LumenPOS prices (price books + its own promotion engine) are
+        # authoritative. set_missing_values can stamp an ERPNext Pricing Rule on
+        # the row; if left, ERPNext RE-APPLIES it on submit and overrides the
+        # price book — the till already collected the LumenPOS price, so the
+        # posted invoice diverges and lands "Partly Paid". Clear the stamp so the
+        # price we set is what posts.
+        if ignore_pricing_rule:
+            item_row.pricing_rules = ""
+            item_row.is_free_item = 0
         if price > 0 and per_unit > 0:
             item_row.discount_percentage = flt(min(per_unit, price) / price * 100, 6)
         else:
