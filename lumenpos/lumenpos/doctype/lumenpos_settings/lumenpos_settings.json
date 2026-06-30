@@ -47,6 +47,8 @@
   "enable_audit_log",
   "enable_email_receipt",
   "enable_customer_display",
+  "enable_till_lock",
+  "auto_lock_minutes",
   "enable_quick_keys",
   "quick_keys_section",
   "quick_keys",
@@ -330,6 +332,21 @@
    "fieldname": "enable_customer_display",
    "fieldtype": "Check",
    "label": "Customer-facing display"
+  },
+  {
+   "default": "0",
+   "description": "Lock the till behind a PIN (a manager/approver PIN, or any manager). Protects an unattended register.",
+   "fieldname": "enable_till_lock",
+   "fieldtype": "Check",
+   "label": "Lock screen (PIN to unlock)"
+  },
+  {
+   "default": "0",
+   "depends_on": "enable_till_lock",
+   "description": "Auto-lock after this many minutes of inactivity (0 = manual lock only).",
+   "fieldname": "auto_lock_minutes",
+   "fieldtype": "Int",
+   "label": "Auto-lock after (minutes)"
   },
   {
    "default": "0",

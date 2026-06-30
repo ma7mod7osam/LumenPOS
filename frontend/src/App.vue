@@ -10,6 +10,14 @@
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
           <button
+            v-if="session.settings.enable_till_lock"
+            class="lang-pill"
+            :title="t('Lock the till')"
+            @click="session.lockTill()"
+          >
+            <Icon name="shield" /> {{ t('Lock') }}
+          </button>
+          <button
             class="lang-pill"
             :title="t('Language')"
             @click="toggleLocale()"
@@ -43,6 +51,7 @@
     <div v-if="session.toast" class="toast" :class="{ error: session.toast.isError }">
       {{ session.toast.message }}
     </div>
+    <LockOverlay v-if="session.locked" />
   </div>
 
   <div v-else-if="!isDisplay && session.error" class="boot-error">
@@ -65,8 +74,10 @@ import { useCartStore } from './stores/cart'
 import { money } from './format'
 import { publishCart, onDisplayRequest } from './customerDisplay'
 import { t, locale, toggleLocale } from './i18n'
+import Icon from './components/Icon.vue'
 import NavRail from './components/NavRail.vue'
 import OpenRegisterOverlay from './components/OpenRegisterOverlay.vue'
+import LockOverlay from './components/LockOverlay.vue'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
@@ -122,8 +133,24 @@ onMounted(async () => {
     cart.$subscribe(() => publishDisplaySnapshot())
     onDisplayRequest(publishDisplaySnapshot)
     watch(() => session.settings?.enable_customer_display, publishDisplaySnapshot)
+    setupAutoLock()
   }
 })
+
+// Auto-lock the till after a configured idle period (0 = manual lock only).
+let idleTimer = null
+function setupAutoLock() {
+  const reset = () => {
+    clearTimeout(idleTimer)
+    const mins = session.settings?.auto_lock_minutes || 0
+    if (!session.settings?.enable_till_lock || mins <= 0 || session.locked) return
+    idleTimer = setTimeout(() => session.lockTill(), mins * 60000)
+  }
+  for (const ev of ['mousemove', 'keydown', 'click', 'touchstart']) {
+    window.addEventListener(ev, reset, { passive: true })
+  }
+  reset()
+}
 </script>
 
 <style scoped>

@@ -599,6 +599,16 @@ const features = {
   "Welcome": "أهلاً وسهلاً",
   "You save": "وفّرت",
   "{count} items": "{count} صنف",
+  "Lock screen (PIN to unlock)": "قفل الشاشة (رمز لفتحه)",
+  "Lock the till behind a PIN. A manager always unlocks; others use a manager/approver PIN — so set a Master passcode or approver PIN below first.": "اقفل الصندوق برمز. المدير يفتح القفل دائمًا؛ والبقية يستخدمون رمز مدير/معتمِد — لذا اضبط رمزًا رئيسيًا أو رمز معتمِد أدناه أولًا.",
+  "Auto-lock after (minutes, 0 = manual only)": "القفل التلقائي بعد (دقائق، 0 = يدوي فقط)",
+  "Lock the till": "اقفل الصندوق",
+  "Lock": "قفل",
+  "Till locked": "الصندوق مقفل",
+  "Enter a manager PIN to unlock.": "أدخل رمز مدير لفتح القفل.",
+  "PIN": "الرمز",
+  "Unlock": "فتح القفل",
+  "Wrong PIN": "رمز خاطئ",
 }
 
 // Sell screen, cart, product grid.

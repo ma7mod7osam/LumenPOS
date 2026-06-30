@@ -44,11 +44,14 @@ export const useSessionStore = defineStore('session', {
       enable_xreport: 1,
       enable_email_receipt: 0,
       enable_customer_display: 0,
+      enable_till_lock: 0,
+      auto_lock_minutes: 0,
       enable_quick_keys: 0,
       receipt_logo: '',
       receipt_header: '',
       receipt_footer: '',
     },
+    locked: false,
     bundles: [],
     permissions: {},
     pendingClosing: null,
@@ -222,6 +225,10 @@ export const useSessionStore = defineStore('session', {
       if (result?.requires_choice || result?.requires_retry) return result
       this.registerSession = result
       return result
+    },
+
+    lockTill() {
+      if (this.settings?.enable_till_lock) this.locked = true
     },
 
     notify(message, isError = false) {

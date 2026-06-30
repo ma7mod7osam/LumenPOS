@@ -257,6 +257,8 @@ def _client_settings():
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
         "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
         "enable_customer_display": 1 if doc.get("enable_customer_display") else 0,
+        "enable_till_lock": 1 if doc.get("enable_till_lock") else 0,
+        "auto_lock_minutes": cint(doc.get("auto_lock_minutes")) or 0,
         "enable_quick_keys": 1 if doc.get("enable_quick_keys") else 0,
         "receipt_logo": doc.get("receipt_logo") or "",
         "receipt_header": doc.get("receipt_header") or "",
@@ -273,6 +275,38 @@ def _client_settings():
             for row in (doc.delivery_apps or [])
         ],
     }
+
+
+@frappe.whitelist()
+def unlock_till(passcode=None):
+    """Unlock the PIN lock screen (Settings → Features → Lock screen). A manager
+    (System / LumenPOS Manager) can always unlock; everyone else needs a valid
+    manager/approver PIN. Lightly throttled to blunt PIN guessing."""
+    from frappe.utils import cint
+
+    from lumenpos.api import audit, permissions
+    from lumenpos.api.settings import check_passcode
+
+    if permissions.is_manager():
+        audit.log(audit.TILL_UNLOCK, detail=_("Unlocked by manager"))
+        return {"ok": True}
+
+    user = frappe.session.user
+    key = f"lumenpos_unlock:{user}"
+    attempts = cint(frappe.cache().get_value(key) or 0)
+    if attempts >= 8:
+        frappe.throw(_("Too many attempts — wait a minute and try again."))
+    result = check_passcode(passcode)
+    if not result:
+        frappe.cache().set_value(key, attempts + 1, expires_in_sec=60)
+        return {"ok": False}
+    frappe.cache().delete_value(key)
+    approver = result if isinstance(result, str) else None
+    audit.log(
+        audit.TILL_UNLOCK,
+        detail=_("Unlocked by {0}").format(approver) if approver else _("Unlocked with master passcode"),
+    )
+    return {"ok": True, "approver": approver}
 
 
 @frappe.whitelist()
