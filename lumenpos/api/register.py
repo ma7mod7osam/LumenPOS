@@ -72,8 +72,13 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
     opening_float = flt(opening_float)
     si_mode = profile.get("lumenpos_invoice_mode") == "Sales Invoice"
+    # SI mode normally runs a lightweight cash shift (no POS Opening/Closing
+    # Entry). A POS Profile can opt back into the entries for cash supervision —
+    # then SI mode opens/closes exactly like POS Invoice mode, minus the
+    # consolidation step (there are no POS Invoices to merge at close).
+    lightweight = si_mode and not cint(profile.get("lumenpos_si_opening_closing"))
 
-    needed = "POS Register Session" if si_mode else "POS Opening Entry"
+    needed = "POS Register Session" if lightweight else "POS Opening Entry"
     if not frappe.has_permission(needed, "create"):
         frappe.throw(_("You are not permitted to open a register"), frappe.PermissionError)
 
@@ -101,10 +106,11 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             _("Register {0} already has an open session ({1}).").format(profile.name, existing.name)
         )
 
-    # Sales Invoice (direct) mode: a lightweight LumenPOS cash shift — just the
-    # float, no ERPNext POS Opening Entry. Sales post as Sales Invoices directly,
-    # so there's nothing to consolidate at close.
-    if si_mode:
+    # Lightweight Sales Invoice cash shift — just the float, no ERPNext POS
+    # Opening Entry. Sales post as Sales Invoices directly, so there's nothing to
+    # consolidate at close. (Skipped when the profile opts into POS Opening/
+    # Closing Entries — that path falls through to the full opening below.)
+    if lightweight:
         sess = frappe.get_doc(
             {
                 "doctype": "POS Register Session",
@@ -346,8 +352,11 @@ def get_session_summary(session):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
     doc = frappe.get_doc("POS Register Session", session)
     _assert_owner_or_manager(doc)
-    # A session with no POS Opening Entry is a Sales Invoice (direct) shift.
-    sale_doctype = "POS Invoice" if doc.get("pos_opening_entry") else "Sales Invoice"
+    # Which sale doctype this shift posted — by the profile's mode, NOT by whether
+    # an opening entry exists (an SI shift can now have one for cash control).
+    from lumenpos.api.sales import _table_doctype
+
+    sale_doctype = _table_doctype(doc.pos_profile)
     payments = _payments_by_mode(doc.name, sale_doctype)
 
     cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
@@ -703,9 +712,12 @@ def _make_closing_entry(session_doc, counted):
     if session_counts:
         counted = session_counts
 
+    from lumenpos.api.sales import _table_doctype
+
+    sale_doctype = _table_doctype(session_doc.pos_profile)
     opening = frappe.get_doc("POS Opening Entry", session_doc.get("pos_opening_entry"))
     invoices = frappe.get_all(
-        "POS Invoice",
+        sale_doctype,
         filters={"lumenpos_session": session_doc.name, "docstatus": 1},
         fields=["name", "customer", "grand_total", "is_return", "posting_date"],
     )
@@ -725,17 +737,22 @@ def _make_closing_entry(session_doc, counted):
 
     grand_total = net_total = qty_total = 0.0
     for inv in invoices:
-        closing.append(
-            "pos_transactions",
-            {
-                "pos_invoice": inv.name,
-                "customer": inv.customer,
-                "grand_total": inv.grand_total,
-                "is_return": inv.is_return,
-                "posting_date": inv.posting_date,
-            },
-        )
-        full = frappe.get_doc("POS Invoice", inv.name)
+        # pos_transactions links POS Invoices only. A Sales-Invoice-mode shift
+        # leaves it empty (so _consolidate_now finds nothing to merge and just
+        # finalizes), but its takings still roll into the payment reconciliation
+        # and the Z-report totals below — the cash-control point of the entry.
+        if sale_doctype == "POS Invoice":
+            closing.append(
+                "pos_transactions",
+                {
+                    "pos_invoice": inv.name,
+                    "customer": inv.customer,
+                    "grand_total": inv.grand_total,
+                    "is_return": inv.is_return,
+                    "posting_date": inv.posting_date,
+                },
+            )
+        full = frappe.get_doc(sale_doctype, inv.name)
         grand_total += flt(full.grand_total)
         net_total += flt(full.net_total)
         qty_total += sum(flt(i.qty) for i in full.items)

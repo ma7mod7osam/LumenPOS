@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.8.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.9.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -25,8 +25,12 @@ as**):
 - **POS Invoice** (default) — sales are POS Invoices with native **POS
   Opening/Closing Entries**, consolidated into Sales Invoices at register close.
 - **Sales Invoice** — each sale posts a **Sales Invoice directly** (GL posts
-  immediately, no consolidation); the register is a **lightweight LumenPOS cash
-  shift** with no POS Opening/Closing Entry (works on v14/v15 too).
+  immediately, no consolidation). The register is a **lightweight LumenPOS cash
+  shift** by default (no POS Opening/Closing Entry; works on v14/v15 too) — or,
+  if you tick **Use POS Opening/Closing Entries** on the POS Profile, it opens a
+  **POS Opening Entry** and closes with a **POS Closing Entry** for cash
+  supervision and the standard ERPNext POS reports (still no consolidation,
+  since the sales are already Sales Invoices).
 
 Either way, stock, GL and reports behave as standard ERPNext.
 
@@ -619,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.9.0 | **POS Opening/Closing Entries in Sales Invoice mode (cash control).** New POS Profile option **Use POS Opening/Closing Entries** (LumenPOS Options, shown only in *Sale posts as = Sales Invoice*). When on, opening the register creates a real **POS Opening Entry** and closing creates a **POS Closing Entry** — opening float, expected-by-payment (sourced from the shift's *Sales Invoices*), counted amounts, differences, cash in/out — so cash is supervised on the standard ERPNext POS documents/reports. There is **no consolidation** (sales already post as Sales Invoices; the closing entry's invoice table stays empty and the close finalizes directly). Off (default) keeps the lightweight cash shift. The register screen behaves like POS Invoice mode (close → finalising → Closed with a POS Closing Entry link). |
 | 0.8.1 | **Fix: sales failing with `'POSProfile' object has no attribute 'update_stock'`.** Some ERPNext versions don't expose `update_stock` on the POS Profile, so the direct attribute read threw and blocked every sale at *Complete Sale*. LumenPOS now reads it defensively — it honours the profile's setting when the field exists, and otherwise defaults to **Update Stock = on** (a POS reduces stock at the point of sale; Sales-Invoice-direct mode needs it to move stock at all). |
 | 0.8.0 | **Lock screen (PIN to unlock)** (Settings → General → *Features*). A **Lock** button in the top bar (and optional **auto-lock after N minutes** of inactivity) covers the whole till with a PIN screen, protecting an unattended register. A **manager** (System / LumenPOS Manager) always unlocks; everyone else enters a **manager/approver PIN** (the same PINs used for discount approval) — so set a Master passcode or an approver PIN first. Unlocks are throttled server-side and recorded in the audit log. *Note: this is a screen lock for a shared till, not per-cashier login/session switching.* |
 | 0.7.0 | **Customer-facing display** (Settings → General → *Features* → Customer-facing display). A **Display** button on the sell screen opens a chrome-free second-screen window (`#/display`) that mirrors the live cart for the customer — item lines, savings and a big running total, with the store logo and a welcome screen when idle. Sync is local-only over a **BroadcastChannel** (no server round-trips); a display opened later asks the till for the current cart so it's never blank. Designed for a second monitor on the same machine/browser. |

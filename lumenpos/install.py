@@ -206,14 +206,27 @@ def make_custom_fields():
                     "ERPNext consolidates into Sales Invoices at register close. "
                     "Sales Invoice: each sale posts a Sales Invoice directly (GL posts "
                     "immediately, no consolidation); the register is a lightweight "
-                    "LumenPOS cash shift with no POS Opening/Closing Entry.",
+                    "LumenPOS cash shift (optionally with POS Opening/Closing Entries — see below).",
+                ),
+                dict(
+                    fieldname="lumenpos_si_opening_closing",
+                    label="Use POS Opening/Closing Entries (cash control)",
+                    fieldtype="Check",
+                    default="0",
+                    insert_after="lumenpos_invoice_mode",
+                    depends_on="eval:doc.lumenpos_invoice_mode=='Sales Invoice'",
+                    description="Sales Invoice mode only. On: opening the register creates a "
+                    "POS Opening Entry and closing creates a POS Closing Entry (for cash "
+                    "supervision and the standard ERPNext POS reports) — with NO "
+                    "consolidation, since sales already post as Sales Invoices. Off: a "
+                    "lightweight cash shift with no opening/closing entry.",
                 ),
                 dict(
                     fieldname="lumenpos_ignore_pricing_rules",
                     label="Ignore ERPNext Pricing Rules",
                     fieldtype="Check",
                     default="1",
-                    insert_after="lumenpos_invoice_mode",
+                    insert_after="lumenpos_si_opening_closing",
                     description="On (default): ERPNext Pricing Rules are bypassed and "
                     "LumenPOS uses its own promotion engine. Off: Pricing Rules apply "
                     "(they stack on top of any LumenPOS promotions — avoid running both).",
