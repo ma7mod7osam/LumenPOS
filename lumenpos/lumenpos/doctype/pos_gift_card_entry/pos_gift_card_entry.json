@@ -44,10 +44,9 @@
   },
   {
    "fieldname": "invoice",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Invoice",
-   "options": "POS Invoice"
+   "label": "Invoice"
   },
   {
    "fieldname": "posting_datetime",

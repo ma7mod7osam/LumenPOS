@@ -81,9 +81,8 @@
   },
   {
    "fieldname": "issued_invoice",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Issued On Invoice",
-   "options": "POS Invoice",
    "read_only": 1
   }
  ],

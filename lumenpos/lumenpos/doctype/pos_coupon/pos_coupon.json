@@ -76,9 +76,8 @@
   },
   {
    "fieldname": "used_on",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Used On (Invoice)",
-   "options": "POS Invoice",
    "read_only": 1
   },
   {

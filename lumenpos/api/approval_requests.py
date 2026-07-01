@@ -92,7 +92,15 @@ def create_request(
             frappe.throw(_("Return approval isn't required — returns are open."))
         if not return_invoice:
             frappe.throw(_("Select the invoice to return."))
-        posting = frappe.db.get_value(INVOICE_DOCTYPE, return_invoice, "posting_date")
+        # The sale may be a POS Invoice or a Sales Invoice (per the profile's
+        # mode), so resolve the doctype instead of assuming POS Invoice — else
+        # the return-window age check silently no-ops in Sales-Invoice mode.
+        inv_dt = (
+            "Sales Invoice"
+            if frappe.db.exists("Sales Invoice", return_invoice)
+            else INVOICE_DOCTYPE
+        )
+        posting = frappe.db.get_value(inv_dt, return_invoice, "posting_date")
         if posting:
             age = date_diff(nowdate(), posting)
 

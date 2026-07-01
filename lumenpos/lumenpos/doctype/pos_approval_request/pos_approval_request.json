@@ -108,9 +108,8 @@
   },
   {
    "fieldname": "return_invoice",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Return Invoice",
-   "options": "POS Invoice",
    "read_only": 1
   },
   {
@@ -172,9 +171,8 @@
   },
   {
    "fieldname": "invoice",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Resulting Invoice",
-   "options": "POS Invoice",
    "read_only": 1
   },
   {
