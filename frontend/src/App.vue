@@ -10,6 +10,15 @@
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
           <button
+            v-if="session.settings.enable_xreport && session.registerOpen"
+            class="lang-pill"
+            :title="t('X-report (mid-shift read)')"
+            :disabled="xreportLoading"
+            @click="openXReport"
+          >
+            <Icon name="report" /> {{ t('X-report') }}
+          </button>
+          <button
             v-if="session.settings.enable_till_lock"
             class="lang-pill"
             :title="t('Lock the till')"
@@ -52,6 +61,7 @@
       {{ session.toast.message }}
     </div>
     <LockOverlay v-if="session.locked" />
+    <XReportModal v-if="xreportOpen && xreportSummary" :summary="xreportSummary" @close="xreportOpen = false" />
   </div>
 
   <div v-else-if="!isDisplay && session.error" class="boot-error">
@@ -66,8 +76,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { call } from './api'
 import { useSessionStore } from './stores/session'
 import { useCatalogStore } from './stores/catalog'
 import { useCartStore } from './stores/cart'
@@ -79,12 +90,33 @@ import Icon from './components/Icon.vue'
 import NavRail from './components/NavRail.vue'
 import OpenRegisterOverlay from './components/OpenRegisterOverlay.vue'
 import LockOverlay from './components/LockOverlay.vue'
+import XReportModal from './components/XReportModal.vue'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
 const cart = useCartStore()
 const route = useRoute()
 const isDisplay = computed(() => route.path === '/display')
+
+// X-report — reachable from the top bar all shift. Fetches a fresh read-only
+// session summary on demand (no register-page visit needed).
+const xreportOpen = ref(false)
+const xreportSummary = ref(null)
+const xreportLoading = ref(false)
+async function openXReport() {
+  if (!session.registerSession || xreportLoading.value) return
+  xreportLoading.value = true
+  try {
+    xreportSummary.value = await call('lumenpos.api.register.get_session_summary', {
+      session: session.registerSession.name,
+    })
+    xreportOpen.value = true
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    xreportLoading.value = false
+  }
+}
 
 // Push a fully-formatted cart snapshot to any open customer display.
 function publishDisplaySnapshot() {

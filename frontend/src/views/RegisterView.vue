@@ -128,16 +128,7 @@
 
     <template v-if="session.registerOpen">
       <div class="card panel">
-        <div class="panel-head">
-          {{ t('Session') }} {{ session.registerSession.name }}
-          <button
-            v-if="session.settings.enable_xreport && summary"
-            class="btn btn-outline"
-            @click="xreportOpen = true"
-          >
-            <Icon name="report" /> {{ t('X-report') }}
-          </button>
-        </div>
+        <div class="panel-head">{{ t('Session') }} {{ session.registerSession.name }}</div>
         <div class="panel-body" v-if="summary">
           <div class="stat-row">
             <div class="stat">
@@ -275,14 +266,11 @@
         </div>
       </div>
     </div>
-
-    <XReportModal v-if="xreportOpen && summary" :summary="summary" @close="xreportOpen = false" />
   </div>
 </template>
 
 <script setup>
 import Icon from '../components/Icon.vue'
-import XReportModal from '../components/XReportModal.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
@@ -300,7 +288,6 @@ const closedResult = ref(null)
 const closeState = ref({ status: 'Closing', closing_status: 'Pending', pos_closing_entry: null, closing_error: null })
 const retrying = ref(null)
 const pending = ref(session.pendingClosing)
-const xreportOpen = ref(false)
 let closingPoll = null
 
 const canOpen = computed(() => session.permissions.open_register !== false)
