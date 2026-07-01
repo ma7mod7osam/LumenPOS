@@ -652,6 +652,8 @@ const features = {
   "Creating a new customer needs a connection.": "إنشاء عميل جديد يتطلب اتصالًا.",
   "Offline — saved on this device and synced (matched to an existing customer or created) when you reconnect.": "دون اتصال — يُحفظ على هذا الجهاز ويُزامَن (يُطابَق مع عميل موجود أو يُنشأ) عند عودة الاتصال.",
   "Customer saved offline — will sync when back online": "حُفظ العميل دون اتصال — سيُزامَن عند عودة الاتصال",
+  "Shift Open:": "الوردية مفتوحة:",
+  "{h} Hr {m} Min {s} Sec": "{h} ساعة {m} دقيقة {s} ثانية",
 }
 
 // Sell screen, cart, product grid.

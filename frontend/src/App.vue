@@ -7,7 +7,13 @@
     <NavRail />
     <div class="main">
       <header class="topbar">
-        <div class="topbar-title">{{ pageTitle }}</div>
+        <div class="topbar-left">
+          <div class="topbar-title">{{ pageTitle }}</div>
+          <span class="tb-pill tb-clock"><Icon name="clock" /> {{ clockText }}</span>
+          <span v-if="session.registerOpen && shiftText" class="tb-pill tb-shift">
+            <Icon name="check" /> {{ t('Shift Open:') }} <b>{{ shiftText }}</b>
+          </span>
+        </div>
         <div class="topbar-right">
           <button
             v-if="session.settings.enable_xreport && session.registerOpen"
@@ -76,7 +82,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from './api'
 import { useSessionStore } from './stores/session'
@@ -97,6 +103,29 @@ const catalog = useCatalogStore()
 const cart = useCartStore()
 const route = useRoute()
 const isDisplay = computed(() => route.path === '/display')
+
+// Live clock + "shift open" elapsed timer for the top bar (ticks every second).
+const now = ref(Date.now())
+let clockTimer = null
+const pad = (n) => String(n).padStart(2, '0')
+const clockText = computed(() => {
+  const d = new Date(now.value)
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+})
+const shiftText = computed(() => {
+  const openedAt = session.registerSession?.opened_at
+  if (!openedAt) return ''
+  // ERPNext datetime "YYYY-MM-DD HH:MM:SS" (site tz ≈ the till's local tz).
+  const start = Date.parse(String(openedAt).replace(' ', 'T'))
+  if (Number.isNaN(start)) return ''
+  let s = Math.max(0, Math.floor((now.value - start) / 1000))
+  const h = Math.floor(s / 3600)
+  s -= h * 3600
+  const m = Math.floor(s / 60)
+  s -= m * 60
+  return t('{h} Hr {m} Min {s} Sec', { h, m, s })
+})
+onBeforeUnmount(() => clearInterval(clockTimer))
 
 // X-report — reachable from the top bar all shift. Fetches a fresh read-only
 // session summary on demand (no register-page visit needed).
@@ -155,6 +184,7 @@ onMounted(async () => {
   // The display window is a passive mirror — no bootstrap, no catalog, no shell.
   if (isDisplay.value) return
 
+  clockTimer = setInterval(() => (now.value = Date.now()), 1000)
   // Make offline storage persistent so a queued sale can't be evicted under
   // disk pressure / LRU (fire-and-forget; grant is heuristic).
   ensurePersistentStorage()
@@ -211,10 +241,29 @@ function setupAutoLock() {
   padding: 0 20px;
   flex-shrink: 0;
 }
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
 .topbar-title {
   font-size: 17px;
   font-weight: 700;
 }
+.tb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tb-clock { background: rgba(20, 99, 255, 0.2); color: #c8dcff; }
+.tb-shift { background: rgba(34, 197, 94, 0.18); color: #b3f0cb; }
+.tb-shift b { color: #fff; font-weight: 800; }
 .topbar-right {
   display: flex;
   align-items: center;
