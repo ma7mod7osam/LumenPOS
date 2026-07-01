@@ -428,6 +428,24 @@ def sell_gift_card(payload):
     if not customer:
         frappe.throw(_("Select a customer (or set a default customer on the POS Profile)"))
 
+    # A gift card is non-stock, but ERPNext STILL validates the line/default
+    # warehouse against the company even for a POS sale. Its warehouse resolver
+    # (get_item_warehouse) reads the header `set_warehouse` FIRST, then item
+    # defaults, then the GLOBAL default warehouse — which on a multi-company site
+    # belongs to the wrong company ("Warehouse … doesn't belong to Company …").
+    # So we pin a company-owned warehouse UP FRONT (in the header + on the row),
+    # exactly like regular sales do — setting it after set_missing_values is too
+    # late, the row was already defaulted to the global warehouse by then.
+    warehouse = _company_warehouse(profile)
+    if not warehouse:
+        frappe.throw(
+            _(
+                "No warehouse belongs to company {0}. Set a Default Warehouse on "
+                "the POS Profile (or create a warehouse for this company) before "
+                "selling gift cards."
+            ).format(profile.company)
+        )
+
     invoice = frappe.new_doc(_sale_doctype(profile))
     invoice.update(
         {
@@ -438,6 +456,7 @@ def sell_gift_card(payload):
             "selling_price_list": profile.selling_price_list,
             "update_stock": 0,
             "ignore_pricing_rule": 1,
+            "set_warehouse": warehouse,
             # no taxes: gift card sales are a liability swap, tax applies on use
         }
     )
@@ -449,6 +468,7 @@ def sell_gift_card(payload):
             "qty": 1,
             "rate": amount,
             "price_list_rate": amount,
+            "warehouse": warehouse,
         },
     )
     if payload.get("sales_person"):
@@ -459,14 +479,8 @@ def sell_gift_card(payload):
     invoice.set_missing_values()
     invoice.taxes = []
 
-    # A gift card is non-stock (update_stock=0), but ERPNext still validates the
-    # line/default warehouse against the company even for a POS sale. Clearing it
-    # let ERPNext fall back to the GLOBAL default warehouse, which on a
-    # multi-company site can belong to the wrong company ("Warehouse … doesn't
-    # belong to Company …"). Pin it to a warehouse that DOES belong to this
-    # company — the profile's own (what regular sales use), or any company
-    # warehouse if the profile's is somehow mismatched.
-    warehouse = _company_warehouse(profile)
+    # Belt-and-suspenders: re-assert the company warehouse in case
+    # set_missing_values re-defaulted a row back to the global default.
     invoice.set("set_warehouse", warehouse)
     for row in invoice.items:
         row.warehouse = warehouse

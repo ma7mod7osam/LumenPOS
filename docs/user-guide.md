@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.16.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.16.1. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.16.1 | **Gift-card warehouse fix (multi-company), for real this time.** On a multi-company site, selling a gift card could fail with *"Warehouse … doesn't belong to Company …"*. Root cause: ERPNext resolves a line's warehouse from the invoice **header `set_warehouse` first**, and the gift-card invoice only set it **after** `set_missing_values` ran — too late, so the row had already fallen through to the **global** default warehouse (wrong company). Now the gift-card sale pins a company-owned warehouse **up front** (header + row), exactly like a regular sale, and hard-fails with a clear message if the company genuinely has no warehouse — so it can never silently fall back to the wrong-company default. |
 | 0.16.0 | **Live clock + "Shift Open" timer in the top bar.** A ticking **wall clock** (HH:MM:SS) and, while a register is open, a **Shift Open: {H} Hr {M} Min {S} Sec** elapsed timer (counting from when the shift opened) now sit at the top-left, so cashiers/managers can see the time and how long the drawer's been running at a glance. Both update every second. |
 | 0.15.3 | **Gift-card placeholder item hidden from the product grid.** The internal **GIFT-CARD** item (used to post a gift-card sale) is sold via the gift-card button, not tapped as a product — tapping it just added a SAR 0.00 line. It's now excluded from the sell grid, search, offline catalog cache, and the price checker. (It disappears from the grid once the offline catalog refreshes on the next load.) |
 | 0.15.2 | **Real fix: gift-card sale "Warehouse … doesn't belong to Company".** The earlier fix *cleared* the warehouse on non-stock sales — but ERPNext then falls back to the **global default warehouse**, which on a multi-company site can be another company's, so the error came back. Both the gift-card sale and every non-stock line now **pin the profile's own warehouse** (which belongs to the profile's company, exactly like regular sales do), with a company-warehouse fallback if a profile's warehouse is mismatched. Non-stock lines carry a harmless (no stock moves) but company-valid warehouse, so the validation passes on any company. |
