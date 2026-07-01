@@ -1151,6 +1151,7 @@ def get_receipt(invoice):
             barcode_map.setdefault(b.parent, b.barcode)
     return {
         "name": doc.name,
+        "doctype": doc.doctype,  # so the client prints the right doc via a Print Format
         "note": _get_custom(doc, ("lumenpos_note",)) or "",
         "is_return": doc.is_return,
         "return_against": doc.return_against,

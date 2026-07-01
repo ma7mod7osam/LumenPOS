@@ -896,7 +896,17 @@
       <div class="sec-card">
         <div class="sec-title"><Icon name="image" /> {{ t('Receipt') }}</div>
         <p class="muted hint-row" style="padding: 0 0 10px">
-          {{ t('Design the receipt shown on screen and printed from the browser. (A POS Profile Print Format, if set, takes over instead.)') }}
+          {{ t('Design the receipt shown on screen and printed from the browser.') }}
+        </p>
+        <div v-if="session.printFormat" class="pf-banner">
+          <Icon name="report" />
+          <div>
+            <b>{{ t('Your own format is active:') }} {{ session.printFormat }}</b>
+            <div class="pf-sub">{{ t('A Print Format is set on this POS Profile, so printing uses it — the design below only styles the on-screen receipt. Clear the POS Profile’s Print Format field to print with this designer instead.') }}</div>
+          </div>
+        </div>
+        <p v-else class="muted hint-row" style="padding: 0 0 12px">
+          {{ t('Want your own layout? Set a Print Format on this POS Profile in ERPNext (any standard or custom Print Format for the sale document) — it then takes over printing, and this designer keeps styling the on-screen receipt.') }}
         </p>
         <div class="receipt-config">
           <div class="rc-controls">
@@ -2293,6 +2303,19 @@ const filteredBooks = computed(() => {
 .list-head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
 .list-search { flex: 1; min-width: 160px; }
 .hint-row { font-size: 12.5px; margin: 0 0 10px; }
+.pf-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: rgba(20, 99, 255, 0.08);
+  border: 1px solid rgba(20, 99, 255, 0.22);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+.pf-banner b { color: var(--brand-dark); }
+.pf-sub { color: var(--text-muted); font-size: 12px; margin-top: 3px; }
 .empty {
   padding: 48px;
   text-align: center;

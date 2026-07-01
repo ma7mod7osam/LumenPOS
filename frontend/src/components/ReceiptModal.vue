@@ -107,8 +107,12 @@ async function print() {
     }
   }
   if (session.printFormat && !props.receipt.offline && !session.offline) {
+    // Use the sale's ACTUAL doctype (POS Invoice or Sales Invoice, per the
+    // profile's mode) — hardcoding "POS Invoice" broke custom Print Formats in
+    // Sales-Invoice mode.
+    const doctype = props.receipt.doctype || session.invoiceMode || 'POS Invoice'
     const url =
-      `/printview?doctype=${encodeURIComponent('POS Invoice')}` +
+      `/printview?doctype=${encodeURIComponent(doctype)}` +
       `&name=${encodeURIComponent(props.receipt.name)}` +
       `&format=${encodeURIComponent(session.printFormat)}` +
       `&no_letterhead=0&trigger_print=1`

@@ -669,6 +669,13 @@ const features = {
   "View offline sales log": "عرض سجل المبيعات دون اتصال",
   "Sync now": "المزامنة الآن",
   "Syncing…": "جارٍ المزامنة…",
+  "Design the receipt shown on screen and printed from the browser.":
+    "صمّم الإيصال الظاهر على الشاشة والمطبوع من المتصفح.",
+  "Your own format is active:": "التنسيق الخاص بك مُفعّل:",
+  "A Print Format is set on this POS Profile, so printing uses it — the design below only styles the on-screen receipt. Clear the POS Profile’s Print Format field to print with this designer instead.":
+    "تم تعيين تنسيق طباعة (Print Format) على نقطة البيع هذه، لذا تُستخدم عند الطباعة — والتصميم أدناه يُنسّق الإيصال على الشاشة فقط. امسح حقل Print Format من نقطة البيع لاستخدام هذا المصمّم في الطباعة.",
+  "Want your own layout? Set a Print Format on this POS Profile in ERPNext (any standard or custom Print Format for the sale document) — it then takes over printing, and this designer keeps styling the on-screen receipt.":
+    "تريد تصميمك الخاص؟ عيّن تنسيق طباعة (Print Format) على نقطة البيع هذه في ERPNext (أي تنسيق قياسي أو مخصّص لمستند البيع) — عندها يتولى الطباعة، ويبقى هذا المصمّم لتنسيق الإيصال على الشاشة.",
 }
 
 // Sell screen, cart, product grid.
