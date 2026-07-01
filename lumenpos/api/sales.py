@@ -68,6 +68,24 @@ def _table_doctype(pos_profile):
     return "POS Invoice"
 
 
+def _ensure_ignore_pricing_rule(profile):
+    """LumenPOS prices every sale itself (price books + its own promotion engine)
+    and never applies ERPNext Pricing Rules — so a rule ERPNext re-applies on
+    submit would diverge from what the till charged and land the invoice
+    "Partly Paid". We already set `ignore_pricing_rule` on the invoice, but
+    ERPNext's POS flow (`set_pos_fields`) re-reads that flag from the POS Profile
+    on every save and flips ours back to the profile's value. So mirror
+    LumenPOS's always-ignore behaviour onto the profile itself: set the POS
+    Profile's "Ignore Pricing Rule" to 1 once, idempotently. (No-op if the field
+    isn't present or is already set.)"""
+    if not frappe.get_meta("POS Profile").has_field("ignore_pricing_rule"):
+        return
+    if not profile.get("ignore_pricing_rule"):
+        frappe.db.set_value("POS Profile", profile.name, "ignore_pricing_rule", 1)
+        profile.ignore_pricing_rule = 1
+        frappe.clear_document_cache("POS Profile", profile.name)
+
+
 def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passcode=True):
     """Build a fully-priced, fully-taxed but NOT-yet-inserted POS Invoice from
     the cart. Shared by submit_sale (which then attaches payments and submits)
@@ -137,6 +155,10 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     # stock at all, since there is no consolidation step).
     _update_stock = profile.get("update_stock")
     update_stock = 1 if _update_stock is None else cint(_update_stock)
+
+    # Make ERPNext's POS flow agree with LumenPOS: always ignore Pricing Rules.
+    # (Sets POS Profile → Ignore Pricing Rule so the flag survives submit.)
+    _ensure_ignore_pricing_rule(profile)
 
     invoice = frappe.new_doc(_sale_doctype(profile))
     invoice.update(
@@ -434,6 +456,7 @@ def sell_gift_card(payload):
 
     _require_sell()
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
+    _ensure_ignore_pricing_rule(profile)
     session = _open_session(profile.name)
     amount = flt(payload.get("amount"))
     if amount <= 0:
