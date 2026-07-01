@@ -39,12 +39,22 @@
           >
             {{ locale === 'ar' ? 'English' : 'العربية' }}
           </button>
-          <button v-if="session.offline" class="offline-pill" @click="session.reconnect()">
+          <button
+            v-if="session.offline"
+            class="offline-pill"
+            :title="t('View queued offline sales')"
+            @click="offlineLogOpen = true"
+          >
             ⚠ {{ t('Offline') }}{{ session.queuedCount ? ` — ${session.queuedCount}` : '' }}
           </button>
-          <span v-else-if="session.queuedCount" class="offline-pill syncing">
+          <button
+            v-else-if="session.queuedCount"
+            class="offline-pill syncing"
+            :title="t('View offline sales log')"
+            @click="offlineLogOpen = true"
+          >
             {{ t('Syncing') }} {{ session.queuedCount }}…
-          </span>
+          </button>
           <button
             class="register-pill"
             :class="{ open: session.registerOpen }"
@@ -68,6 +78,7 @@
     </div>
     <LockOverlay v-if="session.locked" />
     <XReportModal v-if="xreportOpen && xreportSummary" :summary="xreportSummary" @close="xreportOpen = false" />
+    <OfflineLogModal v-if="offlineLogOpen" @close="offlineLogOpen = false" />
   </div>
 
   <div v-else-if="!isDisplay && session.error" class="boot-error">
@@ -97,6 +108,7 @@ import NavRail from './components/NavRail.vue'
 import OpenRegisterOverlay from './components/OpenRegisterOverlay.vue'
 import LockOverlay from './components/LockOverlay.vue'
 import XReportModal from './components/XReportModal.vue'
+import OfflineLogModal from './components/OfflineLogModal.vue'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
@@ -132,6 +144,9 @@ onBeforeUnmount(() => clearInterval(clockTimer))
 const xreportOpen = ref(false)
 const xreportSummary = ref(null)
 const xreportLoading = ref(false)
+
+// Offline sales log — reachable from the offline / syncing pill and Settings.
+const offlineLogOpen = ref(false)
 async function openXReport() {
   if (!session.registerSession || xreportLoading.value) return
   xreportLoading.value = true
@@ -309,7 +324,6 @@ function setupAutoLock() {
 .offline-pill.syncing {
   background: rgba(0, 176, 185, 0.22);
   color: #8fe3e8;
-  cursor: default;
 }
 .content {
   flex: 1;

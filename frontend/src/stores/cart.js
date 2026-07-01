@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
-import { queueSale, queueCount, getCatalogItems, newId } from '../offline'
+import { queueSale, queueCount, getCatalogItems, newId, logSale } from '../offline'
 import { evaluatePromotions, suggestOffers } from '../promotions'
 import { useSessionStore } from './session'
 
@@ -579,6 +579,20 @@ export const useCartStore = defineStore('cart', {
       // Client-side receipt stand-in; the real invoice posts when the queue
       // syncs. Totals here exclude server-side taxes.
       const paid = payments.reduce((sum, p) => sum + p.amount, 0)
+
+      // Durable log entry so the cashier can later see this sale went out and
+      // what became of it on reconnect (pending → synced with the real invoice
+      // no., or failed with a reason). Best-effort — never block the sale.
+      logSale({
+        key: payload.idempotency_key,
+        queued_at: new Date().toISOString(),
+        customer_name:
+          this.customer?.customer_name || session.defaultCustomerName || 'Walk-in',
+        item_count: this.lines.length,
+        total: this.total,
+        paid,
+        status: 'pending',
+      }).catch(() => {})
       const receipt = {
         offline: true,
         name: `QUEUED-${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}`,

@@ -1254,6 +1254,7 @@
       </div>
       <div class="editor-actions">
         <button class="btn btn-outline" @click="refreshCache"><Icon name="refresh" /> {{ t('Refresh offline catalog now') }}</button>
+        <button class="btn btn-outline" @click="offlineLogOpen = true"><Icon name="report" /> {{ t('View offline sales log') }}</button>
         <span style="flex: 1" />
       </div>
       <p class="muted hint-row">
@@ -1261,11 +1262,13 @@
       </p>
     </section>
 
+    <OfflineLogModal v-if="offlineLogOpen" @close="offlineLogOpen = false" />
   </div>
 </template>
 
 <script setup>
 import Icon from '../components/Icon.vue'
+import OfflineLogModal from '../components/OfflineLogModal.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { call } from '../api'
 import { money, shortTime } from '../format'
@@ -1302,6 +1305,7 @@ const saving = ref(false)
 const settingsInfo = ref({})
 const cachedItems = ref(0)
 const cachedCustomers = ref(0)
+const offlineLogOpen = ref(false)
 const persisted = ref(false)
 const groupPick = ref('')
 

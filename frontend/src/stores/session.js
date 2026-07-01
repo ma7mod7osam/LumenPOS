@@ -10,6 +10,8 @@ import {
   getPendingCustomer,
   listPendingCustomers,
   removePendingCustomer,
+  patchSaleLog,
+  pruneSaleLog,
 } from '../offline'
 import { syncFromErp } from '../theme'
 
@@ -209,7 +211,9 @@ export const useSessionStore = defineStore('session', {
       try {
         const queue = await listQueue()
         let synced = 0
+        let failed = 0
         for (const entry of queue) {
+          const key = entry.payload?.idempotency_key
           try {
             let payload = entry.payload
             // Reconcile an offline-created customer: resolve its temp id to a
@@ -227,15 +231,30 @@ export const useSessionStore = defineStore('session', {
               }
               payload = { ...payload, customer: localMap[cust] }
             }
-            await call('lumenpos.api.sales.submit_sale', { payload })
+            const receipt = await call('lumenpos.api.sales.submit_sale', { payload })
             await removeQueued(entry.local_id)
+            // Log it as uploaded, with the real server invoice number so the
+            // cashier can see exactly where the offline sale landed.
+            await patchSaleLog(key, {
+              status: 'synced',
+              receipt: (receipt && receipt.name) || null,
+              synced_at: new Date().toISOString(),
+              error: null,
+            }).catch(() => {})
             synced++
           } catch (e) {
             if (e instanceof OfflineError) break // still down; keep the rest
-            // Server rejected this sale (e.g. item deleted): keep it queued
-            // and surface the reason rather than silently dropping a sale.
-            this.notify(`Queued sale could not sync: ${e.message}`, true)
-            break
+            // Server REJECTED this sale (e.g. item deleted, price changed). Keep
+            // it queued and record WHY, but move on so one bad sale can't block
+            // every good sale behind it. It retries on the next flush.
+            await patchSaleLog(key, {
+              status: 'failed',
+              error: e.message,
+              error_at: new Date().toISOString(),
+            }).catch(() => {})
+            this.notify(`A queued sale was rejected: ${e.message}`, true)
+            failed++
+            continue
           }
         }
         // Prune pending customers no remaining queued sale references (kept ones
@@ -250,7 +269,13 @@ export const useSessionStore = defineStore('session', {
           /* best-effort cleanup */
         }
         this.queuedCount = await queueCount()
+        pruneSaleLog().catch(() => {})
         if (synced) this.notify(`Synced ${synced} offline sale${synced > 1 ? 's' : ''}`)
+        if (failed)
+          this.notify(
+            `${failed} offline sale${failed > 1 ? 's' : ''} still need attention — see the offline sales log`,
+            true
+          )
       } finally {
         this.syncing = false
       }

@@ -654,6 +654,21 @@ const features = {
   "Customer saved offline — will sync when back online": "حُفظ العميل دون اتصال — سيُزامَن عند عودة الاتصال",
   "Shift Open:": "الوردية مفتوحة:",
   "{h} Hr {m} Min {s} Sec": "{h} ساعة {m} دقيقة {s} ثانية",
+  "Offline sales log": "سجل المبيعات دون اتصال",
+  "Every sale made while offline, and what happened to it on reconnect. A sale stays here as Pending until it has uploaded — nothing is removed until the server confirms it.":
+    "كل عملية بيع تمت دون اتصال وما حدث لها عند عودة الاتصال. تبقى العملية هنا بحالة \"قيد الانتظار\" حتى يتم رفعها — ولا يُحذف شيء حتى يؤكّد الخادم استلامها.",
+  "Pending": "قيد الانتظار",
+  "Uploaded": "تم الرفع",
+  "Needs attention": "يحتاج إلى مراجعة",
+  "No offline sales recorded yet.": "لا توجد مبيعات دون اتصال بعد.",
+  "Time": "الوقت",
+  "Rejected": "مرفوضة",
+  "⚠ Offline — queued sales upload when the connection returns":
+    "⚠ دون اتصال — تُرفع المبيعات المعلّقة عند عودة الاتصال",
+  "View queued offline sales": "عرض المبيعات المعلّقة دون اتصال",
+  "View offline sales log": "عرض سجل المبيعات دون اتصال",
+  "Sync now": "المزامنة الآن",
+  "Syncing…": "جارٍ المزامنة…",
 }
 
 // Sell screen, cart, product grid.

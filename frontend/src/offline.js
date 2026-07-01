@@ -2,7 +2,7 @@
 // sales made while the network is down. No external dependencies.
 
 const DB_NAME = 'lumenpos'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 // A unique client id for offline records (queued-sale idempotency keys,
 // offline-created customer temp ids).
@@ -59,6 +59,8 @@ function db() {
           database.createObjectStore('customers', { keyPath: 'name' })
         if (!database.objectStoreNames.contains('pending_customers'))
           database.createObjectStore('pending_customers', { keyPath: 'temp_id' })
+        if (!database.objectStoreNames.contains('sale_log'))
+          database.createObjectStore('sale_log', { keyPath: 'key' })
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => reject(req.error)
@@ -243,4 +245,51 @@ export async function removeQueued(localId) {
 export async function queueCount() {
   const database = await db()
   return request(database.transaction('queue').objectStore('queue').count())
+}
+
+// --- offline sales log ------------------------------------------------------
+// A durable, user-visible record of every sale made offline and what became of
+// it on sync: pending (queued, not yet uploaded), synced (posted — with the
+// real server invoice name), or failed (server rejected it — with the reason).
+// Keyed by the sale's idempotency key so flushQueue can update the right row.
+// This is a LOG for confidence/audit; the `queue` store remains the source of
+// truth for what still needs uploading.
+
+export async function logSale(record) {
+  return tx('sale_log', 'readwrite', (store) => store.put(JSON.parse(JSON.stringify(record))))
+}
+
+// Merge a patch into one log row (read-modify-write in a single transaction).
+export async function patchSaleLog(key, patch) {
+  if (!key) return
+  const database = await db()
+  const clean = JSON.parse(JSON.stringify(patch))
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction('sale_log', 'readwrite')
+    const store = transaction.objectStore('sale_log')
+    const getReq = store.get(key)
+    getReq.onsuccess = () => {
+      const existing = getReq.result
+      if (existing) store.put({ ...existing, ...clean })
+    }
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export async function listSaleLog() {
+  const database = await db()
+  const all = await request(database.transaction('sale_log').objectStore('sale_log').getAll())
+  all.sort((a, b) => (b.queued_at || '').localeCompare(a.queued_at || ''))
+  return all
+}
+
+// Keep every pending/failed row; keep only the newest `keepSynced` synced ones
+// so a busy till's log can't grow without bound. Best-effort.
+export async function pruneSaleLog(keepSynced = 100) {
+  const all = await listSaleLog()
+  const drop = all.filter((r) => r.status === 'synced').slice(keepSynced)
+  for (const r of drop) {
+    await tx('sale_log', 'readwrite', (store) => store.delete(r.key)).catch(() => {})
+  }
 }
