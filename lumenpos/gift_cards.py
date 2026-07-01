@@ -77,36 +77,41 @@ def ensure_setup(company):
                 "is_stock_item": 0,
                 "is_sales_item": 1,
                 "include_item_in_manufacturing": 0,
+                # Preset our OWN item default so ERPNext does not copy the Item
+                # Group's defaults on insert — those can carry a wrong-company
+                # default warehouse that fails validation on a multi-company site
+                # (update_defaults_from_item_group only copies when item_defaults
+                # is empty). No warehouse: a non-stock gift card needs none.
+                "item_defaults": [{"company": company, "income_account": account}],
             }
         )
         fill_required_custom_fields(item, "Gift Card")
         item.insert(ignore_permissions=True)
-    item = frappe.get_doc("Item", code)
-    dirty = False
-    # The gift card is NON-STOCK and never needs a stock warehouse, but ERPNext
-    # validates every item_default's default_warehouse against THAT row's company
-    # (validate_item_default_company_links). A stray warehouse — typically copied
-    # from the Item Group's own item defaults when the item was first created, or
-    # the global Stock Settings default — that points at another company blocks
-    # the save with "Row #1: Warehouse … doesn't belong to Company …". This is
-    # what actually broke gift-card sales on multi-company sites (the failure was
-    # in ensure_setup's item.save(), before the invoice was ever built). Strip
-    # them; they're meaningless on a non-stock item.
-    for d in item.item_defaults or []:
-        if d.default_warehouse:
-            d.default_warehouse = None
-            dirty = True
-    # One company row carries the income account — reuse the existing row for this
-    # company (fixing its account) instead of appending a duplicate.
-    row = next((d for d in (item.item_defaults or []) if d.company == company), None)
-    if row is None:
-        item.append("item_defaults", {"company": company, "income_account": account})
-        dirty = True
-    elif row.income_account != account:
-        row.income_account = account
-        dirty = True
-    if dirty:
-        item.save(ignore_permissions=True)
+
+    # A non-stock gift card never needs a stock warehouse, but ERPNext validates
+    # every item_default's default_warehouse against THAT row's company whenever
+    # the Item is SAVED (validate_item_default_company_links). A stray warehouse —
+    # copied from the Item Group's defaults, or the global Stock Settings default —
+    # that points at another company throws "Row #1: Warehouse … doesn't belong to
+    # Company …". This fails inside ensure_setup, before an invoice is ever built,
+    # and simply re-saving the doc to blank the field does NOT hold (ERPNext
+    # re-derives it during validate, before the check runs). So we do not re-save
+    # the Item at all: scrub the stray warehouse STRAIGHT IN THE DB (bypassing
+    # document validation). The sale posts income via the invoice line (see
+    # sell_gift_card), so it never depends on these item defaults.
+    strays = frappe.get_all(
+        "Item Default",
+        filters={
+            "parent": code,
+            "parenttype": "Item",
+            "default_warehouse": ["is", "set"],
+        },
+        pluck="name",
+    )
+    for name in strays:
+        frappe.db.set_value(
+            "Item Default", name, "default_warehouse", None, update_modified=False
+        )
     return account
 
 
