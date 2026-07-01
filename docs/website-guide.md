@@ -120,6 +120,8 @@ If you create a customer while offline, LumenPOS saves them locally and reconcil
 
 LumenPOS has its own promotions engine, so you don't have to wrangle ERPNext Pricing Rules at the till. Create promotions in the desk under **POS Promotion → New**.
 
+> **LumenPOS pricing vs ERPNext Pricing Rules.** LumenPOS owns pricing at the point of sale. Its **price books, promotions and bundles** are always the source of truth, and it **automatically ignores ERPNext Pricing Rules on every POS sale** — so the price the till shows always matches the posted invoice, and there's nothing to enable or disable. (You may see an *Ignore Pricing Rule* option in ERPNext; LumenPOS already applies it for you at the POS.) Your existing Pricing Rules keep working on non-POS documents such as Sales Orders and regular Sales Invoices.
+
 | Type | What it does | Key fields |
 |---|---|---|
 | **Simple Discount** | A percentage or fixed amount off matching products | Discount type, value |
@@ -274,6 +276,9 @@ Make sure the company has its own warehouse and gift-card/liability accounts. Lu
 
 **Nothing loads / search is empty.**
 Open the POS online at least once so the catalogue can cache. Then use **Settings → Status → Refresh offline catalog** to rebuild the cache.
+
+**Do I need to turn off ERPNext Pricing Rules to use promotions, bundles or price books?**
+No. LumenPOS ignores ERPNext Pricing Rules automatically on every POS sale, so its price books, promotions and bundles always take precedence at the till — there's nothing to switch on or off. Your Pricing Rules keep working on non-POS documents.
 
 **Where do I change the price list, taxes or payment methods?**
 On the **POS Profile** in ERPNext — that's the source of truth. The in-POS Settings page covers promotions, price books, receipts, permissions and the like.

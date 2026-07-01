@@ -34,6 +34,8 @@ And it's not a separate silo. Every sale posts straight into ERPNext — real in
 
 **Promotions that make sense.** LumenPOS brings its own promotions engine, so you're not bending ERPNext Pricing Rules to fit a shop counter. Set up a straight discount, a Buy X Get Y offer, a "spend 200, take 20 off" basket deal, or a fixed-price bundle — and the cart works out the price the instant items go in. Offers can stack or stay exclusive, run on a schedule, and hide behind a coupon code when you want them gated. The cart even nudges the customer: *add one more to get the deal*.
 
+Because LumenPOS handles pricing itself, it automatically ignores ERPNext Pricing Rules at the till — so your price books, promotions and bundles are always exactly what the customer is charged, with nothing to switch on or off. Your existing ERPNext Pricing Rules keep working everywhere else.
+
 **It keeps selling when the internet doesn't.** Products, prices and promotions are cached on the device. If the connection drops mid-shift, the till carries on — sales queue locally and upload themselves the moment you're back online. A plain-English log shows the cashier exactly what's synced and what's still waiting, so nothing quietly disappears.
 
 **The money side is handled.** Open a register with a float, ring the shift, and close with a blind count that's checked against what the system expected, Z-report included. Take cash, card, split tenders, gift cards or store credit, and give change. Do returns and refunds back to the original payment method or to store credit. Pull a mid-shift X-report any time you want a read without closing the drawer.
