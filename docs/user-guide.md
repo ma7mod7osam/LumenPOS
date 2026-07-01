@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.15.2. This document is updated with every feature change.*
+*Applies to LumenPOS v0.15.3. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.15.3 | **Gift-card placeholder item hidden from the product grid.** The internal **GIFT-CARD** item (used to post a gift-card sale) is sold via the gift-card button, not tapped as a product — tapping it just added a SAR 0.00 line. It's now excluded from the sell grid, search, offline catalog cache, and the price checker. (It disappears from the grid once the offline catalog refreshes on the next load.) |
 | 0.15.2 | **Real fix: gift-card sale "Warehouse … doesn't belong to Company".** The earlier fix *cleared* the warehouse on non-stock sales — but ERPNext then falls back to the **global default warehouse**, which on a multi-company site can be another company's, so the error came back. Both the gift-card sale and every non-stock line now **pin the profile's own warehouse** (which belongs to the profile's company, exactly like regular sales do), with a company-warehouse fallback if a profile's warehouse is mismatched. Non-stock lines carry a harmless (no stock moves) but company-valid warehouse, so the validation passes on any company. |
 | 0.15.1 | **X-report moved to the top bar.** The **X-report** button now lives in the top bar (shown whenever a register is open + the feature is on), so a cashier can pull a mid-shift drawer read from any screen without opening the Register page. It fetches a fresh read-only session summary on demand. Removed the duplicate button from the Register page. |
 | 0.15.0 | **Offline customer *create* + safe sync (Phase 3).** You can now **create a new customer while offline**: it's saved on the device (searchable for the rest of the offline session) and the sale is queued against a temporary id. On reconnect, the flush **reconciles each offline customer by mobile** — if a customer with that number already exists (created on another till, or a duplicate) the sale is **linked to it**, otherwise the customer is **created** — then the queued invoice is remapped and posted. Everything is **idempotent**: each queued sale carries a client key (`lumenpos_idempotency_key`, unique on the invoice), so a retried sync after a lost server ACK **returns the existing receipt instead of duplicating** the invoice; customer resolution is match-or-create so it never duplicates a customer either. **Editing** an existing customer stays online-only (the vendor consensus). Completes the offline-customer work (Phases 1–3: durable queue → offline select → offline create). |

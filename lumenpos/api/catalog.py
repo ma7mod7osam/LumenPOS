@@ -15,6 +15,17 @@ def warranty_field():
     return None
 
 
+def _gift_card_item_code():
+    """The gift-card placeholder item code — hidden from the product grid/search
+    (it's sold via the gift-card action, not tapped as a product)."""
+    try:
+        from lumenpos import gift_cards
+
+        return gift_cards.item_code()
+    except Exception:
+        return None
+
+
 @frappe.whitelist()
 def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_list=None):
     """Items with selling price and stock for the POS grid."""
@@ -23,6 +34,11 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
     active_price_list = price_list or resolve_price_list(profile)
 
     filters = {"disabled": 0, "is_sales_item": 1, "has_variants": 0}
+    # The gift-card placeholder item is sold via the gift-card action, not tapped
+    # as a product — keep it out of the grid / search / offline cache.
+    gc = _gift_card_item_code()
+    if gc:
+        filters["name"] = ["!=", gc]
     or_filters = None
     if search:
         or_filters = {
@@ -250,6 +266,11 @@ def price_check(pos_profile, query):
             limit=10,
         )
         item_codes = [r.name for r in rows]
+
+    # Never surface the gift-card placeholder item in a price check.
+    gc = _gift_card_item_code()
+    if gc:
+        item_codes = [c for c in item_codes if c != gc]
 
     if not item_codes:
         return {"matches": []}
