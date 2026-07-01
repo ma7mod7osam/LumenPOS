@@ -405,6 +405,64 @@ def _check_serial(item_code, serial_no, warehouse):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
+def recent_customers(pos_profile, limit=2000):
+    """A CAPPED set of recent/frequent customers to cache for OFFLINE select.
+    Prefers customers this outlet's company has recently transacted with, topped
+    up with the most-recently-created ones. Deliberately NOT the full directory
+    (a huge client mirror hurts search perf + risks eviction) — online search
+    still hits the server. Same shape as search_customers."""
+    limit = min(int(limit or 0) or 2000, 10000)
+    from lumenpos.api.sales import _table_doctype
+
+    company = frappe.db.get_value("POS Profile", pos_profile, "company")
+    sale_doctype = _table_doctype(pos_profile)
+
+    ordered, seen = [], set()
+    # 1) recently transacted with this company (the customers you actually serve)
+    for r in frappe.get_all(
+        sale_doctype,
+        filters={"company": company, "docstatus": 1, "customer": ["is", "set"]},
+        fields=["customer", "max(posting_date) as last"],
+        group_by="customer",
+        order_by="last desc",
+        limit_page_length=limit,
+    ):
+        if r.customer and r.customer not in seen:
+            seen.add(r.customer)
+            ordered.append(r.customer)
+    # 2) top up with the most-recently-created customers (covers a fresh site)
+    if len(ordered) < limit:
+        for r in frappe.get_all(
+            "Customer",
+            filters={"disabled": 0},
+            fields=["name"],
+            order_by="creation desc",
+            limit_page_length=limit - len(ordered) + 100,
+        ):
+            if r.name not in seen:
+                seen.add(r.name)
+                ordered.append(r.name)
+                if len(ordered) >= limit:
+                    break
+
+    if not ordered:
+        return {"customers": []}
+
+    detail = {
+        c["name"]: c
+        for c in frappe.get_all(
+            "Customer",
+            filters={"name": ["in", ordered], "disabled": 0},
+            fields=[
+                "name", "customer_name", "customer_group", "customer_type",
+                "mobile_no", "email_id", "tax_id",
+            ],
+        )
+    }
+    return {"customers": [detail[n] for n in ordered if n in detail]}
+
+
+@frappe.whitelist()
 def search_customers(search=""):
     or_filters = None
     if search:

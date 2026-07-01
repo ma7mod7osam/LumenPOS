@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
-import { saveCatalog, searchCatalog, catalogCount } from '../offline'
+import { saveCatalog, searchCatalog, catalogCount, saveCustomers } from '../offline'
 import { useSessionStore } from './session'
 
 export const useCatalogStore = defineStore('catalog', {
@@ -69,6 +69,21 @@ export const useCatalogStore = defineStore('catalog', {
         this.fetch()
       } catch {
         /* cache refresh is best-effort */
+      }
+    },
+
+    // Cache a capped recent/frequent customer subset for offline SELECT (not the
+    // full directory — see the offline-customers decision). Best-effort.
+    async cacheCustomers() {
+      const session = useSessionStore()
+      if (!session.posProfile || session.offline) return
+      try {
+        const res = await call('lumenpos.api.catalog.recent_customers', {
+          pos_profile: session.posProfile,
+        })
+        await saveCustomers(res.customers || [])
+      } catch {
+        /* best-effort */
       }
     },
 

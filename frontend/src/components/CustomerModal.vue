@@ -31,11 +31,21 @@
               </div>
             </div>
           </button>
-          <div v-if="searched && !results.length" class="muted empty">{{ t('No customers found') }}</div>
+          <div v-if="searched && !results.length" class="muted empty">
+            {{ session.offline ? t('No match in the offline cache — connect to search all customers.') : t('No customers found') }}
+          </div>
         </div>
-        <button class="btn btn-outline" style="width: 100%" @click="creating = true">
+        <button
+          v-if="!session.offline"
+          class="btn btn-outline"
+          style="width: 100%"
+          @click="creating = true"
+        >
           + {{ t('Create new customer') }}
         </button>
+        <p v-else class="muted small offline-note">
+          {{ t('Creating a new customer needs a connection.') }}
+        </p>
       </div>
 
       <div class="modal-body form" v-else>
@@ -88,6 +98,7 @@
 import Icon from './Icon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { call } from '../api'
+import { searchCustomersOffline } from '../offline'
 import { useCartStore } from '../stores/cart'
 import { useSessionStore } from '../stores/session'
 import { t } from '../i18n'
@@ -143,7 +154,10 @@ function debouncedSearch() {
 }
 
 async function runSearch() {
-  results.value = await call('lumenpos.api.catalog.search_customers', { search: search.value })
+  // Offline: search the cached recent-customers subset instead of the server.
+  results.value = session.offline
+    ? await searchCustomersOffline(search.value)
+    : await call('lumenpos.api.catalog.search_customers', { search: search.value })
   searched.value = true
 }
 
@@ -190,6 +204,7 @@ async function create() {
 }
 .small { font-size: 12px; }
 .empty { padding: 24px; text-align: center; }
+.offline-note { text-align: center; padding: 8px 0; }
 .form { display: flex; flex-direction: column; gap: 10px; }
 .type-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
 .type-tab {

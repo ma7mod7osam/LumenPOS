@@ -1244,6 +1244,7 @@
         <div class="stat sec-card"><div class="stat-label">{{ t('Default price list') }}</div><div class="stat-value">{{ session.priceList }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Connection') }}</div><div class="stat-value">{{ session.offline ? t('⚠ Offline') : t('✓ Online') }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Offline catalog cache') }}</div><div class="stat-value">{{ t('{n} items', { n: cachedItems }) }}</div></div>
+        <div class="stat sec-card"><div class="stat-label">{{ t('Offline customers cache') }}</div><div class="stat-value">{{ cachedCustomers }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Queued offline sales') }}</div><div class="stat-value">{{ session.queuedCount }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Offline storage') }}</div><div class="stat-value">{{ persisted ? t('✓ Persistent') : t('⚠ Best-effort') }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Receipt printer') }}</div><div class="stat-value">{{ session.printerConfigured ? t('✓ ESC/POS') : t('Browser print') }}</div></div>
@@ -1270,7 +1271,7 @@ import { call } from '../api'
 import { money, shortTime } from '../format'
 import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
-import { catalogCount, storagePersisted } from '../offline'
+import { catalogCount, storagePersisted, customerCount } from '../offline'
 import LinkPicker from '../components/LinkPicker.vue'
 import PriceListEditor from '../components/PriceListEditor.vue'
 import ReceiptView from '../components/ReceiptView.vue'
@@ -1300,6 +1301,7 @@ const canManage = computed(() => Boolean(perms.value.settings))
 const saving = ref(false)
 const settingsInfo = ref({})
 const cachedItems = ref(0)
+const cachedCustomers = ref(0)
 const persisted = ref(false)
 const groupPick = ref('')
 
@@ -1485,6 +1487,7 @@ onMounted(() => {
 
 async function load() {
   cachedItems.value = await catalogCount().catch(() => 0)
+  cachedCustomers.value = await customerCount().catch(() => 0)
   persisted.value = await storagePersisted()
   if (session.offline) return
   const info = await call('lumenpos.api.settings.get_settings')
@@ -2167,7 +2170,9 @@ async function saveGeneral() {
 async function refreshCache() {
   session.notify(t('Refreshing catalog cache…'))
   await catalog.cacheFullCatalog()
+  await catalog.cacheCustomers()
   cachedItems.value = await catalogCount().catch(() => 0)
+  cachedCustomers.value = await customerCount().catch(() => 0)
   session.notify(t('Cached {n} items for offline use', { n: cachedItems.value }))
 }
 

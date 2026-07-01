@@ -131,6 +131,7 @@ onMounted(async () => {
   if (session.loaded && !session.error) {
     catalog.fetch()
     catalog.cacheFullCatalog() // background fill of the offline cache
+    catalog.cacheCustomers() // recent-customers subset for offline select
     if (session.queuedCount && !session.offline) session.flushQueue()
     // Mirror the cart to any open customer display, and answer a display that
     // opens later and asks for the current state.

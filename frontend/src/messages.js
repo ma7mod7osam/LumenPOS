@@ -647,6 +647,9 @@ const features = {
   "Offline storage": "التخزين دون اتصال",
   "✓ Persistent": "✓ دائم",
   "⚠ Best-effort": "⚠ أفضل جهد",
+  "Offline customers cache": "ذاكرة العملاء دون اتصال",
+  "No match in the offline cache — connect to search all customers.": "لا تطابق في الذاكرة دون اتصال — اتصل للبحث في كل العملاء.",
+  "Creating a new customer needs a connection.": "إنشاء عميل جديد يتطلب اتصالًا.",
 }
 
 // Sell screen, cart, product grid.

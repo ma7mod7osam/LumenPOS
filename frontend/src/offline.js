@@ -2,7 +2,7 @@
 // sales made while the network is down. No external dependencies.
 
 const DB_NAME = 'lumenpos'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 let dbPromise = null
 
@@ -44,6 +44,8 @@ function db() {
           database.createObjectStore('items', { keyPath: 'item_code' })
         if (!database.objectStoreNames.contains('queue'))
           database.createObjectStore('queue', { keyPath: 'local_id', autoIncrement: true })
+        if (!database.objectStoreNames.contains('customers'))
+          database.createObjectStore('customers', { keyPath: 'name' })
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => reject(req.error)
@@ -128,6 +130,42 @@ export async function getCatalogItems(codes) {
     if (item) out.push(item)
   }
   return out
+}
+
+// --- customers cache (recent/frequent subset, for offline select) -----------
+
+export async function saveCustomers(customers) {
+  const database = await db()
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction('customers', 'readwrite')
+    const store = transaction.objectStore('customers')
+    store.clear()
+    for (const c of customers) store.put(JSON.parse(JSON.stringify(c)))
+    transaction.oncomplete = () => resolve(customers.length)
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export async function searchCustomersOffline(search = '', limit = 20) {
+  const database = await db()
+  const all = await request(database.transaction('customers').objectStore('customers').getAll())
+  const term = search.trim().toLowerCase()
+  const filtered = term
+    ? all.filter(
+        (c) =>
+          (c.customer_name || '').toLowerCase().includes(term) ||
+          (c.name || '').toLowerCase().includes(term) ||
+          (c.mobile_no || '').toLowerCase().includes(term) ||
+          (c.tax_id || '').toLowerCase().includes(term)
+      )
+    : all
+  filtered.sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || ''))
+  return filtered.slice(0, limit)
+}
+
+export async function customerCount() {
+  const database = await db()
+  return request(database.transaction('customers').objectStore('customers').count())
 }
 
 // --- offline sales queue ----------------------------------------------------
