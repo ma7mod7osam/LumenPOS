@@ -644,6 +644,9 @@ const features = {
   "redeems gift cards; the": "يسترد بطاقات الهدايا؛ و",
   "is set per company above. Leave any field blank to auto-create the default.": "يُضبط لكل شركة بالأعلى. اترك أي حقل فارغًا لإنشاء الافتراضي تلقائيًا.",
   "Set the income account per company under": "اضبط حساب الإيرادات لكل شركة ضمن",
+  "Offline storage": "التخزين دون اتصال",
+  "✓ Persistent": "✓ دائم",
+  "⚠ Best-effort": "⚠ أفضل جهد",
 }
 
 // Sell screen, cart, product grid.

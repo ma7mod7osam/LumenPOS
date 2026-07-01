@@ -73,6 +73,7 @@ import { useCatalogStore } from './stores/catalog'
 import { useCartStore } from './stores/cart'
 import { money } from './format'
 import { publishCart, onDisplayRequest } from './customerDisplay'
+import { ensurePersistentStorage } from './offline'
 import { t, locale, toggleLocale } from './i18n'
 import Icon from './components/Icon.vue'
 import NavRail from './components/NavRail.vue'
@@ -122,6 +123,9 @@ onMounted(async () => {
   // The display window is a passive mirror — no bootstrap, no catalog, no shell.
   if (isDisplay.value) return
 
+  // Make offline storage persistent so a queued sale can't be evicted under
+  // disk pressure / LRU (fire-and-forget; grant is heuristic).
+  ensurePersistentStorage()
   session.watchConnection()
   await session.bootstrap()
   if (session.loaded && !session.error) {

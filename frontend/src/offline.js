@@ -6,6 +6,33 @@ const DB_VERSION = 1
 
 let dbPromise = null
 
+// --- durable storage --------------------------------------------------------
+
+// Ask the browser to make this origin's storage PERSISTENT so the offline
+// queue can't be evicted under disk pressure / LRU (and survives Safari's
+// 7-day "no interaction" wipe). Best-effort by design: the grant is heuristic
+// and a manual cache-clear still wipes it — so it pairs with server-side
+// idempotent replay — but it is the standard guard for an offline queue.
+export async function ensurePersistentStorage() {
+  try {
+    if (navigator.storage?.persisted && navigator.storage?.persist) {
+      if (await navigator.storage.persisted()) return true
+      return await navigator.storage.persist()
+    }
+  } catch {
+    /* not supported / blocked — ignore */
+  }
+  return false
+}
+
+export async function storagePersisted() {
+  try {
+    return Boolean(await navigator.storage?.persisted?.())
+  } catch {
+    return false
+  }
+}
+
 function db() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
@@ -108,7 +135,11 @@ export async function getCatalogItems(codes) {
 export async function queueSale(payload) {
   const database = await db()
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction('queue', 'readwrite')
+    // strict durability: the write is flushed to disk BEFORE oncomplete fires,
+    // so a power cut / crash right after a sale can't silently drop a queued
+    // invoice (Chrome 121+ defaults to relaxed, which acks before the disk
+    // flush). Unknown to older engines — the option is safely ignored there.
+    const transaction = database.transaction('queue', 'readwrite', { durability: 'strict' })
     const req = transaction
       .objectStore('queue')
       .add({ payload: JSON.parse(JSON.stringify(payload)), queued_at: new Date().toISOString() })
