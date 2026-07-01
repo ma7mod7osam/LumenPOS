@@ -49,8 +49,8 @@ def ensure_mode_of_payment(company):
     account for this company, creating both on first use."""
     from lumenpos.internal_accounts import fill_required_custom_fields
 
+    account = _get_or_create_account(company)
     if not frappe.db.exists("Mode of Payment", MODE_OF_PAYMENT):
-        account = _get_or_create_account(company)
         mop = frappe.get_doc(
             {
                 "doctype": "Mode of Payment",
@@ -62,16 +62,20 @@ def ensure_mode_of_payment(company):
         )
         fill_required_custom_fields(mop, MODE_OF_PAYMENT)
         mop.insert(ignore_permissions=True)
-        return
+        return account
 
     mop = frappe.get_doc("Mode of Payment", MODE_OF_PAYMENT)
-    if any(row.company == company and row.default_account for row in mop.accounts):
-        return
-
-    account = _get_or_create_account(company)
-    mop.append("accounts", {"company": company, "default_account": account})
-    fill_required_custom_fields(mop, MODE_OF_PAYMENT)
-    mop.save(ignore_permissions=True)
+    row = next((r for r in mop.accounts if r.company == company), None)
+    if row is None:
+        mop.append("accounts", {"company": company, "default_account": account})
+        fill_required_custom_fields(mop, MODE_OF_PAYMENT)
+        mop.save(ignore_permissions=True)
+    elif row.default_account != account:
+        # Correct a stale/wrong account so redemption can't post to Receivable.
+        row.default_account = account
+        fill_required_custom_fields(mop, MODE_OF_PAYMENT)
+        mop.save(ignore_permissions=True)
+    return account
 
 
 def _get_or_create_account(company):

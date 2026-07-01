@@ -59,8 +59,16 @@ def ensure_setup(company):
         mop.insert(ignore_permissions=True)
     else:
         mop = frappe.get_doc("Mode of Payment", mop_name)
-        if not any(row.company == company and row.default_account for row in mop.accounts):
+        row = next((r for r in mop.accounts if r.company == company), None)
+        if row is None:
             mop.append("accounts", {"company": company, "default_account": account})
+            fill_required_custom_fields(mop, mop_name)
+            mop.save(ignore_permissions=True)
+        elif row.default_account != account:
+            # Correct a stale/wrong account (e.g. a party account that would make
+            # redemption post to Receivable and fail). `account` already honours a
+            # valid per-company override, so this reflects the intended account.
+            row.default_account = account
             fill_required_custom_fields(mop, mop_name)
             mop.save(ignore_permissions=True)
 
@@ -129,6 +137,11 @@ def _account(company):
         configured
         and frappe.db.exists("Account", configured)
         and frappe.db.get_value("Account", configured, "company") == company
+        # A gift card is a LIABILITY we owe the holder. It must never be a party
+        # account (Receivable/Payable) — redeeming would post the payment to it
+        # WITHOUT a party and fail "Customer is required against Receivable …".
+        and frappe.db.get_value("Account", configured, "account_type")
+        not in ("Receivable", "Payable")
     ):
         return configured
     return _get_or_create_account(company)

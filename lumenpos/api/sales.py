@@ -360,6 +360,8 @@ def submit_sale(payload):
 
     store_credit_used = 0.0
     gift_card_total = 0.0
+    gc_account = None
+    sc_account = None
     paid_total = 0.0
     for payment in payload.get("payments", []):
         amount = flt(payment.get("amount"))
@@ -371,10 +373,10 @@ def submit_sale(payload):
                 frappe.throw(
                     _("Store credit balance is {0}, cannot redeem {1}").format(balance, amount)
                 )
-            store_credit.ensure_mode_of_payment(profile.company)
+            sc_account = store_credit.ensure_mode_of_payment(profile.company)
             store_credit_used += amount
         if payment["mode_of_payment"] == gift_cards.mode_of_payment():
-            gift_cards.ensure_setup(profile.company)
+            gc_account = gift_cards.ensure_setup(profile.company)
             gift_card_total += amount
         _set_payment(invoice, payment["mode_of_payment"], amount)
         paid_total += amount
@@ -385,6 +387,20 @@ def submit_sale(payload):
 
     _reconcile_payment(invoice, profile)
     _drop_empty_payments(invoice)
+    # Pin liability-backed tenders (gift card, store credit) to THEIR liability
+    # account so ERPNext can't resolve them to the company Receivable (debtors):
+    # a payment leg on a Receivable account posts WITHOUT a party and fails
+    # "Customer is required against Receivable account …". Redeeming reduces the
+    # liability we owe the holder, not debtors.
+    pin_accounts = {}
+    if gc_account:
+        pin_accounts[gift_cards.mode_of_payment()] = gc_account
+    if sc_account:
+        pin_accounts[store_credit.MODE_OF_PAYMENT] = sc_account
+    if pin_accounts:
+        for row in invoice.payments:
+            if row.mode_of_payment in pin_accounts:
+                row.account = pin_accounts[row.mode_of_payment]
 
     _lock_open_session(session["name"])
     invoice.insert()
