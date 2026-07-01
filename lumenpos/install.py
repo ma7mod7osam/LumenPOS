@@ -198,6 +198,16 @@ def make_custom_fields():
             insert_after="lumenpos_return_reason",
             read_only=1,
         ),
+        dict(
+            fieldname="lumenpos_idempotency_key",
+            label="POS Idempotency Key",
+            fieldtype="Data",
+            insert_after="lumenpos_note",
+            read_only=1,
+            unique=1,
+            no_copy=1,
+            description="Client key for an offline-queued sale — prevents a retried sync from posting a duplicate invoice.",
+        ),
         # Delivery-app channel data is written to the site's OWN fields when
         # present — custom_app_type (Select), pick_order_no (Data),
         # pick_customer (Check), is_exchange (Check). LumenPOS does not create

@@ -562,3 +562,33 @@ def create_customer(payload):
         "email_id": payload.get("email_id"),
         "tax_id": payload.get("tax_id"),
     }
+
+
+@frappe.whitelist()
+def resolve_pending_customer(payload):
+    """Reconcile a customer created OFFLINE on reconnect: MATCH an existing
+    customer by mobile (the 'already there' case → link, no duplicate) else
+    CREATE one. Idempotent by mobile, so a retry after a lost ACK never
+    duplicates. Returns the same shape as create_customer, plus `matched`."""
+    import json
+
+    if isinstance(payload, str):
+        payload = json.loads(payload)
+    mobile = (payload.get("mobile_no") or "").strip()
+    if mobile:
+        existing = frappe.db.get_value(
+            "Customer", {"mobile_no": mobile, "disabled": 0}, "name"
+        )
+        if existing:
+            c = frappe.db.get_value(
+                "Customer",
+                existing,
+                ["name", "customer_name", "customer_group", "customer_type",
+                 "mobile_no", "email_id", "tax_id"],
+                as_dict=True,
+            )
+            c["matched"] = True
+            return c
+    c = create_customer(payload)
+    c["matched"] = False
+    return c

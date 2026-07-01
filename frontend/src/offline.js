@@ -2,7 +2,18 @@
 // sales made while the network is down. No external dependencies.
 
 const DB_NAME = 'lumenpos'
-const DB_VERSION = 2
+const DB_VERSION = 3
+
+// A unique client id for offline records (queued-sale idempotency keys,
+// offline-created customer temp ids).
+export function newId() {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  } catch {
+    /* fall through */
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 let dbPromise = null
 
@@ -46,6 +57,8 @@ function db() {
           database.createObjectStore('queue', { keyPath: 'local_id', autoIncrement: true })
         if (!database.objectStoreNames.contains('customers'))
           database.createObjectStore('customers', { keyPath: 'name' })
+        if (!database.objectStoreNames.contains('pending_customers'))
+          database.createObjectStore('pending_customers', { keyPath: 'temp_id' })
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => reject(req.error)
@@ -166,6 +179,38 @@ export async function searchCustomersOffline(search = '', limit = 20) {
 export async function customerCount() {
   const database = await db()
   return request(database.transaction('customers').objectStore('customers').count())
+}
+
+// Add/replace a single customer in the offline cache (e.g. one created offline
+// so it's immediately searchable for the next offline sale).
+export async function putCustomer(customer) {
+  return tx('customers', 'readwrite', (store) => store.put(JSON.parse(JSON.stringify(customer))))
+}
+
+// --- offline-created customers (pending sync) -------------------------------
+
+export async function savePendingCustomer(record) {
+  return tx('pending_customers', 'readwrite', (store) =>
+    store.put(JSON.parse(JSON.stringify(record)))
+  )
+}
+
+export async function getPendingCustomer(tempId) {
+  const database = await db()
+  return request(
+    database.transaction('pending_customers').objectStore('pending_customers').get(tempId)
+  )
+}
+
+export async function removePendingCustomer(tempId) {
+  return tx('pending_customers', 'readwrite', (store) => store.delete(tempId))
+}
+
+export async function listPendingCustomers() {
+  const database = await db()
+  return request(
+    database.transaction('pending_customers').objectStore('pending_customers').getAll()
+  )
 }
 
 // --- offline sales queue ----------------------------------------------------

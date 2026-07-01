@@ -1,7 +1,16 @@
 import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
 import { setCurrency } from '../format'
-import { kvSet, kvGet, listQueue, removeQueued, queueCount } from '../offline'
+import {
+  kvSet,
+  kvGet,
+  listQueue,
+  removeQueued,
+  queueCount,
+  getPendingCustomer,
+  listPendingCustomers,
+  removePendingCustomer,
+} from '../offline'
 import { syncFromErp } from '../theme'
 
 export const useSessionStore = defineStore('session', {
@@ -196,12 +205,29 @@ export const useSessionStore = defineStore('session', {
     async flushQueue() {
       if (this.syncing) return
       this.syncing = true
+      const localMap = {} // offline temp customer id -> resolved real name
       try {
         const queue = await listQueue()
         let synced = 0
         for (const entry of queue) {
           try {
-            await call('lumenpos.api.sales.submit_sale', { payload: entry.payload })
+            let payload = entry.payload
+            // Reconcile an offline-created customer: resolve its temp id to a
+            // real one (match existing by mobile, else create) and remap the
+            // sale. resolve_pending_customer is idempotent, so a retry is safe.
+            const cust = payload.customer
+            if (typeof cust === 'string' && cust.startsWith('__local__')) {
+              if (!localMap[cust]) {
+                const pending = await getPendingCustomer(cust)
+                if (!pending) throw new Error('offline customer record is missing')
+                const res = await call('lumenpos.api.catalog.resolve_pending_customer', {
+                  payload: pending.payload,
+                })
+                localMap[cust] = res.name
+              }
+              payload = { ...payload, customer: localMap[cust] }
+            }
+            await call('lumenpos.api.sales.submit_sale', { payload })
             await removeQueued(entry.local_id)
             synced++
           } catch (e) {
@@ -211,6 +237,17 @@ export const useSessionStore = defineStore('session', {
             this.notify(`Queued sale could not sync: ${e.message}`, true)
             break
           }
+        }
+        // Prune pending customers no remaining queued sale references (kept ones
+        // re-resolve safely on the next flush — resolution is idempotent).
+        try {
+          const remaining = await listQueue()
+          const stillRef = new Set(remaining.map((e) => e.payload?.customer).filter(Boolean))
+          for (const p of await listPendingCustomers()) {
+            if (!stillRef.has(p.temp_id)) await removePendingCustomer(p.temp_id).catch(() => {})
+          }
+        } catch {
+          /* best-effort cleanup */
         }
         this.queuedCount = await queueCount()
         if (synced) this.notify(`Synced ${synced} offline sale${synced > 1 ? 's' : ''}`)

@@ -650,6 +650,8 @@ const features = {
   "Offline customers cache": "ذاكرة العملاء دون اتصال",
   "No match in the offline cache — connect to search all customers.": "لا تطابق في الذاكرة دون اتصال — اتصل للبحث في كل العملاء.",
   "Creating a new customer needs a connection.": "إنشاء عميل جديد يتطلب اتصالًا.",
+  "Offline — saved on this device and synced (matched to an existing customer or created) when you reconnect.": "دون اتصال — يُحفظ على هذا الجهاز ويُزامَن (يُطابَق مع عميل موجود أو يُنشأ) عند عودة الاتصال.",
+  "Customer saved offline — will sync when back online": "حُفظ العميل دون اتصال — سيُزامَن عند عودة الاتصال",
 }
 
 // Sell screen, cart, product grid.

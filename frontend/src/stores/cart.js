@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
-import { queueSale, queueCount, getCatalogItems } from '../offline'
+import { queueSale, queueCount, getCatalogItems, newId } from '../offline'
 import { evaluatePromotions, suggestOffers } from '../promotions'
 import { useSessionStore } from './session'
 
@@ -571,6 +571,8 @@ export const useCartStore = defineStore('cart', {
         throw new Error('Store credit needs a connection — remove it and retry')
       }
       session.markOffline()
+      // Idempotency key so a retried sync (lost ACK) can't post a duplicate.
+      payload.idempotency_key = payload.idempotency_key || newId()
       await queueSale(payload)
       session.queuedCount = await queueCount()
 

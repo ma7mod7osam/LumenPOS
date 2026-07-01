@@ -35,20 +35,15 @@
             {{ session.offline ? t('No match in the offline cache — connect to search all customers.') : t('No customers found') }}
           </div>
         </div>
-        <button
-          v-if="!session.offline"
-          class="btn btn-outline"
-          style="width: 100%"
-          @click="creating = true"
-        >
+        <button class="btn btn-outline" style="width: 100%" @click="creating = true">
           + {{ t('Create new customer') }}
         </button>
-        <p v-else class="muted small offline-note">
-          {{ t('Creating a new customer needs a connection.') }}
-        </p>
       </div>
 
       <div class="modal-body form" v-else>
+        <p v-if="session.offline" class="muted small offline-note">
+          {{ t('Offline — saved on this device and synced (matched to an existing customer or created) when you reconnect.') }}
+        </p>
         <div class="type-tabs">
           <button
             class="type-tab"
@@ -98,7 +93,7 @@
 import Icon from './Icon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { call } from '../api'
-import { searchCustomersOffline } from '../offline'
+import { searchCustomersOffline, savePendingCustomer, putCustomer, newId } from '../offline'
 import { useCartStore } from '../stores/cart'
 import { useSessionStore } from '../stores/session'
 import { t } from '../i18n'
@@ -167,6 +162,32 @@ function select(customer) {
 }
 
 async function create() {
+  // Offline: save a LOCAL pending customer with a temp id. On reconnect the
+  // flush resolves it (match existing by mobile, else create) and remaps the
+  // queued sale — see session.flushQueue.
+  if (session.offline) {
+    const tempId = '__local__' + newId()
+    await savePendingCustomer({
+      temp_id: tempId,
+      payload: { ...form.value },
+      created_at: new Date().toISOString(),
+    })
+    const localCustomer = {
+      name: tempId,
+      customer_name: form.value.customer_name,
+      customer_group: '',
+      customer_type: form.value.customer_type,
+      mobile_no: form.value.mobile_no,
+      email_id: form.value.email_id,
+      tax_id: form.value.tax_id,
+      __local: true,
+    }
+    await putCustomer(localCustomer) // searchable for the next offline sale
+    cart.setCustomer(localCustomer)
+    session.notify(t('Customer saved offline — will sync when back online'))
+    emit('close')
+    return
+  }
   try {
     const customer = await call('lumenpos.api.catalog.create_customer', { payload: form.value })
     cart.setCustomer(customer)

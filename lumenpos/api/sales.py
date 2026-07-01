@@ -29,6 +29,23 @@ def _doctype_of(name):
     return "Sales Invoice" if frappe.db.exists("Sales Invoice", name) else "POS Invoice"
 
 
+def _find_by_idempotency_key(key):
+    """A non-cancelled sale already posted under this client idempotency key, or
+    None. Checks both backends (POS Invoice + Sales Invoice)."""
+    for dt in ("POS Invoice", "Sales Invoice"):
+        try:
+            if not frappe.get_meta(dt).has_field("lumenpos_idempotency_key"):
+                continue
+            name = frappe.db.get_value(
+                dt, {"lumenpos_idempotency_key": key, "docstatus": ["!=", 2]}, "name"
+            )
+            if name:
+                return name
+        except Exception:
+            pass
+    return None
+
+
 def _table_doctype(pos_profile):
     """Sale doctype for a profile's history queries (defaults to POS Invoice)."""
     if pos_profile and frappe.db.get_value(
@@ -314,11 +331,21 @@ def submit_sale(payload):
         payload = json.loads(payload)
 
     _require_sell()
+    # Idempotency: a queued OFFLINE sale whose server ACK was lost gets retried
+    # on the next flush — if it already posted, return the existing receipt
+    # instead of creating a duplicate invoice.
+    key = (payload.get("idempotency_key") or "").strip()
+    if key:
+        existing = _find_by_idempotency_key(key)
+        if existing:
+            return get_receipt(existing)
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
     session = _open_session(profile.name)
 
     invoice, customer = _build_sale_invoice(profile, payload)
     _set_custom(invoice, ("lumenpos_session",), session["name"])
+    if key:
+        _set_custom(invoice, ("lumenpos_idempotency_key",), key)
 
     _apply_loyalty_redemption(invoice, customer, profile.company, payload)
 
