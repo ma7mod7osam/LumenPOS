@@ -29,6 +29,19 @@ def _doctype_of(name):
     return "Sales Invoice" if frappe.db.exists("Sales Invoice", name) else "POS Invoice"
 
 
+def _company_warehouse(profile):
+    """A warehouse that BELONGS to the profile's company: the profile's own if it
+    matches, else any non-group company warehouse (fallback for a misconfigured
+    profile), else None. Used so a sale never posts a wrong-company warehouse
+    (which ERPNext rejects even for non-stock lines)."""
+    wh = profile.get("warehouse")
+    if wh and frappe.db.get_value("Warehouse", wh, "company") == profile.company:
+        return wh
+    return frappe.db.get_value(
+        "Warehouse", {"company": profile.company, "is_group": 0}, "name"
+    )
+
+
 def _find_by_idempotency_key(key):
     """A non-cancelled sale already posted under this client idempotency key, or
     None. Checks both backends (POS Invoice + Sales Invoice)."""
@@ -189,23 +202,11 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
 
     invoice.set_missing_values()
 
-    # Non-stock lines (services, fees, gift-card-like items) never move stock, so
-    # they shouldn't carry a warehouse. Clearing it keeps them out of ERPNext's
-    # warehouse-belongs-to-company check on a multi-company site (set_missing_values
-    # can default a warehouse from the wrong company). Stock items keep the
-    # profile's warehouse, which must belong to the profile's company.
-    if invoice.items:
-        non_stock = {
-            r.name
-            for r in frappe.get_all(
-                "Item",
-                filters={"name": ["in", [i.item_code for i in invoice.items]], "is_stock_item": 0},
-                fields=["name"],
-            )
-        }
-        for item_row in invoice.items:
-            if item_row.item_code in non_stock:
-                item_row.warehouse = None
+    # Every line keeps the profile's warehouse (set in the row build above) — it
+    # belongs to the profile's company. Do NOT clear it for non-stock lines:
+    # clearing lets ERPNext fall back to the GLOBAL default warehouse, which on a
+    # multi-company site can be another company's ("Warehouse … doesn't belong to
+    # Company …"). A warehouse on a non-stock line is harmless (no stock moves).
 
     # Apply discounts AFTER set_missing_values (it resets them otherwise).
     # CRITICAL: with Pricing Rules off, ERPNext's calculate_taxes_and_totals
@@ -458,13 +459,17 @@ def sell_gift_card(payload):
     invoice.set_missing_values()
     invoice.taxes = []
 
-    # A gift card is a NON-STOCK liability sale (update_stock=0), so no warehouse
-    # is needed. Clear any warehouse set_missing_values defaulted in — on a
-    # multi-company site it can pull a warehouse from the wrong company and trip
-    # ERPNext's "Warehouse … doesn't belong to Company …" validation.
-    invoice.set("set_warehouse", None)
+    # A gift card is non-stock (update_stock=0), but ERPNext still validates the
+    # line/default warehouse against the company even for a POS sale. Clearing it
+    # let ERPNext fall back to the GLOBAL default warehouse, which on a
+    # multi-company site can belong to the wrong company ("Warehouse … doesn't
+    # belong to Company …"). Pin it to a warehouse that DOES belong to this
+    # company — the profile's own (what regular sales use), or any company
+    # warehouse if the profile's is somehow mismatched.
+    warehouse = _company_warehouse(profile)
+    invoice.set("set_warehouse", warehouse)
     for row in invoice.items:
-        row.warehouse = None
+        row.warehouse = warehouse
 
     paid_total = 0.0
     for payment in payload.get("payments", []):
