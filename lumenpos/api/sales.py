@@ -423,7 +423,7 @@ def sell_gift_card(payload):
     if amount <= 0:
         frappe.throw(_("Enter the gift card amount"))
 
-    gift_cards.ensure_setup(profile.company)
+    gift_card_account = gift_cards.ensure_setup(profile.company)
     customer = payload.get("customer") or profile.customer
     if not customer:
         frappe.throw(_("Select a customer (or set a default customer on the POS Profile)"))
@@ -469,6 +469,9 @@ def sell_gift_card(payload):
             "rate": amount,
             "price_list_rate": amount,
             "warehouse": warehouse,
+            # Post to the gift-card LIABILITY account explicitly, so it never
+            # depends on item-default resolution (revenue would be wrong).
+            "income_account": gift_card_account,
         },
     )
     if payload.get("sales_person"):
