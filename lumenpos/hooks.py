@@ -1,8 +1,8 @@
 app_name = "lumenpos"
 app_title = "LumenPOS"
-app_publisher = "Mahmoud"
+app_publisher = "Lumen Solutions"
 app_description = "Professional, multi-business Point of Sale for ERPNext / Frappe"
-app_email = "mhusam.b@gmail.com"
+app_email = "support@lumen-solutions.co"
 app_license = "MIT"
 
 required_apps = ["erpnext"]

@@ -1,7 +1,7 @@
 [project]
 name = "lumenpos"
 authors = [
-    { name = "Mahmoud", email = "mhusam.b@gmail.com" },
+    { name = "Lumen Solutions", email = "support@lumen-solutions.co" },
 ]
 description = "Professional, multi-business Point of Sale for ERPNext / Frappe (LumenPOS)"
 requires-python = ">=3.10"
