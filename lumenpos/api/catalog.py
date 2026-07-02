@@ -1,4 +1,4 @@
-﻿import frappe
+import frappe
 from frappe import _
 from frappe.utils import flt
 
@@ -564,7 +564,9 @@ def create_customer(payload):
                 "address_type": "Billing",
                 "address_line1": f"{address_fields['building_no']} {address_fields['street']}",
                 "address_line2": " ".join(
-                    filter(None, [address_fields["district"], address_fields["additional_no"]])
+                    v
+                    for v in [address_fields["district"], address_fields["additional_no"]]
+                    if v
                 )
                 or None,
                 "city": address_fields["city"],

@@ -53,7 +53,7 @@ def _send(ip, port, data):
         with socket.create_connection((ip, port), timeout=5) as sock:
             sock.sendall(data)
     except OSError as e:
-        frappe.throw(_("Could not reach printer at {0}:{1} ({2})").format(ip, port, e))
+        frappe.throw(_("Could not reach printer at {0}:{1} ({2})").format(ip, port, str(e)))
 
 
 def build_receipt_bytes(receipt, open_drawer=0):

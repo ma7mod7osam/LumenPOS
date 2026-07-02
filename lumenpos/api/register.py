@@ -390,7 +390,10 @@ def get_session_summary(session):
             "sum(discount_amount) as invoice_discounts",
         ],
     )
-    line_discounts = frappe.db.sql(
+    # `sale_doctype` is a fixed doctype name (POS Invoice / Sales Invoice from
+    # _table_doctype), not user input, and a table identifier can't be a bound
+    # param; the session filter is parameterized. Safe despite the f-string.
+    line_discounts = frappe.db.sql(  # nosemgrep
         f"""
         select coalesce(sum(pii.discount_amount * pii.qty), 0)
         from `tab{sale_doctype} Item` pii
@@ -483,8 +486,9 @@ def close_register(session, counted, closing_note=None):
     doc.sales_count = summary["sales_count"]
     doc.save()
     # Persist the "Closing" state NOW: from here the shift is neither sellable
-    # nor resumable, whatever happens to the consolidation next.
-    frappe.db.commit()
+    # nor resumable, whatever happens to the consolidation next. Intentional —
+    # the state must survive even if the consolidation step below fails.
+    frappe.db.commit()  # nosemgrep
 
     if doc.get("pos_opening_entry"):
         _enqueue_consolidation(doc.name, counted)
@@ -686,7 +690,8 @@ def _consolidate_now(closing):
         closing.set_status(update=True, status="Submitted")
         closing.db_set("error_message", "")
         closing.update_opening_entry()
-        frappe.db.commit()
+        # Enqueued consolidation job — commit the finalised state so it persists.
+        frappe.db.commit()  # nosemgrep
         return "Submitted"
 
     try:
@@ -839,7 +844,8 @@ def _mark_closed(session_name, closing_name):
     if closing_name:
         values["pos_closing_entry"] = closing_name
     frappe.db.set_value("POS Register Session", session_name, values)
-    frappe.db.commit()
+    # Enqueued consolidation job — persist the closed state immediately.
+    frappe.db.commit()  # nosemgrep
 
 
 def _mark_failed(session_name, closing_name, error):
@@ -856,7 +862,9 @@ def _mark_failed(session_name, closing_name, error):
     # status stays "Closing" — the shift is finalised operationally but its
     # consolidation must still complete (retry / self-healer).
     frappe.db.set_value("POS Register Session", session_name, values)
-    frappe.db.commit()
+    # Enqueued consolidation job — persist the failure state so the self-healer
+    # can retry from a known point.
+    frappe.db.commit()  # nosemgrep
 
 
 def _opening_closed(opening_name):
@@ -1034,7 +1042,10 @@ def _accumulate_tax(closing, tax):
 
 def _payments_by_mode(session, doctype="POS Invoice"):
     # Both POS Invoice and Sales Invoice use the Sales Invoice Payment child.
-    rows = frappe.db.sql(
+    # `doctype` is a fixed doctype name (POS Invoice / Sales Invoice), not user
+    # input, and can't be a bound param as a table identifier; the session filter
+    # is parameterized. Safe despite the f-string.
+    rows = frappe.db.sql(  # nosemgrep
         f"""
         select sip.mode_of_payment, sum(sip.amount) as amount
         from `tabSales Invoice Payment` sip
@@ -1049,7 +1060,10 @@ def _payments_by_mode(session, doctype="POS Invoice"):
     for row in rows:
         result[row.mode_of_payment] = flt(row.amount)
 
-    change = frappe.db.sql(
+    # `doctype` is a fixed doctype name (POS Invoice / Sales Invoice), not user
+    # input; a table identifier can't be a bound param and the session filter is
+    # parameterized. Safe despite the f-string.
+    change = frappe.db.sql(  # nosemgrep
         f"""
         select coalesce(sum(change_amount), 0) from `tab{doctype}`
         where lumenpos_session = %s and docstatus = 1

@@ -708,18 +708,22 @@ def delete_price_book(name):
 def list_price_book_prices(price_list, search="", start=0, limit=50, compare_price_list=None):
     """Items priced on a price book's price list, with the default price
     alongside for comparison."""
-    conditions = "ip.price_list = %(price_list)s and ip.selling = 1"
-    params = {"price_list": price_list, "start": int(start), "limit": min(int(limit), 100)}
-    if search:
-        conditions += " and (ip.item_code like %(search)s or i.item_name like %(search)s)"
-        params["search"] = f"%{search}%"
-
+    # Always apply the search filter (an empty search becomes "%", which matches
+    # everything) so the query is a fixed literal — no string building, no
+    # injection surface. All values are bound parameters.
+    params = {
+        "price_list": price_list,
+        "search": f"%{search}%" if search else "%",
+        "start": int(start),
+        "limit": min(int(limit), 100),
+    }
     rows = frappe.db.sql(
-        f"""
+        """
         select ip.item_code, i.item_name, ip.price_list_rate as rate
         from `tabItem Price` ip
         join `tabItem` i on i.name = ip.item_code
-        where {conditions}
+        where ip.price_list = %(price_list)s and ip.selling = 1
+          and (ip.item_code like %(search)s or i.item_name like %(search)s)
         order by i.item_name asc
         limit %(start)s, %(limit)s
         """,
@@ -727,10 +731,11 @@ def list_price_book_prices(price_list, search="", start=0, limit=50, compare_pri
         as_dict=True,
     )
     total = frappe.db.sql(
-        f"""
+        """
         select count(*) from `tabItem Price` ip
         join `tabItem` i on i.name = ip.item_code
-        where {conditions}
+        where ip.price_list = %(price_list)s and ip.selling = 1
+          and (ip.item_code like %(search)s or i.item_name like %(search)s)
         """,
         params,
     )[0][0]

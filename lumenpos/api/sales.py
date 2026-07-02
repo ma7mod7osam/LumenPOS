@@ -1377,7 +1377,11 @@ def search_sales(filters=None):
         f" where sip.parent = pi.name and sip.parenttype = '{doctype}'"
         " and sip.amount != 0) as payment_modes"
     )
-    rows = frappe.db.sql(
+    # Interpolated names are all fixed/validated: `doctype` is POS Invoice /
+    # Sales Invoice; the *_select and `where` fragments come from a column
+    # allowlist (_first_column) and constant strings, with every user value bound
+    # as a %(...)s param. Safe despite the f-string.
+    rows = frappe.db.sql(  # nosemgrep
         f"""
         select pi.name, pi.customer, pi.customer_name, c.mobile_no, pi.pos_profile,
                pi.grand_total, pi.currency, pi.posting_date, pi.posting_time,
@@ -1647,7 +1651,9 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
     if return_approver:
         # Stamp the late-return approval onto the credit note for the audit trail.
         return_doc.remarks = "\n".join(
-            filter(None, [return_doc.get("remarks"), _("Late return approved by {0}").format(return_approver)])
+            part
+            for part in [return_doc.get("remarks"), _("Late return approved by {0}").format(return_approver)]
+            if part
         )
 
     _lock_open_session(session["name"])

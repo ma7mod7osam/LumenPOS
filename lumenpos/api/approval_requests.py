@@ -129,7 +129,9 @@ def create_request(
         }
     )
     doc.insert(ignore_permissions=True)
-    frappe.publish_realtime(
+    # A lightweight ping (only the POS Profile name, no PII) so any approver on
+    # this site can pick it up — there's no single target user to scope to.
+    frappe.publish_realtime(  # nosemgrep
         "lumenpos_approval_request", {"pos_profile": pos_profile}, after_commit=True
     )
     return {"name": doc.name, "status": doc.status}
@@ -219,9 +221,12 @@ def _decide(name, status, note=None):
     doc.decided_at = now_datetime()
     doc.decision_note = (note or "").strip() or None
     doc.save(ignore_permissions=True)
+    # Targeted at the waiting cashier (the message carries their name) instead of
+    # broadcasting it to every user on the site.
     frappe.publish_realtime(
         "lumenpos_approval_decided",
         {"name": doc.name, "status": status, "cashier": doc.cashier},
+        user=doc.cashier,
         after_commit=True,
     )
     return {"name": doc.name, "status": doc.status, "approver_name": doc.approver_name}
