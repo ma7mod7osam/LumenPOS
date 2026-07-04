@@ -82,7 +82,7 @@ def get_bootstrap(pos_profile=None):
         "store_credit_mode": "Store Credit",
         "gift_card_mode": _gift_card_mode(),
         "sales_persons": _sales_persons(),
-        "settings": _client_settings(),
+        "settings": _client_settings(profile_name),
         "bundles": get_bundles(profile_name),
     }
 
@@ -233,7 +233,7 @@ def _sales_persons():
     )
 
 
-def _client_settings():
+def _client_settings(profile_name=None):
     from lumenpos import __version__
 
     from frappe.utils import cint
@@ -241,7 +241,7 @@ def _client_settings():
     from lumenpos.api import approval_requests
 
     doc = frappe.get_cached_doc("LumenPOS Settings")
-    return {
+    data = {
         "version": __version__,
         "discount_limit_percent": doc.discount_limit_percent or 0,
         "discount_approval_mode": doc.get("discount_approval_mode") or "Passcode only",
@@ -288,6 +288,13 @@ def _client_settings():
             for row in (doc.delivery_apps or [])
         ],
     }
+    # Per-outlet receipt: overlay this outlet's override on the global receipt so
+    # the sell screen renders the right one (falls back to global when none set).
+    if profile_name:
+        from lumenpos.api.settings import effective_receipt
+
+        data.update(effective_receipt(profile_name))
+    return data
 
 
 @frappe.whitelist()

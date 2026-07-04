@@ -908,6 +908,21 @@
         <p v-else class="muted hint-row" style="padding: 0 0 12px">
           {{ t('Want your own layout? Set a Print Format on this POS Profile in ERPNext (any standard or custom Print Format for the sale document) — it then takes over printing, and this designer keeps styling the on-screen receipt.') }}
         </p>
+        <div class="rc-scope">
+          <span class="rc-scope-label">{{ t('Editing receipt for') }}</span>
+          <select class="rc-scope-select" v-model="receiptScope" @change="onReceiptScopeChange">
+            <option value="">{{ t('All outlets (default)') }}</option>
+            <option v-for="p in posProfiles" :key="p" :value="p">
+              {{ p }}{{ profileReceiptOverrides.includes(p) ? '  •' : '' }}
+            </option>
+          </select>
+          <template v-if="receiptScope">
+            <button class="btn btn-primary" @click="saveProfileReceipt">{{ t('Save for this outlet') }}</button>
+            <button v-if="receiptHasOverride" class="btn btn-outline" @click="resetProfileReceipt">{{ t('Reset to default') }}</button>
+            <span class="rc-scope-hint muted small">{{ receiptHasOverride ? t('This outlet has its own receipt.') : t('Customising from the default — save to apply.') }}</span>
+          </template>
+          <span v-else class="rc-scope-hint muted small">{{ t('Saved with the main Save button. Pick an outlet to give it a different receipt.') }}</span>
+        </div>
         <div class="receipt-config">
           <div class="rc-controls">
             <div class="seg-field">
@@ -917,8 +932,8 @@
                   v-for="tpl in RECEIPT_TEMPLATES"
                   :key="tpl"
                   class="seg-btn"
-                  :class="{ on: generalForm.receipt_template === tpl }"
-                  @click="generalForm.receipt_template = tpl"
+                  :class="{ on: receiptForm.receipt_template === tpl }"
+                  @click="receiptForm.receipt_template = tpl"
                 >
                   {{ t(tpl) }}
                 </button>
@@ -928,41 +943,41 @@
             <div class="field-grid" style="margin-top: 14px">
               <label class="field span-2">
                 <span>{{ t('Logo URL or path') }}</span>
-                <input v-model="generalForm.receipt_logo" :placeholder="t('/files/logo.png or https://…')" />
+                <input v-model="receiptForm.receipt_logo" :placeholder="t('/files/logo.png or https://…')" />
               </label>
               <label class="field span-2">
                 <span>{{ t('Header line (under the company name)') }}</span>
-                <input v-model="generalForm.receipt_header" :placeholder="t('e.g. Main Branch · 0500000000')" />
+                <input v-model="receiptForm.receipt_header" :placeholder="t('e.g. Main Branch · 0500000000')" />
               </label>
               <label class="field span-2">
                 <span>{{ t('Footer line') }}</span>
-                <input v-model="generalForm.receipt_footer" :placeholder="t('e.g. Thank you for shopping with us')" />
+                <input v-model="receiptForm.receipt_footer" :placeholder="t('e.g. Thank you for shopping with us')" />
               </label>
             </div>
 
             <div class="sub-label" style="margin-top: 14px">{{ t('Show on the receipt') }}</div>
             <div class="rc-toggles">
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_item_code" :true-value="1" :false-value="0" /> {{ t('Item code') }}</label>
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_barcode" :true-value="1" :false-value="0" /> {{ t('Barcode') }}</label>
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_serial" :true-value="1" :false-value="0" /> {{ t('Serial numbers') }}</label>
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_unit_price" :true-value="1" :false-value="0" /> {{ t('Unit price (qty × rate)') }}</label>
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_payments" :true-value="1" :false-value="0" /> {{ t('Payment methods') }}</label>
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_note" :true-value="1" :false-value="0" /> {{ t('Sale note') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_item_code" :true-value="1" :false-value="0" /> {{ t('Item code') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_barcode" :true-value="1" :false-value="0" /> {{ t('Barcode') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_serial" :true-value="1" :false-value="0" /> {{ t('Serial numbers') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_unit_price" :true-value="1" :false-value="0" /> {{ t('Unit price (qty × rate)') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_payments" :true-value="1" :false-value="0" /> {{ t('Payment methods') }}</label>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_note" :true-value="1" :false-value="0" /> {{ t('Sale note') }}</label>
             </div>
 
             <div class="rc-textfields">
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_tax_id" :true-value="1" :false-value="0" /> {{ t('Tax / VAT ID') }}</label>
-              <input v-if="generalForm.receipt_show_tax_id" v-model="generalForm.receipt_tax_id" :placeholder="t('e.g. 3001234567')" />
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_address" :true-value="1" :false-value="0" /> {{ t('Store address') }}</label>
-              <textarea v-if="generalForm.receipt_show_address" v-model="generalForm.receipt_address" rows="2" :placeholder="t('Street, city…')"></textarea>
-              <label class="inline-check"><input type="checkbox" v-model="generalForm.receipt_show_terms" :true-value="1" :false-value="0" /> {{ t('Terms & conditions') }}</label>
-              <textarea v-if="generalForm.receipt_show_terms" v-model="generalForm.receipt_terms" rows="2" :placeholder="t('Return within 14 days with the receipt…')"></textarea>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_tax_id" :true-value="1" :false-value="0" /> {{ t('Tax / VAT ID') }}</label>
+              <input v-if="receiptForm.receipt_show_tax_id" v-model="receiptForm.receipt_tax_id" :placeholder="t('e.g. 3001234567')" />
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_address" :true-value="1" :false-value="0" /> {{ t('Store address') }}</label>
+              <textarea v-if="receiptForm.receipt_show_address" v-model="receiptForm.receipt_address" rows="2" :placeholder="t('Street, city…')"></textarea>
+              <label class="inline-check"><input type="checkbox" v-model="receiptForm.receipt_show_terms" :true-value="1" :false-value="0" /> {{ t('Terms & conditions') }}</label>
+              <textarea v-if="receiptForm.receipt_show_terms" v-model="receiptForm.receipt_terms" rows="2" :placeholder="t('Return within 14 days with the receipt…')"></textarea>
             </div>
           </div>
 
           <div class="rc-preview">
             <div class="rc-preview-label muted small">{{ t('Live preview') }}</div>
-            <ReceiptView :receipt="sampleReceipt" :settings="generalForm" />
+            <ReceiptView :receipt="sampleReceipt" :settings="receiptForm" />
           </div>
         </div>
       </div>
@@ -1435,6 +1450,73 @@ const sampleReceipt = {
   loyalty_points_earned: 14,
 }
 
+// ---- per-outlet receipt overrides ----
+const RECEIPT_KEYS = [
+  'receipt_template', 'receipt_logo', 'receipt_header', 'receipt_footer',
+  'receipt_show_item_code', 'receipt_show_barcode', 'receipt_show_serial',
+  'receipt_show_unit_price', 'receipt_show_payments', 'receipt_show_note',
+  'receipt_show_tax_id', 'receipt_tax_id', 'receipt_show_address',
+  'receipt_address', 'receipt_show_terms', 'receipt_terms',
+]
+const posProfiles = computed(() => settingsInfo.value.pos_profiles || [])
+const profileReceiptOverrides = ref([])
+const receiptScope = ref('') // '' = global default, else a POS Profile name
+const profileReceiptForm = ref({})
+const receiptHasOverride = ref(false)
+// The designer + preview bind to this: the GLOBAL form by default, or a
+// per-outlet form when an outlet is selected. Editing an outlet never touches
+// the global form, so the main Save can never clobber the global receipt.
+const receiptForm = computed(() =>
+  receiptScope.value ? profileReceiptForm.value : generalForm.value
+)
+
+async function onReceiptScopeChange() {
+  if (!receiptScope.value) return // back to the global default form
+  try {
+    const res = await call('lumenpos.api.settings.get_profile_receipt', {
+      pos_profile: receiptScope.value,
+    })
+    profileReceiptForm.value = res.config || {}
+    receiptHasOverride.value = !!res.has_override
+  } catch (e) {
+    session.notify(e.message, true)
+    receiptScope.value = ''
+  }
+}
+
+async function saveProfileReceipt() {
+  const profile = receiptScope.value
+  if (!profile) return
+  const config = {}
+  for (const k of RECEIPT_KEYS) config[k] = profileReceiptForm.value[k]
+  try {
+    await call('lumenpos.api.settings.save_profile_receipt', {
+      pos_profile: profile,
+      config: JSON.stringify(config),
+    })
+    if (!profileReceiptOverrides.value.includes(profile)) {
+      profileReceiptOverrides.value = [...profileReceiptOverrides.value, profile]
+    }
+    receiptHasOverride.value = true
+    session.notify(t('Receipt saved for {outlet}', { outlet: profile }))
+  } catch (e) {
+    session.notify(e.message, true)
+  }
+}
+
+async function resetProfileReceipt() {
+  const profile = receiptScope.value
+  if (!profile) return
+  try {
+    await call('lumenpos.api.settings.clear_profile_receipt', { pos_profile: profile })
+    profileReceiptOverrides.value = profileReceiptOverrides.value.filter((p) => p !== profile)
+    await onReceiptScopeChange() // reload — now seeds from the global default
+    session.notify(t('{outlet} now uses the default receipt', { outlet: profile }))
+  } catch (e) {
+    session.notify(e.message, true)
+  }
+}
+
 // ---- audit log viewer ----
 const AUDIT_ACTIONS = [
   'Sale', 'Return', 'Over-limit discount', 'Price edit',
@@ -1506,6 +1588,7 @@ async function load() {
   if (session.offline) return
   const info = await call('lumenpos.api.settings.get_settings')
   settingsInfo.value = info
+  profileReceiptOverrides.value = info.profile_receipt_overrides || []
   generalForm.value = {
     delivery_apps: JSON.parse(JSON.stringify(info.delivery_apps || [])),
     discount_limit_percent: info.discount_limit_percent || 0,
@@ -2151,6 +2234,7 @@ async function saveGeneral() {
       payload: generalForm.value,
     })
     settingsInfo.value = info
+    profileReceiptOverrides.value = info.profile_receipt_overrides || []
     generalForm.value.discount_passcode = ''
     session.settings.delivery_apps = info.delivery_apps
     session.settings.discount_limit_percent = info.discount_limit_percent
@@ -2238,6 +2322,29 @@ const filteredBooks = computed(() => {
   padding: 6px;
   background: #fff;
 }
+.rc-scope {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: rgba(20, 99, 255, 0.06);
+  border: 1px solid rgba(20, 99, 255, 0.18);
+  border-radius: var(--radius);
+}
+.rc-scope-label { font-weight: 700; font-size: 13px; }
+.rc-scope-select {
+  min-width: 200px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: inherit;
+  font: inherit;
+}
+.rc-scope .btn { padding: 6px 14px; }
+.rc-scope-hint { margin-inline-start: 4px; }
 .receipt-config { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
 .rc-controls { flex: 1; min-width: 280px; }
 .rc-preview { width: 320px; flex-shrink: 0; position: sticky; top: 8px; }

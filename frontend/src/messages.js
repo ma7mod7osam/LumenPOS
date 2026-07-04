@@ -676,6 +676,17 @@ const features = {
     "تم تعيين تنسيق طباعة (Print Format) على نقطة البيع هذه، لذا تُستخدم عند الطباعة — والتصميم أدناه يُنسّق الإيصال على الشاشة فقط. امسح حقل Print Format من نقطة البيع لاستخدام هذا المصمّم في الطباعة.",
   "Want your own layout? Set a Print Format on this POS Profile in ERPNext (any standard or custom Print Format for the sale document) — it then takes over printing, and this designer keeps styling the on-screen receipt.":
     "تريد تصميمك الخاص؟ عيّن تنسيق طباعة (Print Format) على نقطة البيع هذه في ERPNext (أي تنسيق قياسي أو مخصّص لمستند البيع) — عندها يتولى الطباعة، ويبقى هذا المصمّم لتنسيق الإيصال على الشاشة.",
+  "Editing receipt for": "تحرير إيصال لـ",
+  "All outlets (default)": "كل الفروع (الافتراضي)",
+  "Save for this outlet": "حفظ لهذا الفرع",
+  "Reset to default": "إعادة إلى الافتراضي",
+  "This outlet has its own receipt.": "هذا الفرع له إيصاله الخاص.",
+  "Customising from the default — save to apply.":
+    "يتم التخصيص انطلاقًا من الافتراضي — احفظ للتطبيق.",
+  "Saved with the main Save button. Pick an outlet to give it a different receipt.":
+    "يُحفظ بزر الحفظ الرئيسي. اختر فرعًا لإعطائه إيصالًا مختلفًا.",
+  "Receipt saved for {outlet}": "تم حفظ الإيصال لـ {outlet}",
+  "{outlet} now uses the default receipt": "{outlet} يستخدم الآن الإيصال الافتراضي",
 }
 
 // Sell screen, cart, product grid.

@@ -12,6 +12,8 @@
   "serial_scan_only",
   "companies_section",
   "company_settings",
+  "profile_receipts_section",
+  "profile_receipts",
   "giftcards_section",
   "gift_card_expiry_days",
   "gift_card_mode_of_payment",
@@ -126,6 +128,18 @@
    "fieldtype": "Table",
    "label": "Company Accounts",
    "options": "LumenPOS Company Setting"
+  },
+  {
+   "description": "Per-outlet receipt overrides (managed from the POS Settings page). Each row is a POS Profile + a JSON receipt config that overrides the global receipt design for that outlet. Empty = the outlet uses the global receipt.",
+   "fieldname": "profile_receipts_section",
+   "fieldtype": "Section Break",
+   "label": "Per-Outlet Receipts"
+  },
+  {
+   "fieldname": "profile_receipts",
+   "fieldtype": "Table",
+   "label": "Per-Outlet Receipts",
+   "options": "LumenPOS Profile Receipt"
   },
   {
    "fieldname": "giftcards_section",

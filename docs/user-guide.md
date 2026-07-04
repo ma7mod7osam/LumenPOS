@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.17.6. This document is updated with every feature change.*
+*Applies to LumenPOS v0.18.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.18.0 | **Per-outlet receipts (first per-profile setting).** The receipt designer (Settings → General → Receipt) now has an **"Editing receipt for"** selector: leave it on **All outlets (default)** to design the shared receipt as before, or pick a **POS Profile** to give that outlet its own receipt — its own logo, header/footer, template and shown fields — with **Save for this outlet** and **Reset to default**. Outlets with a custom receipt are marked with a •. At the till, each outlet renders its own receipt if it has one, otherwise the default. It's fully **opt-in** — with no per-outlet override set, nothing changes. This is the groundwork for making other settings per-profile too. |
 | 0.17.6 | **Publisher metadata aligned to Lumen Solutions.** `app_publisher`, `app_email`, the `pyproject.toml` author, and the license copyright now read **Lumen Solutions** / **support@lumen-solutions.co**, matching the marketplace listing and website. No functional change. |
 | 0.17.5 | **Cleared the Frappe Marketplace submission-gate audit (security + code quality).** Addressed all 15 findings the automated Semgrep audit reported, with no behaviour change: converted an exception passed to `.format()` to `str()`; rewrote the price-book search queries into fixed, fully-parameterized SQL (removing the injection pattern); replaced `filter()` calls with comprehensions; scoped the approval-decision realtime event to the waiting cashier instead of broadcasting it site-wide; and annotated the genuinely-safe cases — dynamic table-name queries whose user input is already bound as parameters, the intentional register-close state commits, and the no-PII approval ping — with justified `# nosemgrep` comments. Also stripped a stray UTF-8 BOM from a source file. |
 | 0.17.4 | **Pricing Rules stay ignored at the till (the fix that actually sticks).** LumenPOS already set `ignore_pricing_rule` on every sale, but ERPNext's POS flow re-reads that flag from the **POS Profile** on each save and flipped it back — so a Pricing Rule could re-apply on submit, override the price book, and land the invoice "Partly Paid". LumenPOS now mirrors its always-ignore behaviour onto the profile itself: it sets the POS Profile's **Ignore Pricing Rule** to on (once, automatically) the first time it prices a sale on that profile. No manual step, and your price books, promotions and bundles are always what posts. *(ERPNext Pricing Rules keep working on non-POS documents.)* |

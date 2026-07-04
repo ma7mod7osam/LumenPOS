@@ -113,6 +113,12 @@ def get_settings():
         "receipt_terms": doc.get("receipt_terms") or "",
         "gift_card_expiry_days": doc.get("gift_card_expiry_days") or 0,
         "companies": frappe.get_all("Company", pluck="name", order_by="name asc"),
+        "pos_profiles": frappe.get_all(
+            "POS Profile", filters={"disabled": 0}, pluck="name", order_by="name asc"
+        ),
+        "profile_receipt_overrides": [
+            r.pos_profile for r in (doc.get("profile_receipts") or [])
+        ],
         "company_settings": [
             {
                 "company": r.company,
@@ -325,6 +331,119 @@ def company_setting(company, field):
         if row.company == company:
             return row.get(field) or None
     return None
+
+
+# ---------------------------------------------------------------------------
+# Per-outlet receipt overrides
+# ---------------------------------------------------------------------------
+
+RECEIPT_FIELDS = [
+    "receipt_template", "receipt_logo", "receipt_header", "receipt_footer",
+    "receipt_show_item_code", "receipt_show_barcode", "receipt_show_serial",
+    "receipt_show_unit_price", "receipt_show_payments", "receipt_show_note",
+    "receipt_show_tax_id", "receipt_tax_id", "receipt_show_address",
+    "receipt_address", "receipt_show_terms", "receipt_terms",
+]
+
+_RECEIPT_BOOL = {
+    "receipt_show_item_code", "receipt_show_barcode", "receipt_show_serial",
+    "receipt_show_unit_price", "receipt_show_payments", "receipt_show_note",
+    "receipt_show_tax_id", "receipt_show_address", "receipt_show_terms",
+}
+
+
+def receipt_config(source):
+    """A clean, correctly-typed receipt dict from any source (the settings doc
+    or a plain dict of receipt fields): booleans as 0/1, template defaults to
+    'Standard', everything else to ''."""
+    get = source.get
+    out = {}
+    for f in RECEIPT_FIELDS:
+        v = get(f)
+        if f in _RECEIPT_BOOL:
+            out[f] = 1 if v else 0
+        elif f == "receipt_template":
+            out[f] = v or "Standard"
+        else:
+            out[f] = v or ""
+    return out
+
+
+def profile_receipt(pos_profile):
+    """The per-outlet receipt OVERRIDE for a profile, or None if it uses the
+    global receipt. Stored as JSON on LumenPOS Settings → profile_receipts."""
+    if not pos_profile:
+        return None
+    doc = frappe.get_cached_doc("LumenPOS Settings")
+    for row in doc.get("profile_receipts") or []:
+        if row.pos_profile == pos_profile:
+            try:
+                return receipt_config(json.loads(row.receipt_config or "{}"))
+            except Exception:
+                return None
+    return None
+
+
+def effective_receipt(pos_profile):
+    """The receipt an outlet actually uses: the global receipt with the outlet's
+    override merged on top when one exists. This is what the sell screen renders
+    (sent in bootstrap)."""
+    base = receipt_config(frappe.get_cached_doc("LumenPOS Settings"))
+    override = profile_receipt(pos_profile)
+    if override:
+        base.update(override)
+    return base
+
+
+@frappe.whitelist()
+def get_profile_receipt(pos_profile):
+    """For the Settings receipt editor: the outlet's effective receipt (its
+    override if any, else the global default as a starting point) and whether it
+    currently has its own override."""
+    _require_manager()
+    return {
+        "has_override": profile_receipt(pos_profile) is not None,
+        "config": effective_receipt(pos_profile),
+    }
+
+
+@frappe.whitelist()
+def save_profile_receipt(pos_profile, config):
+    """Create or replace an outlet's receipt override."""
+    _require_manager()
+    if not pos_profile:
+        frappe.throw(_("Select an outlet"))
+    if isinstance(config, str):
+        config = json.loads(config)
+    payload = json.dumps(receipt_config(config))
+    doc = frappe.get_doc("LumenPOS Settings")
+    row = next(
+        (r for r in doc.get("profile_receipts") or [] if r.pos_profile == pos_profile), None
+    )
+    if row is None:
+        doc.append("profile_receipts", {"pos_profile": pos_profile, "receipt_config": payload})
+    else:
+        row.receipt_config = payload
+    doc.save()
+    from lumenpos.api import audit
+
+    audit.log(audit.SETTINGS_CHANGE, detail=f"Receipt customised for {pos_profile}")
+    return {"ok": True}
+
+
+@frappe.whitelist()
+def clear_profile_receipt(pos_profile):
+    """Remove an outlet's override so it falls back to the global receipt."""
+    _require_manager()
+    doc = frappe.get_doc("LumenPOS Settings")
+    kept = [
+        {"pos_profile": r.pos_profile, "receipt_config": r.receipt_config}
+        for r in (doc.get("profile_receipts") or [])
+        if r.pos_profile != pos_profile
+    ]
+    doc.set("profile_receipts", kept)
+    doc.save()
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
