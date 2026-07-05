@@ -10,28 +10,30 @@
           <div class="shift-banner warn">
             <div class="shift-name">{{ t('⚠ Previous shift not finished') }}</div>
             <div class="muted small" style="margin-top: 4px">
-              {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being finalised') }}<span v-if="pending.closing_status === 'Failed'"> {{ t('— the last attempt') }} <b>{{ t('failed') }}</b></span>. {{ t('Retry the closing before opening a new shift.') }}
+              {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being finalised') }}<span v-if="pending.closing_status === 'Failed'"> {{ t('— the last attempt') }} <b>{{ t('failed') }}</b></span>. {{ t('You can open a new shift now — it keeps finalising in the background.') }}
             </div>
             <div v-if="pending.closing_error" class="err-detail">{{ pending.closing_error }}</div>
           </div>
           <button
             v-if="canClose"
-            class="btn btn-primary choice-btn"
+            class="btn btn-outline choice-btn"
             :disabled="busy"
             @click="retry"
           >
             <Icon name="refresh" /> {{ busy ? t('Retrying…') : t('Retry closing') }}
-            <span class="choice-hint">{{ t('consolidate the shift and free the register') }}</span>
+            <span class="choice-hint">{{ t('consolidate the previous shift now instead of waiting for the background retry') }}</span>
           </button>
           <p class="muted small">
             {{ t("This runs in the background and usually takes a few seconds. It's safe to retry as often as needed — nothing is double-posted.") }}
           </p>
 
-          <!-- Closing keeps FAILING — let the store keep trading. Opens a fresh
-               shift now; the failed one stays in the background and the
-               self-healer keeps retrying its consolidation, so no sale is lost. -->
-          <div v-if="canClose && pending.closing_status === 'Failed'" class="force-new-block">
-            <div class="or-sep"><span>{{ t('or start a new shift anyway') }}</span></div>
+          <!-- The register is closed the moment the cashier closes it — the POS
+               Closing consolidation is a background task (Pending / Queued /
+               Failed) that must NEVER block the next shift. So a fresh shift can
+               always be opened here, whatever the closing status; the previous
+               shift keeps finalising / self-healing in the background. -->
+          <div v-if="canClose" class="force-new-block">
+            <div class="or-sep"><span>{{ t('or open a new shift now') }}</span></div>
             <label class="field-label">{{ t('Opening float for the new shift') }}</label>
             <input
               class="float-input"
@@ -42,10 +44,10 @@
               v-model.number="openingFloat"
               :disabled="busy"
             />
-            <button class="btn btn-outline choice-btn" :disabled="busy" @click="forceNew">
-              <Icon name="play" /> {{ busy ? t('Opening…') : t('Start a new shift anyway') }}
+            <button class="btn btn-primary choice-btn" :disabled="busy" @click="forceNew">
+              <Icon name="play" /> {{ busy ? t('Opening…') : t('Open a new shift') }}
               <span class="choice-hint"
-                >{{ t('keep selling now — the failed shift stays in the background and keeps retrying until it consolidates') }}</span
+                >{{ t('keep selling now — the previous shift keeps finalising in the background until it consolidates') }}</span
               >
             </button>
           </div>

@@ -691,6 +691,14 @@ const features = {
   "Enter the opening cash float to start selling.": "أدخل الرصيد النقدي الافتتاحي لبدء البيع.",
   "You still have another register open:": "لا يزال لديك سجل نقدي آخر مفتوح:",
   "Remember to close it when its shift ends.": "تذكّر إغلاقه عند انتهاء ورديته.",
+  "or open a new shift now": "أو افتح وردية جديدة الآن",
+  "Open a new shift": "فتح وردية جديدة",
+  "keep selling now — the previous shift keeps finalising in the background until it consolidates":
+    "تابع البيع الآن — تستمر الوردية السابقة في الإنهاء بالخلفية حتى تُدمج",
+  "You can open a new shift now — it keeps finalising in the background.":
+    "يمكنك فتح وردية جديدة الآن — وتستمر الوردية السابقة في الإنهاء بالخلفية.",
+  "consolidate the previous shift now instead of waiting for the background retry":
+    "دمج الوردية السابقة الآن بدلاً من انتظار إعادة المحاولة في الخلفية",
 }
 
 // Sell screen, cart, product grid.

@@ -90,21 +90,18 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
         as_dict=True,
     )
     if existing:
-        if existing.status == "Closing":
-            closing_status = frappe.db.get_value(
-                "POS Register Session", existing.name, "closing_status"
+        if existing.status == "Open":
+            frappe.throw(
+                _("Register {0} already has an open session ({1}).").format(
+                    profile.name, existing.name
+                )
             )
-            # A genuinely FAILED close (not one still in progress) can be left
-            # to the self-healer while a fresh shift is started — so a stuck
-            # consolidation can't keep the store shut the next day.
-            if cint(force_new) and closing_status == "Failed":
-                return _force_new_after_failure(profile, opening_float, existing.name)
-            resp = _retry_response(existing.name)
-            resp["can_force_new"] = closing_status == "Failed"
-            return resp
-        frappe.throw(
-            _("Register {0} already has an open session ({1}).").format(profile.name, existing.name)
-        )
+        # status == "Closing": the cashier already closed this shift. Its POS
+        # Closing Entry consolidation runs (and self-heals) in the background and
+        # must NEVER block the store from opening the next shift — no matter the
+        # closing_status (Pending / Queued / Failed). Open a fresh shift now; the
+        # stuck close keeps retrying independently, so no invoice is lost.
+        return _force_new_after_failure(profile, opening_float, existing.name)
 
     # Lightweight Sales Invoice cash shift — just the float, no ERPNext POS
     # Opening Entry. Sales post as Sales Invoices directly, so there's nothing to
