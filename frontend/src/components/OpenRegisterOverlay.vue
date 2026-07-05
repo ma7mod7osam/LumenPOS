@@ -64,7 +64,21 @@
       <!-- Step 1: float entry -->
       <template v-else-if="!choice">
         <div class="modal-body">
-          <p class="muted">
+          <template v-if="session.availableProfiles.length > 1">
+            <label class="field-label">{{ t('Outlet') }}</label>
+            <select
+              class="outlet-select"
+              :value="session.posProfile"
+              :disabled="busy"
+              @change="onSwitchOutlet($event.target.value)"
+            >
+              <option v-for="p in session.availableProfiles" :key="p" :value="p">{{ p }}</option>
+            </select>
+            <p class="muted" style="margin-top: 12px">
+              {{ t('Enter the opening cash float to start selling.') }}
+            </p>
+          </template>
+          <p v-else class="muted">
             {{ session.posProfile }} {{ t('— enter the opening cash float to start selling.') }}
           </p>
           <label class="field-label">{{ t('Opening float') }}</label>
@@ -143,10 +157,12 @@
 import Icon from './Icon.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useSessionStore } from '../stores/session'
+import { useCatalogStore } from '../stores/catalog'
 import { call } from '../api'
 import { t } from '../i18n'
 
 const session = useSessionStore()
+const catalog = useCatalogStore()
 const openingFloat = ref(0)
 const busy = ref(false)
 const floatInput = ref(null)
@@ -161,6 +177,20 @@ onMounted(() => {
   if (!pending.value) floatInput.value?.focus()
 })
 onBeforeUnmount(() => clearInterval(poll))
+
+// Choose which outlet to open the register for (users assigned to more than one
+// POS Profile). Switching reloads that outlet — if it's already open the dialog
+// closes and you're selling on it; if closed, the dialog now opens that outlet.
+async function onSwitchOutlet(name) {
+  if (!name || name === session.posProfile) return
+  await session.switchProfile(name)
+  catalog.fetch()
+  catalog.cacheFullCatalog()
+  catalog.cacheCustomers()
+  pending.value = session.pendingClosing
+  choice.value = null
+  openingFloat.value = 0
+}
 
 async function open() {
   busy.value = true
@@ -316,6 +346,17 @@ function startPoll(sessionName) {
 .dead-end { margin: 4px 0 0; }
 .force-new-block { margin-top: 6px; }
 .float-input { width: 100%; }
+.outlet-select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
 .or-sep {
   display: flex;
   align-items: center;

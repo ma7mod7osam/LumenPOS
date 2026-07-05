@@ -63,20 +63,7 @@
           >
             {{ session.registerOpen ? t('Register open ▸ close') : t('Register closed') }}
           </button>
-          <span class="topbar-user">
-            <span class="tb-user-name">{{ session.userFullname }}</span>
-            <span class="tb-dot">·</span>
-            <select
-              v-if="session.availableProfiles.length > 1"
-              class="tb-outlet"
-              :value="session.posProfile"
-              :title="t('Switch outlet')"
-              @change="onSwitchOutlet($event.target.value, $event)"
-            >
-              <option v-for="p in session.availableProfiles" :key="p" :value="p">{{ p }}</option>
-            </select>
-            <span v-else>{{ session.posProfile }}</span>
-          </span>
+          <span class="topbar-user">{{ session.userFullname }} · {{ session.posProfile }}</span>
         </div>
       </header>
       <main class="content">
@@ -160,22 +147,6 @@ const xreportLoading = ref(false)
 
 // Offline sales log — reachable from the offline / syncing pill and Settings.
 const offlineLogOpen = ref(false)
-
-// Switch the active outlet (for users assigned to more than one POS Profile).
-// Clears the cart and reloads the catalog/customers for the new outlet; the
-// other outlet's shift stays open.
-async function onSwitchOutlet(name, ev) {
-  if (!name || name === session.posProfile) return
-  if (cart.lines.length && !window.confirm(t('Switch outlet? The current cart will be cleared.'))) {
-    if (ev) ev.target.value = session.posProfile // revert the dropdown
-    return
-  }
-  cart.clear()
-  await session.switchProfile(name)
-  catalog.fetch()
-  catalog.cacheFullCatalog()
-  catalog.cacheCustomers()
-}
 async function openXReport() {
   if (!session.registerSession || xreportLoading.value) return
   xreportLoading.value = true
@@ -314,25 +285,9 @@ function setupAutoLock() {
   gap: 14px;
 }
 .topbar-user {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
   font-size: 12.5px;
+  opacity: 0.75;
 }
-.tb-user-name,
-.tb-dot { opacity: 0.75; }
-.tb-outlet {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
-  padding: 3px 7px;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-.tb-outlet:hover { background: rgba(255, 255, 255, 0.24); }
-.tb-outlet option { color: #111; }
 .register-pill {
   font-size: 11.5px;
   font-weight: 700;
