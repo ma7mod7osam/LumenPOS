@@ -689,6 +689,8 @@ const features = {
   "{outlet} now uses the default receipt": "{outlet} يستخدم الآن الإيصال الافتراضي",
   "Outlet": "الفرع",
   "Enter the opening cash float to start selling.": "أدخل الرصيد النقدي الافتتاحي لبدء البيع.",
+  "You still have another register open:": "لا يزال لديك سجل نقدي آخر مفتوح:",
+  "Remember to close it when its shift ends.": "تذكّر إغلاقه عند انتهاء ورديته.",
 }
 
 // Sell screen, cart, product grid.

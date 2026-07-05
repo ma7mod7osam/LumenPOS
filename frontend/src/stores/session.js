@@ -24,6 +24,7 @@ export const useSessionStore = defineStore('session', {
     posProfile: null,
     invoiceMode: 'POS Invoice',
     availableProfiles: [],
+    otherOpenRegisters: [],
     company: null,
     currency: 'USD',
     priceList: null,
@@ -191,6 +192,7 @@ export const useSessionStore = defineStore('session', {
       this.taxes = data.taxes || []
       this.promotions = data.promotions || []
       this.registerSession = data.register_session
+      this.otherOpenRegisters = data.other_open_registers || []
       this.printerConfigured = data.printer_configured || false
       this.printFormat = data.print_format || null
       this.storeCreditMode = data.store_credit_mode || 'Store Credit'

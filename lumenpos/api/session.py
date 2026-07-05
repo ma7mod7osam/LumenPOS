@@ -87,6 +87,7 @@ def get_bootstrap(pos_profile=None):
         "taxes": _profile_taxes(profile),
         "promotions": get_active_promotions(profile_name),
         "register_session": session,
+        "other_open_registers": _other_open_registers(profile_name),
         "pending_closing": _pending_closing(profile_name),
         "permissions": get_user_permissions(),
         "available_profiles": _user_profiles(),
@@ -400,6 +401,30 @@ def _default_pos_profile():
         return name
     # Fall back to any enabled profile (single-store setups often skip user mapping)
     return frappe.db.get_value("POS Profile", {"disabled": 0}, "name")
+
+
+def _other_open_registers(current_profile):
+    """Open shifts this user still holds on OTHER outlets — so the Open Register
+    dialog can remind them a drawer is open elsewhere (multi-outlet allows more
+    than one open at once, so a forgotten shift wouldn't otherwise surface)."""
+    rows = frappe.get_all(
+        "POS Register Session",
+        filters={
+            "opened_by": frappe.session.user,
+            "status": "Open",
+            "pos_profile": ["!=", current_profile or ""],
+        },
+        fields=["name", "pos_profile", "opened_at"],
+        order_by="opened_at asc",
+    )
+    return [
+        {
+            "session": r.name,
+            "pos_profile": r.pos_profile,
+            "opened_at": str(r.opened_at) if r.opened_at else None,
+        }
+        for r in rows
+    ]
 
 
 def _user_profiles():

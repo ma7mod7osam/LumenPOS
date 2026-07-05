@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.19.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.19.2. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.19.2 | **"You still have another register open" warning.** Since multiple outlets can be open at once, the Open Register dialog now shows a warning banner if you already hold an **open shift on another outlet** — listing each one (outlet + session) — so you don't forget to close a drawer elsewhere. It refreshes as you switch outlets in the dialog. |
 | 0.19.1 | **Outlet choice moved into the Open Register dialog.** The outlet picker now lives **inside the "Open register" dialog** (an **Outlet** dropdown above the opening-float field) rather than in the top bar — you choose which outlet to open the register for right where you enter the float. Picking another outlet reloads it: if it's already open you go straight to selling on it, if it's closed the dialog opens that outlet. The top bar goes back to showing the current outlet as plain text. (Refines 0.19.0.) |
 | 0.19.0 | **Outlet switcher — choose which outlet you're operating.** If you're assigned to more than one POS Profile, the top bar now shows an **outlet dropdown** (next to your name) instead of fixed text. Pick another outlet and the POS reloads everything for it — its register, catalogue, prices and customers — so you can open/close and sell on whichever outlet you choose. Your choice is remembered across reloads. Switching clears the current cart (with a confirmation when it isn't empty), and the other outlet's shift stays open (pairs with the 0.18.1 multi-outlet-shifts fix). Single-outlet users see no change. The API also verifies you're assigned to an outlet before letting you operate it. |
 | 0.18.1 | **Multi-outlet shifts — a shift on one outlet no longer blocks opening another.** Opening a register on a second POS Profile (e.g. **Jeddah**) while you had one open on another (e.g. **Riyadh**) failed with *"You already have register Riyadh open — close it before opening another."* The "already open" check for a cashier's native POS Opening Entry was scoped to the **user across all outlets** instead of the **specific register**. It's now scoped to the outlet, so each register runs its own independent shift (opened and closed separately) — a manager or multi-outlet user can have Riyadh **and** Jeddah open at once. Double-opening the *same* register is still blocked, as before. |

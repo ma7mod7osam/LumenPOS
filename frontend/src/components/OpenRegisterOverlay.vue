@@ -64,6 +64,13 @@
       <!-- Step 1: float entry -->
       <template v-else-if="!choice">
         <div class="modal-body">
+          <div v-if="session.otherOpenRegisters.length" class="shift-banner warn oe-warn">
+            <div><Icon name="warning" /> {{ t('You still have another register open:') }}</div>
+            <div v-for="r in session.otherOpenRegisters" :key="r.session" class="oe-item">
+              {{ r.pos_profile }} <span class="oe-sess">({{ r.session }})</span>
+            </div>
+            <div class="choice-hint">{{ t('Remember to close it when its shift ends.') }}</div>
+          </div>
           <template v-if="session.availableProfiles.length > 1">
             <label class="field-label">{{ t('Outlet') }}</label>
             <select
@@ -346,6 +353,9 @@ function startPoll(sessionName) {
 .dead-end { margin: 4px 0 0; }
 .force-new-block { margin-top: 6px; }
 .float-input { width: 100%; }
+.oe-warn { text-align: start; }
+.oe-item { font-weight: 800; margin-top: 4px; }
+.oe-sess { font-weight: 500; opacity: 0.7; font-size: 12px; }
 .outlet-select {
   width: 100%;
   padding: 11px 12px;
