@@ -117,9 +117,20 @@ export const useSessionStore = defineStore('session', {
   actions: {
     async bootstrap(posProfile = null) {
       this.error = null
+      // Multi-outlet users can switch outlets; remember the choice so a reload
+      // keeps the same one. A stale/forbidden remembered outlet is cleared and
+      // we fall back to the user's default.
+      let target = posProfile
+      if (!target) {
+        try {
+          target = localStorage.getItem('lumenpos_profile') || null
+        } catch {
+          target = null
+        }
+      }
       try {
         const data = await call('lumenpos.api.session.get_bootstrap', {
-          pos_profile: posProfile,
+          pos_profile: target,
         })
         this._applyBootstrap(data)
         this.offline = false
@@ -135,12 +146,33 @@ export const useSessionStore = defineStore('session', {
             this.error =
               'No connection and no cached data yet. Connect once so the POS can cache its catalog.'
           }
+        } else if (!posProfile && target) {
+          // The remembered outlet is stale / no longer permitted — forget it and
+          // boot the user's default outlet instead.
+          try {
+            localStorage.removeItem('lumenpos_profile')
+          } catch {
+            /* ignore */
+          }
+          return this.bootstrap(null)
         } else {
           this.error = e.message
         }
       }
       this.queuedCount = await queueCount().catch(() => 0)
       this.loaded = true
+    },
+
+    // Switch the active outlet (POS Profile) and reload everything for it. The
+    // other outlet's shift stays open — this only changes what this screen shows.
+    async switchProfile(name) {
+      if (!name || name === this.posProfile) return
+      try {
+        localStorage.setItem('lumenpos_profile', name)
+      } catch {
+        /* ignore */
+      }
+      await this.bootstrap(name)
     },
 
     _applyBootstrap(data) {

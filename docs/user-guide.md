@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.18.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.19.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.19.0 | **Outlet switcher — choose which outlet you're operating.** If you're assigned to more than one POS Profile, the top bar now shows an **outlet dropdown** (next to your name) instead of fixed text. Pick another outlet and the POS reloads everything for it — its register, catalogue, prices and customers — so you can open/close and sell on whichever outlet you choose. Your choice is remembered across reloads. Switching clears the current cart (with a confirmation when it isn't empty), and the other outlet's shift stays open (pairs with the 0.18.1 multi-outlet-shifts fix). Single-outlet users see no change. The API also verifies you're assigned to an outlet before letting you operate it. |
 | 0.18.1 | **Multi-outlet shifts — a shift on one outlet no longer blocks opening another.** Opening a register on a second POS Profile (e.g. **Jeddah**) while you had one open on another (e.g. **Riyadh**) failed with *"You already have register Riyadh open — close it before opening another."* The "already open" check for a cashier's native POS Opening Entry was scoped to the **user across all outlets** instead of the **specific register**. It's now scoped to the outlet, so each register runs its own independent shift (opened and closed separately) — a manager or multi-outlet user can have Riyadh **and** Jeddah open at once. Double-opening the *same* register is still blocked, as before. |
 | 0.18.0 | **Per-outlet receipts (first per-profile setting).** The receipt designer (Settings → General → Receipt) now has an **"Editing receipt for"** selector: leave it on **All outlets (default)** to design the shared receipt as before, or pick a **POS Profile** to give that outlet its own receipt — its own logo, header/footer, template and shown fields — with **Save for this outlet** and **Reset to default**. Outlets with a custom receipt are marked with a •. At the till, each outlet renders its own receipt if it has one, otherwise the default. It's fully **opt-in** — with no per-outlet override set, nothing changes. This is the groundwork for making other settings per-profile too. |
 | 0.17.6 | **Publisher metadata aligned to Lumen Solutions.** `app_publisher`, `app_email`, the `pyproject.toml` author, and the license copyright now read **Lumen Solutions** / **support@lumen-solutions.co**, matching the marketplace listing and website. No functional change. |

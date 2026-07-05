@@ -687,6 +687,8 @@ const features = {
     "يُحفظ بزر الحفظ الرئيسي. اختر فرعًا لإعطائه إيصالًا مختلفًا.",
   "Receipt saved for {outlet}": "تم حفظ الإيصال لـ {outlet}",
   "{outlet} now uses the default receipt": "{outlet} يستخدم الآن الإيصال الافتراضي",
+  "Switch outlet": "تبديل الفرع",
+  "Switch outlet? The current cart will be cleared.": "تبديل الفرع؟ سيتم مسح السلة الحالية.",
 }
 
 // Sell screen, cart, product grid.

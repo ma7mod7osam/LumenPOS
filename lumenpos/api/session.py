@@ -19,6 +19,19 @@ def get_bootstrap(pos_profile=None):
         frappe.throw(
             _("No POS Profile is assigned to you. Create one and add yourself under Applicable for Users.")
         )
+    # A user may only operate an outlet they're assigned to (managers/admins:
+    # any). The outlet switcher only offers assigned outlets, but guard the API
+    # too so a switch to an unassigned outlet is rejected.
+    if pos_profile and pos_profile not in _user_profiles():
+        from lumenpos.api import permissions
+
+        if not permissions.is_manager():
+            frappe.throw(
+                _("You are not assigned to outlet {0}. Ask an administrator to add you under Applicable for Users.").format(
+                    pos_profile
+                ),
+                frappe.PermissionError,
+            )
 
     profile = frappe.get_doc("POS Profile", profile_name)
 
