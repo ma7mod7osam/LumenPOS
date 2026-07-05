@@ -128,10 +128,19 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     if resume_opening_entry:
         return _resume_opening(profile, resume_opening_entry)
 
-    # 2) Does THIS cashier already hold an open native opening entry?
+    # 2) Does this cashier already hold an open native opening entry ON THIS
+    # register? Scoped to the profile, so a shift open on ANOTHER outlet (e.g.
+    # Riyadh) never blocks opening this one (e.g. Jeddah) — each register runs
+    # its own independent shift, opened and closed separately. (Multiple opens on
+    # the SAME register are still governed by allow_multiple_opening — testing.)
     open_entry = frappe.db.get_value(
         "POS Opening Entry",
-        {"user": frappe.session.user, "status": "Open", "docstatus": 1},
+        {
+            "user": frappe.session.user,
+            "pos_profile": profile.name,
+            "status": "Open",
+            "docstatus": 1,
+        },
         ["name", "pos_profile", "period_start_date"],
         as_dict=True,
     )
