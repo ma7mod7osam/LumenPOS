@@ -699,6 +699,20 @@ const features = {
     "يمكنك فتح وردية جديدة الآن — وتستمر الوردية السابقة في الإنهاء بالخلفية.",
   "consolidate the previous shift now instead of waiting for the background retry":
     "دمج الوردية السابقة الآن بدلاً من انتظار إعادة المحاولة في الخلفية",
+  "Custom fields": "حقول مخصّصة",
+  "Extra fields for this outlet, shown in addition to the global custom fields.":
+    "حقول إضافية لهذا الفرع، تُعرض إضافةً إلى الحقول المخصّصة العامة.",
+  "Add any field from the POS Profile or the sale invoice — e.g. a ZATCA QR image, a CR number, or a country-specific field. These apply to every outlet; pick an outlet above to add extras just for it.":
+    "أضِف أي حقل من نقطة البيع أو فاتورة البيع — مثل صورة رمز ZATCA، أو رقم السجل التجاري، أو حقل خاص بدولتك. تنطبق على كل الفروع؛ اختر فرعًا بالأعلى لإضافة حقول خاصة به.",
+  "Sale invoice": "فاتورة البيع",
+  "Choose a field…": "اختر حقلاً…",
+  "Label (optional)": "التسمية (اختياري)",
+  "Image / QR": "صورة / QR",
+  "Header": "الترويسة",
+  "Footer": "التذييل",
+  "Add a field": "إضافة حقل",
+  "Sample value": "قيمة تجريبية",
+  "Text": "نص",
 }
 
 // Sell screen, cart, product grid.

@@ -6,7 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "pos_profile",
-  "receipt_config"
+  "receipt_config",
+  "custom_fields"
  ],
  "fields": [
   {
@@ -21,6 +22,11 @@
    "fieldname": "receipt_config",
    "fieldtype": "Long Text",
    "label": "Receipt Config (JSON)"
+  },
+  {
+   "fieldname": "custom_fields",
+   "fieldtype": "Long Text",
+   "label": "Custom Fields (JSON)"
   }
  ],
  "istable": 1,

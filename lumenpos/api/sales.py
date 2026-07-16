@@ -1188,9 +1188,12 @@ def get_receipt(invoice):
             order_by="idx asc",
         ):
             barcode_map.setdefault(b.parent, b.barcode)
+    from lumenpos.api.settings import resolve_receipt_custom_fields
+
     return {
         "name": doc.name,
         "doctype": doc.doctype,  # so the client prints the right doc via a Print Format
+        "custom_fields": resolve_receipt_custom_fields(doc),
         "note": _get_custom(doc, ("lumenpos_note",)) or "",
         "is_return": doc.is_return,
         "return_against": doc.return_against,

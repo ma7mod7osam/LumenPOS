@@ -74,7 +74,8 @@
   "receipt_show_address",
   "receipt_address",
   "receipt_show_terms",
-  "receipt_terms"
+  "receipt_terms",
+  "receipt_custom_fields"
  ],
  "fields": [
   {
@@ -140,6 +141,12 @@
    "fieldtype": "Table",
    "label": "Per-Outlet Receipts",
    "options": "LumenPOS Profile Receipt"
+  },
+  {
+   "description": "JSON list of dynamic receipt fields sourced from the POS Profile or the sale invoice (managed from the POS Settings page). Each: {source, fieldname, label, render, position}.",
+   "fieldname": "receipt_custom_fields",
+   "fieldtype": "Long Text",
+   "label": "Receipt Custom Fields (JSON)"
   },
   {
    "fieldname": "giftcards_section",

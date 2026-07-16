@@ -20,6 +20,12 @@
       <div class="muted small" v-if="receipt.app_type">
         {{ receipt.app_type }}<span v-if="receipt.order_id"> · {{ t('Order') }} {{ receipt.order_id }}</span>
       </div>
+      <template v-for="(f, i) in headerCustomFields" :key="'hcf' + i">
+        <img v-if="f.render === 'Image'" :src="asImg(f.value)" class="receipt-cf-img" alt="" />
+        <div v-else class="muted small receipt-extra">
+          <span v-if="f.label">{{ f.label }}: </span>{{ f.value }}
+        </div>
+      </template>
     </div>
 
     <table class="receipt-table">
@@ -87,6 +93,15 @@
       {{ s.receipt_terms }}
     </div>
 
+    <div v-if="footerCustomFields.length" class="receipt-cf-foot">
+      <template v-for="(f, i) in footerCustomFields" :key="'fcf' + i">
+        <img v-if="f.render === 'Image'" :src="asImg(f.value)" class="receipt-cf-img" alt="" />
+        <div v-else class="muted small receipt-extra">
+          <span v-if="f.label">{{ f.label }}: </span>{{ f.value }}
+        </div>
+      </template>
+    </div>
+
     <div class="receipt-foot muted small">
       <div v-if="s.receipt_footer" class="receipt-extra">{{ s.receipt_footer }}</div>
       {{ t('Thank you!') }}
@@ -113,6 +128,19 @@ const props = defineProps({
 const session = useSessionStore()
 const s = computed(() => props.settings || session.settings || {})
 const tpl = computed(() => (s.value.receipt_template || 'Standard').toLowerCase())
+
+// Dynamic custom fields resolved by the server (get_receipt) — each is
+// { label, value, render: 'Text'|'Image', position: 'Header'|'Footer' }.
+const cf = computed(() => props.receipt.custom_fields || [])
+const headerCustomFields = computed(() => cf.value.filter((f) => f.position === 'Header'))
+const footerCustomFields = computed(() => cf.value.filter((f) => f.position !== 'Header'))
+function asImg(value) {
+  const v = String(value || '').trim()
+  if (!v) return ''
+  // Accept a data URL, an http(s) URL or a /files path as-is; treat anything
+  // else as raw base64 PNG (e.g. a ZATCA QR stored as a base64 string).
+  return /^(data:|https?:|\/)/i.test(v) ? v : `data:image/png;base64,${v}`
+}
 </script>
 
 <style scoped>
@@ -164,6 +192,13 @@ const tpl = computed(() => (s.value.receipt_template || 'Standard').toLowerCase(
   white-space: pre-line;
 }
 .receipt-foot { text-align: center; margin-top: 12px; }
+.receipt-cf-img { max-width: 60%; max-height: 150px; object-fit: contain; margin: 6px auto; display: block; }
+.receipt-cf-foot {
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
 .small { font-size: 11.5px; }
 
 /* ---- Templates ---- */

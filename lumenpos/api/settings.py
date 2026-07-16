@@ -119,6 +119,7 @@ def get_settings():
         "profile_receipt_overrides": [
             r.pos_profile for r in (doc.get("profile_receipts") or [])
         ],
+        "receipt_custom_fields": _global_custom_fields(),
         "company_settings": [
             {
                 "company": r.company,
@@ -212,6 +213,10 @@ def save_settings(payload):
     doc.receipt_address = payload.get("receipt_address") or None
     doc.receipt_show_terms = 1 if payload.get("receipt_show_terms") else 0
     doc.receipt_terms = payload.get("receipt_terms") or None
+    if "receipt_custom_fields" in payload:
+        doc.receipt_custom_fields = json.dumps(
+            _clean_custom_fields(payload.get("receipt_custom_fields"))
+        )
     doc.gift_card_expiry_days = int(payload.get("gift_card_expiry_days") or 0)
     doc.set("company_settings", [])
     for row in payload.get("company_settings") or []:
@@ -404,26 +409,32 @@ def get_profile_receipt(pos_profile):
     return {
         "has_override": profile_receipt(pos_profile) is not None,
         "config": effective_receipt(pos_profile),
+        "custom_fields": _profile_custom_fields(pos_profile),
     }
 
 
 @frappe.whitelist()
-def save_profile_receipt(pos_profile, config):
-    """Create or replace an outlet's receipt override."""
+def save_profile_receipt(pos_profile, config, custom_fields=None):
+    """Create or replace an outlet's receipt override + its extra custom fields."""
     _require_manager()
     if not pos_profile:
         frappe.throw(_("Select an outlet"))
     if isinstance(config, str):
         config = json.loads(config)
     payload = json.dumps(receipt_config(config))
+    cf_payload = json.dumps(_clean_custom_fields(custom_fields))
     doc = frappe.get_doc("LumenPOS Settings")
     row = next(
         (r for r in doc.get("profile_receipts") or [] if r.pos_profile == pos_profile), None
     )
     if row is None:
-        doc.append("profile_receipts", {"pos_profile": pos_profile, "receipt_config": payload})
+        doc.append(
+            "profile_receipts",
+            {"pos_profile": pos_profile, "receipt_config": payload, "custom_fields": cf_payload},
+        )
     else:
         row.receipt_config = payload
+        row.custom_fields = cf_payload
     doc.save()
     from lumenpos.api import audit
 
@@ -437,13 +448,118 @@ def clear_profile_receipt(pos_profile):
     _require_manager()
     doc = frappe.get_doc("LumenPOS Settings")
     kept = [
-        {"pos_profile": r.pos_profile, "receipt_config": r.receipt_config}
+        {
+            "pos_profile": r.pos_profile,
+            "receipt_config": r.receipt_config,
+            "custom_fields": r.get("custom_fields"),
+        }
         for r in (doc.get("profile_receipts") or [])
         if r.pos_profile != pos_profile
     ]
     doc.set("profile_receipts", kept)
     doc.save()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Dynamic receipt custom fields (sourced from the POS Profile or the sale doc)
+# ---------------------------------------------------------------------------
+
+_CF_SOURCES = {"POS Profile": ["POS Profile"], "Sale Invoice": ["POS Invoice", "Sales Invoice"]}
+_CF_RENDERS = ("Text", "Image")
+_CF_POSITIONS = ("Header", "Footer")
+_CF_PICKABLE = {
+    "Data", "Small Text", "Text", "Long Text", "Text Editor", "Select", "Link",
+    "Dynamic Link", "Read Only", "Currency", "Float", "Int", "Percent", "Date",
+    "Datetime", "Time", "Check", "Attach", "Attach Image", "Barcode", "Code", "HTML",
+}
+
+
+@frappe.whitelist()
+def receipt_field_options(source):
+    """Pickable fields for the receipt custom-field builder: fields of the POS
+    Profile, or of the sale invoice (POS Invoice + Sales Invoice, deduped) —
+    INCLUDING custom fields, which is how a ZATCA-QR / country-specific field
+    shows up. Layout fields (sections, columns, tables) are excluded."""
+    _require_manager()
+    seen = {}
+    for dt in _CF_SOURCES.get(source, []):
+        try:
+            meta = frappe.get_meta(dt)
+        except Exception:
+            continue
+        for df in meta.fields:
+            if df.fieldtype not in _CF_PICKABLE or df.fieldname in seen:
+                continue
+            seen[df.fieldname] = {
+                "fieldname": df.fieldname,
+                "label": df.label or df.fieldname,
+                "fieldtype": df.fieldtype,
+            }
+    return sorted(seen.values(), key=lambda f: (f["label"] or "").lower())
+
+
+def _clean_custom_fields(raw):
+    """Normalise a list of custom-field configs (from JSON string or a list)."""
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw or "[]")
+        except Exception:
+            return []
+    out = []
+    for row in raw or []:
+        fieldname = (row.get("fieldname") or "").strip()
+        if not fieldname:
+            continue
+        out.append({
+            "source": row.get("source") if row.get("source") in _CF_SOURCES else "Sale Invoice",
+            "fieldname": fieldname,
+            "label": (row.get("label") or "").strip(),
+            "render": row.get("render") if row.get("render") in _CF_RENDERS else "Text",
+            "position": row.get("position") if row.get("position") in _CF_POSITIONS else "Footer",
+        })
+    return out
+
+
+def _global_custom_fields():
+    return _clean_custom_fields(frappe.get_cached_doc("LumenPOS Settings").get("receipt_custom_fields"))
+
+
+def _profile_custom_fields(pos_profile):
+    if not pos_profile:
+        return []
+    doc = frappe.get_cached_doc("LumenPOS Settings")
+    for row in doc.get("profile_receipts") or []:
+        if row.pos_profile == pos_profile:
+            return _clean_custom_fields(row.get("custom_fields"))
+    return []
+
+
+def resolve_receipt_custom_fields(doc):
+    """Resolve the effective custom fields for a POSTED sale into printable
+    {label, value, render, position} rows: the GLOBAL list plus this outlet's
+    extras, each value pulled from the POS Profile or the sale doc. Blank values
+    are dropped."""
+    pos_profile = doc.get("pos_profile")
+    fields = _global_custom_fields() + _profile_custom_fields(pos_profile)
+    if not fields:
+        return []
+    profile = frappe.get_cached_doc("POS Profile", pos_profile) if pos_profile else None
+    out = []
+    for f in fields:
+        if f["source"] == "POS Profile":
+            value = profile.get(f["fieldname"]) if profile else None
+        else:
+            value = doc.get(f["fieldname"])
+        if value is None or value == "":
+            continue
+        out.append({
+            "label": f["label"],
+            "value": str(value),
+            "render": f["render"],
+            "position": f["position"],
+        })
+    return out
 
 
 # ---------------------------------------------------------------------------

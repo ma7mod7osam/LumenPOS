@@ -977,8 +977,48 @@
 
           <div class="rc-preview">
             <div class="rc-preview-label muted small">{{ t('Live preview') }}</div>
-            <ReceiptView :receipt="sampleReceipt" :settings="receiptForm" />
+            <ReceiptView :receipt="previewReceipt" :settings="receiptForm" />
           </div>
+        </div>
+
+        <!-- Dynamic custom fields — pull any field from the POS Profile or the
+             sale invoice onto the receipt (text or an image such as a ZATCA QR). -->
+        <div class="cf-section">
+          <div class="sub-label">{{ t('Custom fields') }}</div>
+          <p class="muted small" style="margin: 0 0 10px">
+            {{ receiptScope
+              ? t('Extra fields for this outlet, shown in addition to the global custom fields.')
+              : t('Add any field from the POS Profile or the sale invoice — e.g. a ZATCA QR image, a CR number, or a country-specific field. These apply to every outlet; pick an outlet above to add extras just for it.') }}
+          </p>
+          <div v-for="(row, i) in customFields" :key="i" class="cf-row">
+            <select class="cf-in" v-model="row.source" @change="onCfSource(row)">
+              <option value="Sale Invoice">{{ t('Sale invoice') }}</option>
+              <option value="POS Profile">{{ t('POS Profile') }}</option>
+            </select>
+            <select class="cf-in cf-field" v-model="row.fieldname">
+              <option value="">{{ t('Choose a field…') }}</option>
+              <option
+                v-for="o in (fieldOptions[row.source] || [])"
+                :key="o.fieldname"
+                :value="o.fieldname"
+              >{{ o.label }} · {{ o.fieldname }}</option>
+            </select>
+            <input class="cf-in" v-model="row.label" :placeholder="t('Label (optional)')" />
+            <select class="cf-in" v-model="row.render">
+              <option value="Text">{{ t('Text') }}</option>
+              <option value="Image">{{ t('Image / QR') }}</option>
+            </select>
+            <select class="cf-in" v-model="row.position">
+              <option value="Header">{{ t('Header') }}</option>
+              <option value="Footer">{{ t('Footer') }}</option>
+            </select>
+            <button class="btn-ghost" :title="t('Remove')" @click="customFields.splice(i, 1)">
+              <Icon name="close" />
+            </button>
+          </div>
+          <button class="btn btn-outline add-row" @click="addCustomField">
+            <Icon name="plus" /> {{ t('Add a field') }}
+          </button>
         </div>
       </div>
 
@@ -1401,6 +1441,7 @@ const generalForm = ref({
   receipt_address: '',
   receipt_show_terms: 0,
   receipt_terms: '',
+  receipt_custom_fields: [],
   company_settings: [],
   gift_card_expiry_days: 0,
   gift_card_mode_of_payment: '',
@@ -1477,6 +1518,7 @@ async function onReceiptScopeChange() {
       pos_profile: receiptScope.value,
     })
     profileReceiptForm.value = res.config || {}
+    profileReceiptCustomFields.value = res.custom_fields || []
     receiptHasOverride.value = !!res.has_override
   } catch (e) {
     session.notify(e.message, true)
@@ -1493,6 +1535,7 @@ async function saveProfileReceipt() {
     await call('lumenpos.api.settings.save_profile_receipt', {
       pos_profile: profile,
       config: JSON.stringify(config),
+      custom_fields: JSON.stringify(profileReceiptCustomFields.value),
     })
     if (!profileReceiptOverrides.value.includes(profile)) {
       profileReceiptOverrides.value = [...profileReceiptOverrides.value, profile]
@@ -1516,6 +1559,68 @@ async function resetProfileReceipt() {
     session.notify(e.message, true)
   }
 }
+
+// ---- receipt custom fields (dynamic, from POS Profile / sale invoice) ----
+const fieldOptions = ref({}) // source -> [{ fieldname, label, fieldtype }]
+const profileReceiptCustomFields = ref([]) // the selected outlet's extra fields
+// The list currently being edited: the global list (generalForm) at default
+// scope, or the outlet's extras when an outlet is picked in the scope selector.
+const customFields = computed(() =>
+  receiptScope.value
+    ? profileReceiptCustomFields.value
+    : generalForm.value.receipt_custom_fields || []
+)
+
+async function loadFieldOptions(source) {
+  if (!source || fieldOptions.value[source]) return
+  try {
+    const opts = await call('lumenpos.api.settings.receipt_field_options', { source })
+    fieldOptions.value = { ...fieldOptions.value, [source]: opts }
+  } catch {
+    /* ignore — the picker just stays empty */
+  }
+}
+
+function addCustomField() {
+  customFields.value.push({
+    source: 'Sale Invoice',
+    fieldname: '',
+    label: '',
+    render: 'Text',
+    position: 'Footer',
+  })
+  loadFieldOptions('Sale Invoice')
+}
+
+function onCfSource(row) {
+  row.fieldname = ''
+  loadFieldOptions(row.source)
+}
+
+function cfLabel(row) {
+  if (row.label) return row.label
+  const o = (fieldOptions.value[row.source] || []).find((x) => x.fieldname === row.fieldname)
+  return (o && o.label) || row.fieldname
+}
+
+// A tiny placeholder image so the preview shows where an Image/QR field lands.
+const SAMPLE_CF_IMG =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88"><rect width="88" height="88" fill="#111"/><rect x="12" y="12" width="64" height="64" fill="#fff"/><rect x="24" y="24" width="40" height="40" fill="#111"/><rect x="36" y="36" width="16" height="16" fill="#fff"/></svg>'
+  )
+
+const previewReceipt = computed(() => ({
+  ...sampleReceipt,
+  custom_fields: customFields.value
+    .filter((r) => r.fieldname)
+    .map((r) => ({
+      label: cfLabel(r),
+      value: r.render === 'Image' ? SAMPLE_CF_IMG : t('Sample value'),
+      render: r.render,
+      position: r.position,
+    })),
+}))
 
 // ---- audit log viewer ----
 const AUDIT_ACTIONS = [
@@ -1589,6 +1694,8 @@ async function load() {
   const info = await call('lumenpos.api.settings.get_settings')
   settingsInfo.value = info
   profileReceiptOverrides.value = info.profile_receipt_overrides || []
+  loadFieldOptions('Sale Invoice')
+  loadFieldOptions('POS Profile')
   generalForm.value = {
     delivery_apps: JSON.parse(JSON.stringify(info.delivery_apps || [])),
     discount_limit_percent: info.discount_limit_percent || 0,
@@ -1633,6 +1740,7 @@ async function load() {
     receipt_address: info.receipt_address || '',
     receipt_show_terms: info.receipt_show_terms || 0,
     receipt_terms: info.receipt_terms || '',
+    receipt_custom_fields: JSON.parse(JSON.stringify(info.receipt_custom_fields || [])),
     company_settings: (info.company_settings || []).map((r) => ({ ...r })),
     gift_card_expiry_days: info.gift_card_expiry_days || 0,
     gift_card_mode_of_payment: info.gift_card_mode_of_payment || '',
@@ -2349,6 +2457,18 @@ const filteredBooks = computed(() => {
 .rc-controls { flex: 1; min-width: 280px; }
 .rc-preview { width: 320px; flex-shrink: 0; position: sticky; top: 8px; }
 .rc-preview-label { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 6px; }
+.cf-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+.cf-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.cf-in {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+}
+.cf-field { flex: 1; min-width: 180px; }
 .rc-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-bottom: 12px; }
 .rc-textfields { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .rc-textfields input, .rc-textfields textarea { width: 100%; font-size: 13px; }

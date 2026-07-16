@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.20.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.21.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.21.0 | **Dynamic receipt fields — pull any field from the POS Profile or the sale onto the receipt (incl. ZATCA QR).** The receipt designer gains a **Custom fields** section: add a row, pick the **source** (POS Profile or the sale invoice), pick the **field** from a dropdown (custom fields included), give it a **label**, choose **Text** or **Image / QR**, and place it in the **Header** or **Footer**. At print each value is pulled from that outlet's POS Profile or the posted invoice — so a **ZATCA QR** stored as an image field shows as the QR, and country-specific or profile fields (CR number, branch info) print automatically. Fields are **global by default, with per-outlet extras** (via the "Editing receipt for" selector), and show in the live preview. *(Deploy runs a migration to add the two JSON stores; nothing shows until you add fields.)* |
 | 0.20.0 | **A slow or failed close never blocks the next shift.** The **Register Session** is now the single gate for opening: the moment a cashier closes a shift, the register is free — you can **open a new shift right away, no matter the closing status** (Pending / Queued / **Failed**). The POS Closing Entry consolidation keeps finalising (and self-healing) in the background, so no invoice is lost. Previously an in-progress or failed consolidation forced a "retry the closing" gate and could keep the outlet shut. The Open Register dialog now always offers **Open a new shift** alongside an optional **Retry closing**. *(An already-**open** register still goes straight to selling and won't ask you to open.)* |
 | 0.19.2 | **"You still have another register open" warning.** Since multiple outlets can be open at once, the Open Register dialog now shows a warning banner if you already hold an **open shift on another outlet** — listing each one (outlet + session) — so you don't forget to close a drawer elsewhere. It refreshes as you switch outlets in the dialog. |
 | 0.19.1 | **Outlet choice moved into the Open Register dialog.** The outlet picker now lives **inside the "Open register" dialog** (an **Outlet** dropdown above the opening-float field) rather than in the top bar — you choose which outlet to open the register for right where you enter the float. Picking another outlet reloads it: if it's already open you go straight to selling on it, if it's closed the dialog opens that outlet. The top bar goes back to showing the current outlet as plain text. (Refines 0.19.0.) |
