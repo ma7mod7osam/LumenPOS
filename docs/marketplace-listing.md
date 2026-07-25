@@ -13,7 +13,7 @@ LumenPOS
 ## Summary (short description)
 
 ```
-A fast, single-screen point of sale for ERPNext — with its own promotions engine, offline selling, gift cards, store credit and loyalty built in.
+A fast, single-screen point of sale for ERPNext — its own promotions engine, offline selling, multi-outlet registers, gift cards and loyalty, and a receipt builder that fits any market.
 ```
 
 ## Description (long)
@@ -38,17 +38,22 @@ Because LumenPOS handles pricing itself, it automatically ignores ERPNext Pricin
 
 **It keeps selling when the internet doesn't.** Products, prices and promotions are cached on the device. If the connection drops mid-shift, the till carries on — sales queue locally and upload themselves the moment you're back online. A plain-English log shows the cashier exactly what's synced and what's still waiting, so nothing quietly disappears.
 
-**The money side is handled.** Open a register with a float, ring the shift, and close with a blind count that's checked against what the system expected, Z-report included. Take cash, card, split tenders, gift cards or store credit, and give change. Do returns and refunds back to the original payment method or to store credit. Pull a mid-shift X-report any time you want a read without closing the drawer.
+**The money side is handled.** Open a register with a float, ring the shift, and close with a blind count that's checked against what the system expected, Z-report included. Take cash, card, split tenders, gift cards or store credit, and give change. Do returns and refunds back to the original payment method or to store credit. Pull a mid-shift X-report any time you want a read without closing the drawer. Run several outlets from one login and switch between them — each keeps its own drawer and shift, and a slow or failed end-of-day close never blocks the next shift from opening.
 
 **Gift cards, store credit and loyalty** are all in the box — sell and redeem gift cards, keep per-customer store-credit balances, and award loyalty points customers can spend at the till.
 
 ## Receipts your way
 
-Design the on-screen and browser receipt right in Settings: pick a layout, choose what shows (barcode, serial number, tax ID, notes, and the rest), drop in your logo and footer. Want full control? Point the POS Profile at any ERPNext Print Format and it takes over. Running a thermal printer? LumenPOS talks to network ESC/POS printers directly and kicks the cash drawer.
+Design the on-screen and browser receipt right in Settings: pick a layout, choose what shows (barcode, serial number, tax ID, notes, and the rest), drop in your logo and footer — with a live preview as you go.
+
+Then make it yours. **Give each outlet its own receipt**, and pull **any field** from the POS Profile or the sale onto it — a **ZATCA QR** image, a CR number, a country-specific line — as text or an image, in the header or footer. So the same app fits Saudi, the Gulf, or anywhere with its own receipt rules, without a code change.
+
+Want full control instead? Point the POS Profile at any ERPNext **Print Format** and it takes over. Running a thermal printer? LumenPOS talks to network ESC/POS printers directly and kicks the cash drawer.
 
 ## Fits your setup, not the other way round
 
 - **One company or many.** Accounts are scoped per company, so a multi-company site never posts to the wrong ledger.
+- **Many outlets, one login.** Choose which outlet you're operating from the open-register dialog; each runs its own shift, prices and receipt, and you can switch between them freely.
 - **POS Invoice or Sales Invoice.** Choose per outlet how sales post — the consolidated POS flow, or direct Sales Invoices when that suits your accounting.
 - **Your team, your rules.** Decide who can change a price, who can run a return, and who can approve one past the return window. Every override lands in an audit log.
 - **Serial numbers done properly.** A serialised item won't enter the cart until a real, active serial from this register's warehouse is scanned — no silent auto-pick.
@@ -89,9 +94,9 @@ Show the product doing real work. Suggested order:
 1. **The sell screen** with a full cart and a promotion badge showing.
 2. **The payment screen** — split payment or a gift card being applied.
 3. **Creating a promotion** (Buy X Get Y or Bundle) in the desk.
-4. **The receipt designer** with the live preview.
+4. **The receipt designer** — the live preview + the Custom fields section (show a ZATCA QR row).
 5. **Register close** — expected vs counted / Z-report.
 6. **Offline sales log** — Pending / Uploaded / Needs attention.
-7. *(optional)* a short screen recording of ringing a sale end to end.
+7. *(optional)* a short screen recording of ringing a sale end to end, or the outlet picker in the Open Register dialog.
 
 Tips: capture at a clean resolution (around 1280×800 or 1440×900), use the light theme so the **Lumen blue (#1463FF)** reads well, and blur any real customer data.
