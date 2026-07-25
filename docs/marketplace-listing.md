@@ -13,8 +13,10 @@ LumenPOS
 ## Summary (short description)
 
 ```
-A fast, single-screen point of sale for ERPNext — its own promotions engine, offline selling, multi-outlet registers, gift cards and loyalty, and a receipt builder that fits any market.
+A fast, offline-ready point of sale for ERPNext — promotions, multi-outlet registers, gift cards, loyalty and flexible receipts.
 ```
+
+*(130 characters — the marketplace caps the summary at 140.)*
 
 ## Description (long)
 
