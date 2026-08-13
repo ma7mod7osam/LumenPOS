@@ -59,6 +59,47 @@ def ensure_setup():
     migrate_price_books()
     ensure_return_reasons()
     migrate_coupon_limits()
+    ensure_hot_indexes()
+
+
+# Indexes LumenPOS's own hot paths need. Harmless on a small site, decisive on a
+# large one. (name, doctype, [columns]) — created only if the column exists.
+HOT_INDEXES = [
+    # Every sale checks "did this idempotency key already post?" before
+    # inserting. Unindexed, that is a FULL SCAN of the invoice table on EVERY
+    # sale — imperceptible at demo size, seconds per sale at a million rows.
+    ("lumenpos_idem_idx", "POS Invoice", ["lumenpos_idempotency_key"]),
+    ("lumenpos_idem_idx", "Sales Invoice", ["lumenpos_idempotency_key"]),
+    # Shift queries: every X-report, close and Z-report filters by session.
+    ("lumenpos_session_idx", "POS Invoice", ["lumenpos_session"]),
+    ("lumenpos_session_idx", "Sales Invoice", ["lumenpos_session"]),
+]
+
+
+def ensure_hot_indexes():
+    """Create LumenPOS's performance indexes if missing. Idempotent and
+    best-effort: a failure is logged, never fatal to a migrate (building an
+    index on a huge, busy table can be refused the lock — deploy in a quiet
+    window and re-run the migrate)."""
+    for index_name, doctype, columns in HOT_INDEXES:
+        try:
+            table = f"tab{doctype}"
+            if not frappe.db.table_exists(doctype):
+                continue
+            if not all(frappe.db.has_column(doctype, c) for c in columns):
+                continue
+            existing = frappe.db.sql(
+                f"SHOW INDEX FROM `{table}` WHERE Key_name = %s", index_name  # nosemgrep
+            )
+            if existing:
+                continue
+            cols = ", ".join(f"`{c}`" for c in columns)
+            frappe.db.sql(f"ALTER TABLE `{table}` ADD INDEX `{index_name}` ({cols})")  # nosemgrep
+        except Exception:
+            frappe.log_error(
+                title="LumenPOS index build failed",
+                message=f"{index_name} on {doctype}: {frappe.get_traceback()}",
+            )
 
 
 def drop_deprecated_custom_fields():

@@ -20,19 +20,35 @@ def resolve_price_list(profile, customer_group=None, app_price_list=None):
     return app_price_list or profile.selling_price_list
 
 
-def get_price_map(item_codes, price_list, stock_uom_map=None):
-    """Batch price lookup for a list of items on one price list."""
+def get_price_map(item_codes, price_list, stock_uom_map=None, on_date=None):
+    """Batch price lookup for a list of items on one price list.
+
+    ONLY rows actually in effect today count. Without this an Item Price row
+    that is future-dated takes effect immediately, an expired promo keeps
+    applying, and a zero rate (a draft row, or a blank cell in an import)
+    silently shadows the real price down to 0.00 at the till.
+    Among the rows in effect the LATEST valid_from wins, so a scheduled sale
+    price still beats the standing one."""
     if not item_codes or not price_list:
         return {}
+    today = getdate(on_date or nowdate())
     prices = frappe.get_all(
         "Item Price",
         filters={"item_code": ["in", item_codes], "price_list": price_list, "selling": 1},
-        fields=["item_code", "price_list_rate", "uom", "valid_from"],
+        fields=["item_code", "price_list_rate", "uom", "valid_from", "valid_upto"],
         order_by="valid_from asc",
     )
     price_map = {}
     for p in prices:
         if p.uom and stock_uom_map and p.uom != stock_uom_map.get(p.item_code):
+            continue
+        # not started yet / already expired
+        if p.valid_from and today < getdate(p.valid_from):
+            continue
+        if p.valid_upto and today > getdate(p.valid_upto):
+            continue
+        # a 0.00 rate is an unfilled row, never a real selling price
+        if flt(p.price_list_rate) <= 0:
             continue
         price_map[p.item_code] = p.price_list_rate
     return price_map
@@ -68,6 +84,12 @@ def book_overrides(profile, customer_group, item_codes, on_date=None):
             continue
         for row in (doc.get("items") or []):
             if row.item_code in remaining:
+                # A 0.00 book rate is an UNFILLED cell (a blank column in an
+                # imported sheet), not a giveaway price. Skip it so the item
+                # falls through to the next book / the list price instead of
+                # ringing up free.
+                if flt(row.rate) <= 0:
+                    continue
                 overrides[row.item_code] = flt(row.rate)
                 remaining.discard(row.item_code)
     return overrides

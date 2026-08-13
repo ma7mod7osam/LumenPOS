@@ -42,6 +42,36 @@ LIVE_STATES = ["Open", "Closing"]  # a shift that blocks opening another
 CLOSING_LOCK = "lumenpos_pos_closing"
 
 
+def _cash_modes():
+    return set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+
+
+def _drawer_mode(pos_profile):
+    """THE single mode of payment that represents this till's cash drawer.
+
+    A site often configures other tenders (delivery apps, "On Account") as type
+    Cash. Treating every Cash-type mode as the drawer wrote the opening float to
+    all of them, made the X-report add the float once per mode, and let change
+    come off whichever mode happened to be first. The drawer is ONE mode:
+    the profile's default Cash-type payment, else its first Cash-type payment
+    (profile row order — deterministic), else plain "Cash" if it exists.
+    Returns None when the profile takes no cash at all."""
+    cash = _cash_modes()
+    if not cash:
+        return None
+    try:
+        profile = frappe.get_cached_doc("POS Profile", pos_profile)
+    except Exception:
+        return "Cash" if "Cash" in cash else None
+    rows = [r for r in (profile.payments or []) if r.mode_of_payment in cash]
+    for row in rows:
+        if row.get("default"):
+            return row.mode_of_payment
+    if rows:
+        return rows[0].mode_of_payment
+    return "Cash" if "Cash" in cash else None
+
+
 def _is_manager():
     return bool({"System Manager", "LumenPOS Manager"} & set(frappe.get_roles()))
 
@@ -172,8 +202,9 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             },
         }
 
-    # 3) Fresh shift.
-    cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+    # 3) Fresh shift. The float belongs to the ONE drawer mode (see _drawer_mode)
+    # — never to every Cash-type tender.
+    drawer = _drawer_mode(profile.name)
     opening_entry = frappe.get_doc(
         {
             "doctype": "POS Opening Entry",
@@ -185,7 +216,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             "balance_details": [
                 {
                     "mode_of_payment": row.mode_of_payment,
-                    "opening_amount": opening_float if row.mode_of_payment in cash_modes else 0,
+                    "opening_amount": opening_float if row.mode_of_payment == drawer else 0,
                 }
                 for row in profile.payments
             ],
@@ -246,7 +277,7 @@ def _force_new_after_failure(profile, opening_float, stuck_session):
     # Nudge the stuck shift to consolidate once more right now.
     _enqueue_consolidation(stuck_session)
 
-    cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+    drawer = _drawer_mode(profile.name)
     opening_entry = frappe.get_doc(
         {
             "doctype": "POS Opening Entry",
@@ -258,7 +289,7 @@ def _force_new_after_failure(profile, opening_float, stuck_session):
             "balance_details": [
                 {
                     "mode_of_payment": row.mode_of_payment,
-                    "opening_amount": opening_float if row.mode_of_payment in cash_modes else 0,
+                    "opening_amount": opening_float if row.mode_of_payment == drawer else 0,
                 }
                 for row in profile.payments
             ],
@@ -306,11 +337,16 @@ def _resume_opening(profile, opening_name):
     if stuck:
         return _retry_response(stuck)
 
-    cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+    # Sum only the drawer row — with the pre-0.22 spread an old entry may carry
+    # the float on several Cash-type rows, which would multiply it here.
+    drawer = _drawer_mode(profile.name)
     opening_cash = sum(
         flt(d.opening_amount)
         for d in (entry.balance_details or [])
-        if d.mode_of_payment in cash_modes
+        if d.mode_of_payment == drawer
+    ) or max(
+        (flt(d.opening_amount) for d in (entry.balance_details or [])),
+        default=0,
     )
     frappe.get_doc(
         {
@@ -353,35 +389,43 @@ def add_cash_movement(session, movement_type, amount, reason=None):
 
 @frappe.whitelist()
 def get_session_summary(session):
-    """Expected takings per payment mode for the close-register screen."""
+    """Expected takings per payment mode for the close-register screen, and for
+    the mid-shift X-report.
+
+    READ-ONLY on purpose — no owner/manager check here. Reading a shift's
+    figures is not a mutation, and requiring ownership broke the X-report for
+    any cashier working a till a colleague opened. The mutating callers
+    (add_cash_movement, close_register) each call _assert_owner_or_manager
+    themselves, so supervision is unchanged."""
     if not frappe.has_permission("POS Register Session", "read"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
     doc = frappe.get_doc("POS Register Session", session)
-    _assert_owner_or_manager(doc)
     # Which sale doctype this shift posted — by the profile's mode, NOT by whether
     # an opening entry exists (an SI shift can now have one for cash control).
     from lumenpos.api.sales import _table_doctype
 
     sale_doctype = _table_doctype(doc.pos_profile)
-    payments = _payments_by_mode(doc.name, sale_doctype)
+    payments = _payments_by_mode(doc.name, sale_doctype, _drawer_mode(doc.pos_profile))
 
-    cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+    # The float and cash in/out belong to the ONE drawer mode. Adding them to
+    # every Cash-type tender counted the float once per mode on the X-report and
+    # at close (a site with delivery apps typed as Cash saw it 3-4 times over).
+    drawer = _drawer_mode(doc.pos_profile)
     cash_in = sum(m.amount for m in (doc.cash_movements or []) if m.movement_type == "Cash In")
     cash_out = sum(m.amount for m in (doc.cash_movements or []) if m.movement_type == "Cash Out")
 
     expected = []
     for mode, amount in payments.items():
         row = {"mode_of_payment": mode, "expected_amount": flt(amount, 2)}
-        if mode in cash_modes:
+        if mode == drawer:
             row["expected_amount"] = flt(amount + (doc.opening_float or 0) + cash_in - cash_out, 2)
             row["is_cash"] = 1
         expected.append(row)
 
     if not any(r.get("is_cash") for r in expected) and (doc.opening_float or cash_in or cash_out):
-        default_cash = next(iter(cash_modes), "Cash")
         expected.append(
             {
-                "mode_of_payment": default_cash,
+                "mode_of_payment": drawer or "Cash",
                 "expected_amount": flt((doc.opening_float or 0) + cash_in - cash_out, 2),
                 "is_cash": 1,
             }
@@ -725,6 +769,9 @@ def _make_closing_entry(session_doc, counted):
 
     from lumenpos.api.sales import _table_doctype
 
+    # The one mode that represents this till's cash drawer (float, change and
+    # cash in/out all belong to it alone).
+    drawer = _drawer_mode(session_doc.pos_profile)
     sale_doctype = _table_doctype(session_doc.pos_profile)
     opening = frappe.get_doc("POS Opening Entry", session_doc.get("pos_opening_entry"))
     invoices = frappe.get_all(
@@ -773,26 +820,39 @@ def _make_closing_entry(session_doc, counted):
             if payment.amount:
                 _accumulate_payment(closing, payment.mode_of_payment, payment.amount)
         if full.change_amount:
-            cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+            # Change comes OUT OF THE DRAWER — not out of whichever Cash-type
+            # tender happens to sort first (delivery apps are often typed Cash).
             for row in closing.payment_reconciliation:
-                if row.mode_of_payment in cash_modes:
+                if row.mode_of_payment == drawer:
                     row.expected_amount = flt(row.expected_amount) - flt(full.change_amount)
                     break
 
-    cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
+    cash_modes = _cash_modes()
     cash_in = sum(m.amount for m in (session_doc.cash_movements or []) if m.movement_type == "Cash In")
     cash_out = sum(m.amount for m in (session_doc.cash_movements or []) if m.movement_type == "Cash Out")
-    cash_adjust_applied = False
+    drawer_applied = False
     for detail in opening.balance_details:
         row = _get_reconciliation_row(closing, detail.mode_of_payment)
-        row.opening_amount = flt(detail.opening_amount)
-        row.expected_amount = flt(row.expected_amount) + flt(detail.opening_amount)
-        # Net the drawer cash in/out into the (single) cash row so expected
-        # matches what's physically in the till. Applied once even with several
-        # cash modes configured.
-        if detail.mode_of_payment in cash_modes and not cash_adjust_applied:
+        opening_amt = flt(detail.opening_amount)
+        # SELF-HEAL a shift opened before the single-drawer fix: the float was
+        # written to EVERY Cash-type row back then, so crediting each one would
+        # inflate expected by a multiple of the float. Keep the drawer's copy only.
+        if opening_amt and detail.mode_of_payment != drawer and detail.mode_of_payment in cash_modes:
+            opening_amt = 0
+        row.opening_amount = opening_amt
+        row.expected_amount = flt(row.expected_amount) + opening_amt
+        # Net the shift's cash in/out into the drawer row so expected matches
+        # what is physically in the till.
+        if detail.mode_of_payment == drawer:
             row.expected_amount = flt(row.expected_amount) + cash_in - cash_out
-            cash_adjust_applied = True
+            drawer_applied = True
+    if not drawer_applied and (cash_in or cash_out):
+        # The drawer mode isn't on this opening entry (profile changed mid-life)
+        # — fall back to the first Cash-type row so the movements aren't lost.
+        for row in closing.payment_reconciliation:
+            if row.mode_of_payment in cash_modes:
+                row.expected_amount = flt(row.expected_amount) + cash_in - cash_out
+                break
 
     for row in closing.payment_reconciliation:
         row.closing_amount = flt(counted.get(row.mode_of_payment))
@@ -1046,7 +1106,7 @@ def _accumulate_tax(closing, tax):
     )
 
 
-def _payments_by_mode(session, doctype="POS Invoice"):
+def _payments_by_mode(session, doctype="POS Invoice", drawer=None):
     # Both POS Invoice and Sales Invoice use the Sales Invoice Payment child.
     # `doctype` is a fixed doctype name (POS Invoice / Sales Invoice), not user
     # input, and can't be a bound param as a table identifier; the session filter
@@ -1077,9 +1137,13 @@ def _payments_by_mode(session, doctype="POS Invoice"):
         session,
     )[0][0]
     if change:
-        cash_modes = set(frappe.get_all("Mode of Payment", {"type": "Cash"}, pluck="name"))
-        for mode in result:
-            if mode in cash_modes:
-                result[mode] = flt(result[mode] - change)
-                break
+        # Change is given from the DRAWER. Falling back to "first Cash-type mode"
+        # deducted it from whichever tender sorted first (a delivery app typed
+        # as Cash, say) and left the drawer over by that amount.
+        cash_modes = _cash_modes()
+        target = drawer if drawer in result else None
+        if target is None:
+            target = next((m for m in result if m in cash_modes), None)
+        if target:
+            result[target] = flt(result[target] - change)
     return result
