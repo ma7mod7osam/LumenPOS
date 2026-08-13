@@ -31,10 +31,9 @@
           <div class="or-sep"><span>{{ t('or start a new shift anyway') }}</span></div>
           <label class="field-label">{{ t('Opening float for the new shift') }}</label>
           <input
-            type="number"
-            min="0"
-            step="0.01"
-            v-model.number="openFloat"
+            type="text"
+            inputmode="decimal"
+            v-model="openFloat"
             style="width: 200px"
             :disabled="opening"
           />
@@ -109,7 +108,7 @@
       <div class="panel-body">
         <p class="muted">{{ session.posProfile }} {{ t('— enter the opening cash float to start selling.') }}</p>
         <label class="field-label">{{ t('Opening float') }}</label>
-        <input type="number" min="0" step="0.01" v-model.number="openFloat" style="width: 200px" :disabled="!canOpen" @keydown.enter="openRegister()" />
+        <input type="text" inputmode="decimal" v-model="openFloat" style="width: 200px" :disabled="!canOpen" @keydown.enter="openRegister()" />
         <div style="margin-top: 14px">
           <button class="btn btn-primary btn-lg" :disabled="opening || !canOpen" @click="openRegister()">
             {{ opening ? t('Opening…') : t('Open Register') }}
@@ -152,7 +151,7 @@
               <option value="Cash In">{{ t('Cash In') }}</option>
               <option value="Cash Out">{{ t('Cash Out') }}</option>
             </select>
-            <input type="number" min="0" step="0.01" v-model.number="movement.amount" :placeholder="t('Amount')" />
+            <input type="text" inputmode="decimal" v-model="movement.amount" :placeholder="t('Amount')" />
             <input v-model="movement.reason" :placeholder="t('Reason')" />
             <button class="btn btn-outline" :disabled="!movement.amount" @click="addMovement">{{ t('Add') }}</button>
           </div>
@@ -173,6 +172,18 @@
           <p class="muted">{{ t('Loading session summary…') }}</p>
         </div>
         <div class="panel-body" v-else>
+          <!-- Queued offline sales belong to THIS shift's drawer. Closing before
+               they upload would push them onto the next shift and leave both
+               counts wrong — so block the close until they're in. -->
+          <div v-if="session.queuedCount > 0" class="queued-block">
+            <div>
+              <b>{{ t('{n} offline sales are still waiting to upload.', { n: session.queuedCount }) }}</b>
+              <div class="muted small">{{ t('They belong to this shift. Upload them before closing, or they land on the next shift.') }}</div>
+            </div>
+            <button class="btn btn-primary" :disabled="uploading" @click="uploadQueued">
+              <Icon name="upload" /> {{ uploading ? t('Uploading…') : t('Upload now') }}
+            </button>
+          </div>
           <div v-if="loadError" class="summary-error">
             {{ t('⚠ Couldn\'t load the expected takings') }} ({{ loadError }}). {{ t('You can still close the register — enter the counted amounts below.') }}
           </div>
@@ -190,10 +201,10 @@
                 <td class="right">{{ row.expected_amount != null ? money(row.expected_amount) : '—' }}</td>
                 <td class="right">
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputmode="decimal"
                     class="count-input"
-                    v-model.number="counted[row.mode_of_payment]"
+                    v-model="counted[row.mode_of_payment]"
                   />
                 </td>
                 <td class="right" :class="diffClass(row)">{{ money(diff(row)) }}</td>
@@ -267,7 +278,7 @@ import Icon from '../components/Icon.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
-import { money, shortTime } from '../format'
+import { money, shortTime, parseMoney } from '../format'
 import { t } from '../i18n'
 
 const session = useSessionStore()
@@ -275,6 +286,7 @@ const summary = ref(null)
 const counted = ref({})
 const closingNote = ref('')
 const closing = ref(false)
+const uploading = ref(false)
 const movement = ref({ movement_type: 'Cash In', amount: null, reason: '' })
 const history = ref([])
 const closedResult = ref(null)
@@ -291,10 +303,22 @@ const openFloat = ref(0)
 const opening = ref(false)
 
 async function openRegister() {
+  // Read the float from the RAW text, never from a number input (which reports
+  // empty for anything it can't parse in the browser's locale, e.g. "1,500").
+  const float = parseMoney(openFloat.value)
+  if (float === null) {
+    session.notify(t('Enter the opening float as a number, e.g. 1500 or 1500.50'), true)
+    return
+  }
+  // A genuine zero must be deliberate — this is the "opened with cash in the
+  // drawer, recorded 0.00" case.
+  if (float === 0 && !confirm(t('Open with an opening float of 0.00? Confirm the drawer is empty.'))) {
+    return
+  }
   opening.value = true
   try {
     // Always a fresh shift — no resume / force-new branches.
-    await session.openRegister(openFloat.value || 0)
+    await session.openRegister(float)
     pending.value = null
     session.notify(t('Register opened'))
     load()
@@ -413,7 +437,7 @@ async function load() {
 }
 
 function diff(row) {
-  const value = counted.value[row.mode_of_payment]
+  const value = parseMoney(counted.value[row.mode_of_payment])
   if (value == null || row.expected_amount == null) return 0
   return value - row.expected_amount
 }
@@ -424,11 +448,16 @@ function diffClass(row) {
 }
 
 async function addMovement() {
+  const amount = parseMoney(movement.value.amount)
+  if (amount === null || amount <= 0) {
+    session.notify(t('Enter the amount as a number, e.g. 250 or 250.50'), true)
+    return
+  }
   try {
     await call('lumenpos.api.register.add_cash_movement', {
       session: session.registerSession.name,
       movement_type: movement.value.movement_type,
-      amount: movement.value.amount,
+      amount,
       reason: movement.value.reason,
     })
     movement.value = { movement_type: 'Cash In', amount: null, reason: '' }
@@ -443,19 +472,48 @@ function dismissClosed() {
   pending.value = session.pendingClosing
 }
 
+async function uploadQueued() {
+  uploading.value = true
+  try {
+    await session.flushQueue()
+    await session.refreshQueueCount()
+    await load()
+    if (session.queuedCount === 0) session.notify(t('All offline sales uploaded'))
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    uploading.value = false
+  }
+}
+
 async function close() {
+  // Queued offline sales belong to THIS shift's drawer. Closing before they
+  // upload would push them onto the NEXT shift and leave both counts wrong.
+  await session.refreshQueueCount()
+  if (session.queuedCount > 0) {
+    session.notify(
+      t('{n} offline sales still need to upload — press Upload now before closing.', {
+        n: session.queuedCount,
+      }),
+      true
+    )
+    return
+  }
   if (!confirm(t('Close the register? This ends the current session — make any corrections first.'))) return
   closing.value = true
   try {
     const countedClean = {}
     for (const [mode, value] of Object.entries(counted.value)) {
-      countedClean[mode] = value || 0
+      countedClean[mode] = parseMoney(value) || 0
     }
     const closedSession = session.registerSession.name
     closedResult.value = await call('lumenpos.api.register.close_register', {
       session: closedSession,
       counted: countedClean,
       closing_note: closingNote.value || null,
+      // Stale-closing-screen guard: the server rejects the close if more sales
+      // landed after this screen loaded (see close_register).
+      expected_invoice_count: summary.value ? summary.value.sales_count : null,
     })
     closeState.value = {
       status: closedResult.value.status || 'Closing',
@@ -477,6 +535,18 @@ async function close() {
 </script>
 
 <style scoped>
+.queued-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: rgba(226, 48, 48, 0.10);
+  border: 1px solid rgba(226, 48, 48, 0.28);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.queued-block > div { flex: 1; min-width: 220px; }
 .register {
   flex: 1;
   padding: 16px;

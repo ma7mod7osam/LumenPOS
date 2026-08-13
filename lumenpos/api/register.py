@@ -344,7 +344,7 @@ def get_session_summary(session):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def close_register(session, counted, closing_note=None):
+def close_register(session, counted, closing_note=None, expected_invoice_count=None):
     """Flip the session to 'Closing' (committed immediately, so it can never be
     sold-on or resumed again), then consolidate in a serialized background job.
     The shift only reaches 'Closed' once consolidation succeeds."""
@@ -367,6 +367,29 @@ def close_register(session, counted, closing_note=None):
     # The sensitive Open->Closing flip is owner/manager only (also enforced via
     # get_session_summary below). A cashier can't close a colleague's live till.
     _assert_owner_or_manager(doc)
+
+    # STALE-CLOSING-SCREEN GUARD. The cashier counts the drawer against the
+    # figures on their screen. If a sale landed from another window or device
+    # after that screen loaded, those figures — and therefore the variance they
+    # just signed off — are wrong. The client sends the sales count it displayed;
+    # if the shift has more now, refuse and make them re-read the screen.
+    # (Chosen over blocking sales while a closing screen is open: a second device
+    # never knows about that screen, whereas this check covers every path.)
+    if expected_invoice_count not in (None, ""):
+        from lumenpos.api.sales import _table_doctype
+
+        current = frappe.db.count(
+            _table_doctype(doc.pos_profile),
+            {"lumenpos_session": doc.name, "docstatus": 1},
+        )
+        if cint(expected_invoice_count) != current:
+            frappe.throw(
+                _(
+                    "New sales were recorded after the closing screen was loaded. "
+                    "Refresh the closing screen, re-check the counts, then close again."
+                ),
+                title=_("Closing figures out of date"),
+            )
 
     summary = get_session_summary(session)
     expected_map = {r["mode_of_payment"]: r["expected_amount"] for r in summary["expected"]}

@@ -37,11 +37,9 @@
             <label class="field-label">{{ t('Opening float for the new shift') }}</label>
             <input
               class="float-input"
-              type="number"
+              type="text"
               inputmode="decimal"
-              min="0"
-              step="0.01"
-              v-model.number="openingFloat"
+              v-model="openingFloat"
               :disabled="busy"
             />
             <button class="btn btn-primary choice-btn" :disabled="busy" @click="forceNew">
@@ -93,10 +91,9 @@
           <label class="field-label">{{ t('Opening float') }}</label>
           <input
             ref="floatInput"
-            type="number"
-            min="0"
-            step="0.01"
-            v-model.number="openingFloat"
+            type="text"
+            inputmode="decimal"
+            v-model="openingFloat"
             style="width: 100%"
             :disabled="!canOpen"
             @keydown.enter="open"
@@ -128,10 +125,11 @@ import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { call } from '../api'
 import { t } from '../i18n'
+import { parseMoney } from '../format'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
-const openingFloat = ref(0)
+const openingFloat = ref('0')
 const busy = ref(false)
 const floatInput = ref(null)
 const pending = ref(session.pendingClosing)
@@ -155,7 +153,7 @@ async function onSwitchOutlet(name) {
   catalog.cacheFullCatalog()
   catalog.cacheCustomers()
   pending.value = session.pendingClosing
-  openingFloat.value = 0
+  openingFloat.value = '0'
 }
 
 async function open() {

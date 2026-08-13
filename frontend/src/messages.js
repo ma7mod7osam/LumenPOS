@@ -1081,4 +1081,17 @@ const permissions = {
 export const messages = {
   en: {},
   ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions },
+  "{n} offline sales still need to upload — press Upload now before closing.":
+    "لا تزال {n} من المبيعات دون اتصال بحاجة إلى الرفع — اضغط \"الرفع الآن\" قبل الإغلاق.",
+  "{n} offline sales are still waiting to upload.": "لا تزال {n} من المبيعات دون اتصال بانتظار الرفع.",
+  "They belong to this shift. Upload them before closing, or they land on the next shift.":
+    "تخص هذه الوردية. ارفعها قبل الإغلاق وإلا ستُحتسب على الوردية التالية.",
+  "Upload now": "الرفع الآن",
+  "Uploading…": "جارٍ الرفع…",
+  "All offline sales uploaded": "تم رفع جميع المبيعات دون اتصال",
+  "Enter the opening float as a number, e.g. 1500 or 1500.50":
+    "أدخل الرصيد الافتتاحي كرقم، مثل 1500 أو 1500.50",
+  "Open with an opening float of 0.00? Confirm the drawer is empty.":
+    "الفتح برصيد افتتاحي 0.00؟ أكّد أن الدرج فارغ.",
+  "Enter the amount as a number, e.g. 250 or 250.50": "أدخل المبلغ كرقم، مثل 250 أو 250.50",
 }

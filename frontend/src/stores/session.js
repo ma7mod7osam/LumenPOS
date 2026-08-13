@@ -334,6 +334,14 @@ export const useSessionStore = defineStore('session', {
       return result
     },
 
+    // Re-read the offline queue depth from IndexedDB. Called before closing a
+    // register: queued sales belong to THIS shift's drawer, and closing before
+    // they upload pushes them onto the next shift.
+    async refreshQueueCount() {
+      this.queuedCount = await queueCount().catch(() => this.queuedCount)
+      return this.queuedCount
+    },
+
     lockTill() {
       if (this.settings?.enable_till_lock) this.locked = true
     },
