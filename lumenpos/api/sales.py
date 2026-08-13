@@ -1709,7 +1709,15 @@ def _sold_serials(invoice_doc):
 
 
 @frappe.whitelist()
-def create_return(invoice, items, refund_mode, serials=None, return_reason=None, return_request=None):
+def create_return(
+    invoice,
+    items,
+    refund_mode,
+    serials=None,
+    return_reason=None,
+    return_request=None,
+    pos_profile=None,
+):
     """Create a POS return (credit note) against a submitted POS sale.
 
     items = {"ITEM-001": 2, ...} quantities to return (positive numbers).
@@ -1786,11 +1794,33 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
     # Bundle / buy-x-get-y sets must come back together on a regular return.
     _enforce_return_groups(returnable_items, items)
 
-    session = _open_session(original.pos_profile)
+    # The return posts on the outlet HANDLING it, not the one that made the sale.
+    # ERPNext's return builder copies everything from the original, so a branch
+    # returning (say) an online order would post on the E-Commerce profile: the
+    # refund left the branch's drawer but under another outlet's name, and
+    # profile-filtered closings/reports missed it entirely.
+    handling_profile_name = pos_profile or original.pos_profile
+    handling_profile = frappe.get_cached_doc("POS Profile", handling_profile_name)
+    if handling_profile.company != original.company:
+        frappe.throw(
+            _(
+                "{0} was sold by {1}, but this till belongs to {2}. A return must be "
+                "processed by a till in the same company."
+            ).format(invoice, original.company, handling_profile.company)
+        )
+    session = _open_session(handling_profile_name)
 
     from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
     return_doc = make_return_doc(sale_doctype, invoice)
+    # Re-stamp the copied header onto THIS till.
+    return_doc.pos_profile = handling_profile.name
+    if handling_profile.get("warehouse"):
+        return_doc.set("set_warehouse", handling_profile.warehouse)
+    if handling_profile.get("cost_center"):
+        return_doc.cost_center = handling_profile.cost_center
+    if handling_profile.get("selling_price_list"):
+        return_doc.selling_price_list = handling_profile.selling_price_list
     # Keep one row per returned item code (a quantity may span duplicate
     # lines on the original; the aggregate returnable check above still holds)
     kept, seen = [], set()
@@ -1803,6 +1833,12 @@ def create_return(invoice, items, refund_mode, serials=None, return_reason=None,
         frappe.throw(_("Selected items were not found on the original sale"))
     sold = _sold_serials(original)
     for row in return_doc.items:
+        # Lines carry the ORIGINAL outlet's warehouse / cost center too — stock
+        # would come back into the selling branch instead of the one taking it.
+        if handling_profile.get("warehouse"):
+            row.warehouse = handling_profile.warehouse
+        if handling_profile.get("cost_center"):
+            row.cost_center = handling_profile.cost_center
         row.qty = -items[row.item_code]
         if row.get("stock_qty"):
             row.stock_qty = row.qty * flt(row.conversion_factor or 1)

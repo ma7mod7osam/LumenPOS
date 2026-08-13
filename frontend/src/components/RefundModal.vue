@@ -353,6 +353,9 @@ async function submit() {
       refund_mode: refundMode.value,
       return_reason: reasonValue.value,
       return_request: returnRequest.value,
+      // The return posts on the outlet HANDLING it, not the one that sold —
+      // otherwise the refund leaves this drawer under another outlet's name.
+      pos_profile: session.posProfile,
     })
     session.notify(t('Refund completed'))
     emit('done', receipt)
