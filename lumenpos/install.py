@@ -144,6 +144,15 @@ def drop_deprecated_custom_fields():
     for name in ("POS Profile-lumenpos_ignore_pricing_rules",):
         if frappe.db.exists("Custom Field", name):
             frappe.delete_doc("Custom Field", name, ignore_permissions=True)
+    # `allow_multiple_opening` was retired with the no-resume rule: opening is
+    # ALWAYS a fresh shift now, so "allow a second open shift" has no meaning.
+    try:
+        if frappe.db.has_column("LumenPOS Settings", "allow_multiple_opening"):
+            frappe.db.sql(
+                "ALTER TABLE `tabLumenPOS Settings` DROP COLUMN `allow_multiple_opening`"  # nosemgrep
+            )
+    except Exception:
+        pass
 
 
 def migrate_coupon_limits():

@@ -328,10 +328,8 @@ export const useSessionStore = defineStore('session', {
         opening_float: openingFloat,
         ...extra,
       })
-      // Control responses are not a live session — the caller renders the
-      // choice / retry prompt. Only a real open-session dict becomes the
-      // active register (otherwise registerOpen would flip true on garbage).
-      if (result?.requires_choice || result?.requires_retry) return result
+      // Opening is always a fresh shift now — the server never returns a
+      // resume/retry control object, so the result IS the live session.
       this.registerSession = result
       return result
     },

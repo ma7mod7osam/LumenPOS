@@ -6,7 +6,6 @@
  "engine": "InnoDB",
  "field_order": [
   "register_section",
-  "allow_multiple_opening",
   "offline_stock_only",
   "show_out_of_stock",
   "serial_scan_only",
@@ -82,13 +81,6 @@
    "fieldname": "register_section",
    "fieldtype": "Section Break",
    "label": "Register"
-  },
-  {
-   "default": "0",
-   "description": "Testing only: lets a cashier open a new register while they still have another open POS Opening Entry. Keep OFF in production.",
-   "fieldname": "allow_multiple_opening",
-   "fieldtype": "Check",
-   "label": "Allow opening a new register while another shift is open"
   },
   {
    "default": "0",

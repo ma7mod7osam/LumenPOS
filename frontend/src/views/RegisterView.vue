@@ -39,7 +39,7 @@
             :disabled="opening"
           />
           <div style="margin-top: 10px">
-            <button class="btn btn-outline" :disabled="opening" @click="openRegister(null, true)">
+            <button class="btn btn-outline" :disabled="opening" @click="openRegister()">
               <Icon name="play" /> {{ opening ? t('Opening…') : t('Start a new shift anyway') }}
             </button>
           </div>
@@ -110,13 +110,6 @@
         <p class="muted">{{ session.posProfile }} {{ t('— enter the opening cash float to start selling.') }}</p>
         <label class="field-label">{{ t('Opening float') }}</label>
         <input type="number" min="0" step="0.01" v-model.number="openFloat" style="width: 200px" :disabled="!canOpen" @keydown.enter="openRegister()" />
-        <div v-if="openChoice" class="open-choice">
-          <div class="muted small" style="margin-bottom: 8px">
-            {{ t('You already have an open shift:') }} <b>{{ openChoice.name }}</b> ({{ openChoice.pos_profile }}, {{ t('since') }} {{ openChoice.period_start_date }}).
-          </div>
-          <button v-if="openChoice.same_profile" class="btn btn-primary" :disabled="opening" @click="openRegister(openChoice.name)"><Icon name="play" /> {{ t('Continue that shift') }}</button>
-          <button v-if="openChoice.can_force_new" class="btn btn-outline" :disabled="opening" @click="openRegister(null, true)">{{ t('+ Open a new register anyway') }}</button>
-        </div>
         <div style="margin-top: 14px">
           <button class="btn btn-primary btn-lg" :disabled="opening || !canOpen" @click="openRegister()">
             {{ opening ? t('Opening…') : t('Open Register') }}
@@ -296,24 +289,12 @@ const canClose = computed(() => session.permissions.close_register !== false)
 // --- open register from this page (closed state) ---
 const openFloat = ref(0)
 const opening = ref(false)
-const openChoice = ref(null)
 
-async function openRegister(resumeEntry = null, forceNew = false) {
+async function openRegister() {
   opening.value = true
   try {
-    const extra = {}
-    if (resumeEntry) extra.resume_opening_entry = resumeEntry
-    if (forceNew) extra.force_new = 1
-    const result = await session.openRegister(openFloat.value || 0, extra)
-    if (result?.requires_retry) {
-      pending.value = result
-      return
-    }
-    if (result?.requires_choice) {
-      openChoice.value = result.open_entry
-      return
-    }
-    openChoice.value = null
+    // Always a fresh shift — no resume / force-new branches.
+    await session.openRegister(openFloat.value || 0)
     pending.value = null
     session.notify(t('Register opened'))
     load()

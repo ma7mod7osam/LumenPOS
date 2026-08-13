@@ -757,13 +757,6 @@
         <div class="sec-title"><Icon name="store" /> {{ t('Register & Offline') }}</div>
         <div class="setting-list">
           <label class="setting-row">
-            <input type="checkbox" class="setting-toggle" v-model="generalForm.allow_multiple_opening" :true-value="1" :false-value="0" />
-            <span class="setting-text">
-              <span class="setting-title">{{ t('Allow opening a new register while another shift is open') }}</span>
-              <span class="setting-desc">{{ t('Testing only — keep OFF in production.') }}</span>
-            </span>
-          </label>
-          <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.offline_stock_only" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Cache only in-stock items for offline use') }}</span>
@@ -1459,7 +1452,6 @@ const generalForm = ref({
   return_exceed_role: '',
   restrict_returns_to_window: 0,
   return_window_days: 14,
-  allow_multiple_opening: 0,
   offline_stock_only: 0,
   show_out_of_stock: 0,
   serial_scan_only: 0,
@@ -1759,7 +1751,6 @@ async function load() {
     return_exceed_role: info.return_exceed_role || '',
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,
-    allow_multiple_opening: info.allow_multiple_opening || 0,
     offline_stock_only: info.offline_stock_only || 0,
     show_out_of_stock: info.show_out_of_stock || 0,
     serial_scan_only: info.serial_scan_only || 0,

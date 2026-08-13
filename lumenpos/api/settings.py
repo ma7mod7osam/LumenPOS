@@ -75,7 +75,6 @@ def get_settings():
         "permissions": get_user_permissions(),
         "default_price_list": _default_selling_price_list(),
         "protected_price_lists": sorted(_protected_price_lists()),
-        "allow_multiple_opening": doc.get("allow_multiple_opening") or 0,
         "offline_stock_only": doc.get("offline_stock_only") or 0,
         "show_out_of_stock": doc.get("show_out_of_stock") or 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
@@ -173,7 +172,6 @@ def save_settings(payload):
     if isinstance(payload, str):
         payload = json.loads(payload)
     doc = frappe.get_doc("LumenPOS Settings")
-    doc.allow_multiple_opening = 1 if payload.get("allow_multiple_opening") else 0
     doc.offline_stock_only = 1 if payload.get("offline_stock_only") else 0
     doc.show_out_of_stock = 1 if payload.get("show_out_of_stock") else 0
     doc.serial_scan_only = 1 if payload.get("serial_scan_only") else 0

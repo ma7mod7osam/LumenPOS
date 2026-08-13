@@ -89,15 +89,17 @@ def _assert_owner_or_manager(session_doc):
 
 @frappe.whitelist()
 def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force_new=0):
-    """STRICT by default: one live shift per register, and a shift whose closing
-    has not finished can never be silently resumed.
+    """Opening is ALWAYS a fresh shift. A shift can never be resumed.
 
-    Responses:
-      - the session dict (success)
-      - {"requires_retry": ...} when a previous shift is still finalising or
-        failed — the cashier must retry that closing first
-      - {"requires_choice": ...} only for a genuine orphan POS Opening Entry
-        (one with no live LumenPOS session), offering resume / force-new
+    The REGISTER SESSION's status is the only truth. Native POS Opening Entries
+    are downstream paperwork and are never consulted to decide whether a shift is
+    live — a failed or slow close leaves one "Open" indefinitely, and keying off
+    that is exactly how the next cashier ends up resurrecting a dead shift (the
+    single most common complaint about the stock ERPNext POS).
+
+    `resume_opening_entry` and `force_new` are accepted and IGNORED: they only
+    remain in the signature so a browser running cached JS doesn't fail on an
+    unexpected argument.
     """
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
     opening_float = flt(opening_float)
@@ -152,58 +154,22 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
         _audit_register("open", sess.name, profile.name, opening_float)
         return get_open_session(pos_profile)
 
-    if resume_opening_entry:
-        return _resume_opening(profile, resume_opening_entry)
+    # 2) Nothing live on this register -> always a brand-new shift. Any stale
+    # native "Open" POS Opening Entry left behind by a failed close or by the
+    # stock POS is ignored on purpose (see the docstring).
+    return _create_fresh_session(profile, opening_float)
 
-    # 2) Does this cashier already hold an open native opening entry ON THIS
-    # register? Scoped to the profile, so a shift open on ANOTHER outlet (e.g.
-    # Riyadh) never blocks opening this one (e.g. Jeddah) — each register runs
-    # its own independent shift, opened and closed separately. (Multiple opens on
-    # the SAME register are still governed by allow_multiple_opening — testing.)
-    open_entry = frappe.db.get_value(
-        "POS Opening Entry",
-        {
-            "user": frappe.session.user,
-            "pos_profile": profile.name,
-            "status": "Open",
-            "docstatus": 1,
-        },
-        ["name", "pos_profile", "period_start_date"],
-        as_dict=True,
-    )
-    allow_multiple = cint(frappe.db.get_single_value("LumenPOS Settings", "allow_multiple_opening"))
 
-    if open_entry and not (cint(force_new) and allow_multiple):
-        # Is a LumenPOS session still attached to it? If it's "Closing", the previous
-        # close didn't finish — send them to retry, never resume.
-        attached = frappe.db.get_value(
-            "POS Register Session",
-            {"pos_opening_entry": open_entry.name, "status": ["in", LIVE_STATES]},
-            ["name", "status"],
-            as_dict=True,
-        )
-        if attached:
-            if attached.status == "Closing":
-                return _retry_response(attached.name)
-            frappe.throw(
-                _("You already have register {0} open (session {1}). Close it before opening another.").format(
-                    open_entry.pos_profile, attached.name
-                )
-            )
-        # A true orphan opening entry (no live session) — offer resume / force-new.
-        return {
-            "requires_choice": True,
-            "open_entry": {
-                "name": open_entry.name,
-                "pos_profile": open_entry.pos_profile,
-                "period_start_date": str(open_entry.period_start_date),
-                "same_profile": open_entry.pos_profile == profile.name,
-                "can_force_new": bool(allow_multiple),
-            },
-        }
+def _create_fresh_session(profile, opening_float, bypass_live_guard=False):
+    """Build a new POS Opening Entry + Register Session for this register.
 
-    # 3) Fresh shift. The float belongs to the ONE drawer mode (see _drawer_mode)
-    # — never to every Cash-type tender.
+    `opening_entry.flags.ignore_validate` is set ALWAYS: ERPNext core refuses a
+    second open entry per cashier, and an old native-POS leftover (or one from a
+    close whose consolidation never finished) must never be able to stop a shop
+    opening tomorrow. The session's own validation is only bypassed when we are
+    deliberately jumping over a still-"Closing" shift."""
+    # The float belongs to the ONE drawer mode (see _drawer_mode) — never to
+    # every Cash-type tender.
     drawer = _drawer_mode(profile.name)
     opening_entry = frappe.get_doc(
         {
@@ -222,10 +188,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             ],
         }
     )
-    if open_entry:
-        # force_new (testing): ERPNext core blocks a second open entry per
-        # cashier in validate, so skip validation for this insert only.
-        opening_entry.flags.ignore_validate = True
+    opening_entry.flags.ignore_validate = True
     opening_entry.insert(ignore_permissions=True)
     opening_entry.submit()
 
@@ -240,126 +203,24 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             "pos_opening_entry": opening_entry.name,
         }
     )
+    if bypass_live_guard:
+        sess.flags.ignore_validate = True
     sess.insert()
     _audit_register("open", sess.name, profile.name, opening_float)
-    return get_open_session(pos_profile)
-
-
-def _retry_response(session_name):
-    row = frappe.db.get_value(
-        "POS Register Session",
-        session_name,
-        ["closing_status", "closing_error", "pos_closing_entry"],
-        as_dict=True,
-    ) or frappe._dict()
-    return {
-        "requires_retry": True,
-        "session": session_name,
-        "closing_status": row.closing_status,
-        "closing_error": row.closing_error,
-        "pos_closing_entry": row.pos_closing_entry,
-        "message": _(
-            "The previous shift ({0}) is still finalising or its closing failed. "
-            "Retry the closing before opening a new register."
-        ).format(session_name),
-    }
+    return get_open_session(profile.name)
 
 
 def _force_new_after_failure(profile, opening_float, stuck_session):
-    """The previous shift's closing keeps FAILING — let the store keep trading.
-    Open a fresh shift now; the failed shift stays in 'Closing' and the
-    self-healer keeps retrying its consolidation in the background, so no
-    invoice is lost. Bypasses the one-live-shift / one-open-entry guards on
-    purpose (the stuck shift is being recovered separately)."""
-    if not frappe.has_permission("POS Closing Entry", "create"):
-        frappe.throw(_("You are not permitted to do this"), frappe.PermissionError)
+    """The previous shift is still 'Closing' (consolidation pending, queued or
+    failed) — let the store keep trading. Open a fresh shift now; the stuck one
+    stays in 'Closing' and the self-healer keeps retrying its consolidation, so
+    no invoice is lost.
 
+    NOTE: deliberately does NOT require "POS Closing Entry: create". The cashier
+    opening the store must never be blocked by a colleague's stuck close."""
     # Nudge the stuck shift to consolidate once more right now.
     _enqueue_consolidation(stuck_session)
-
-    drawer = _drawer_mode(profile.name)
-    opening_entry = frappe.get_doc(
-        {
-            "doctype": "POS Opening Entry",
-            "company": profile.company,
-            "pos_profile": profile.name,
-            "user": frappe.session.user,
-            "period_start_date": now_datetime(),
-            "posting_date": nowdate(),
-            "balance_details": [
-                {
-                    "mode_of_payment": row.mode_of_payment,
-                    "opening_amount": opening_float if row.mode_of_payment == drawer else 0,
-                }
-                for row in profile.payments
-            ],
-        }
-    )
-    opening_entry.flags.ignore_validate = True  # allow a 2nd open entry for this cashier
-    opening_entry.insert(ignore_permissions=True)
-    opening_entry.submit()
-
-    session = frappe.get_doc(
-        {
-            "doctype": "POS Register Session",
-            "pos_profile": profile.name,
-            "opened_by": frappe.session.user,
-            "opened_at": now_datetime(),
-            "status": "Open",
-            "opening_float": opening_float,
-            "pos_opening_entry": opening_entry.name,
-        }
-    )
-    session.flags.ignore_validate = True  # the stuck 'Closing' shift would block this otherwise
-    session.insert()
-    return get_open_session(profile.name)
-
-
-def _resume_opening(profile, opening_name):
-    """Continue a genuine orphan open shift: attach a fresh LumenPOS session to an
-    existing POS Opening Entry that has no live session. The float comes from
-    the entry itself."""
-    entry = frappe.get_doc("POS Opening Entry", opening_name)
-    if entry.user != frappe.session.user or entry.status != "Open" or entry.docstatus != 1:
-        frappe.throw(_("Opening entry {0} is not an open shift of yours").format(opening_name))
-    if entry.pos_profile != profile.name:
-        frappe.throw(
-            _("Opening entry {0} belongs to {1} — switch to that POS Profile to continue it").format(
-                opening_name, entry.pos_profile
-            )
-        )
-    # Guard: never resume an opening that already has a finalising/failed session.
-    stuck = frappe.db.get_value(
-        "POS Register Session",
-        {"pos_opening_entry": entry.name, "status": ["in", LIVE_STATES]},
-        "name",
-    )
-    if stuck:
-        return _retry_response(stuck)
-
-    # Sum only the drawer row — with the pre-0.22 spread an old entry may carry
-    # the float on several Cash-type rows, which would multiply it here.
-    drawer = _drawer_mode(profile.name)
-    opening_cash = sum(
-        flt(d.opening_amount)
-        for d in (entry.balance_details or [])
-        if d.mode_of_payment == drawer
-    ) or max(
-        (flt(d.opening_amount) for d in (entry.balance_details or [])),
-        default=0,
-    )
-    frappe.get_doc(
-        {
-            "doctype": "POS Register Session",
-            "pos_profile": profile.name,
-            "opened_by": frappe.session.user,
-            "opened_at": entry.period_start_date,
-            "status": "Open",
-            "opening_float": opening_cash,
-            "pos_opening_entry": entry.name,
-        }
-    ).insert()
-    return get_open_session(profile.name)
+    return _create_fresh_session(profile, opening_float, bypass_live_guard=True)
 
 
 # ---------------------------------------------------------------------------

@@ -64,7 +64,7 @@
       </template>
 
       <!-- Step 1: float entry -->
-      <template v-else-if="!choice">
+      <template v-else>
         <div class="modal-body">
           <div v-if="session.otherOpenRegisters.length" class="shift-banner warn oe-warn">
             <div><Icon name="warning" /> {{ t('You still have another register open:') }}</div>
@@ -117,47 +117,6 @@
         </div>
       </template>
 
-      <!-- Step 2: an orphan open shift exists — let the cashier decide -->
-      <template v-else>
-        <div class="modal-body">
-          <div class="shift-banner">
-            {{ t('You already have an open shift:') }}
-            <div class="shift-name">{{ choice.name }}</div>
-            <div class="muted small">
-              {{ choice.pos_profile }} · {{ t('since') }} {{ choice.period_start_date }}
-            </div>
-          </div>
-
-          <button
-            v-if="choice.same_profile"
-            class="btn btn-primary choice-btn"
-            :disabled="busy"
-            @click="resume"
-          >
-            <Icon name="play" /> {{ t('Continue that shift') }}
-            <span class="choice-hint">{{ t('keep selling on the existing opening entry') }}</span>
-          </button>
-
-          <button
-            v-if="choice.can_force_new"
-            class="btn btn-outline choice-btn"
-            :disabled="busy"
-            @click="forceNew"
-          >
-            {{ t('+ Open a new register anyway') }}
-            <span class="choice-hint">{{ t('testing mode — leaves the old shift open') }}</span>
-          </button>
-
-          <p v-if="!choice.same_profile && !choice.can_force_new" class="muted small dead-end">
-            {{ t('That shift is on a different register') }} ({{ choice.pos_profile }}). {{ t('Close it there, or cancel the entry from the ERPNext desk (POS Opening Entry list). To allow opening anyway, enable it in Settings → General.') }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline" style="width: 100%" @click="choice = null">
-            {{ t('‹ Back') }}
-          </button>
-        </div>
-      </template>
     </div>
   </div>
 </template>
@@ -175,7 +134,6 @@ const catalog = useCatalogStore()
 const openingFloat = ref(0)
 const busy = ref(false)
 const floatInput = ref(null)
-const choice = ref(null)
 const pending = ref(session.pendingClosing)
 let poll = null
 
@@ -197,40 +155,15 @@ async function onSwitchOutlet(name) {
   catalog.cacheFullCatalog()
   catalog.cacheCustomers()
   pending.value = session.pendingClosing
-  choice.value = null
   openingFloat.value = 0
 }
 
 async function open() {
   busy.value = true
   try {
-    const result = await session.openRegister(openingFloat.value || 0)
-    if (result?.requires_retry) {
-      pending.value = result
-      pending.value.session = result.session
-      return
-    }
-    if (result?.requires_choice) {
-      choice.value = result.open_entry
-      return
-    }
+    // Opening is always a fresh shift — there is no resume/retry branch.
+    await session.openRegister(openingFloat.value || 0)
     session.notify(t('Register opened'))
-  } catch (e) {
-    session.notify(e.message, true)
-  } finally {
-    busy.value = false
-  }
-}
-
-async function resume() {
-  busy.value = true
-  try {
-    const result = await session.openRegister(0, { resume_opening_entry: choice.value.name })
-    if (result?.requires_retry) {
-      pending.value = result
-      return
-    }
-    session.notify(t('Shift {name} resumed', { name: choice.value.name }))
   } catch (e) {
     session.notify(e.message, true)
   } finally {
@@ -241,11 +174,7 @@ async function resume() {
 async function forceNew() {
   busy.value = true
   try {
-    const result = await session.openRegister(openingFloat.value || 0, { force_new: 1 })
-    if (result?.requires_choice || result?.requires_retry) {
-      session.notify(t('Could not open a new register'), true)
-      return
-    }
+    await session.openRegister(openingFloat.value || 0)
     session.notify(t('New shift opened — the previous one keeps finalising in the background'))
   } catch (e) {
     session.notify(e.message, true)
