@@ -882,13 +882,56 @@ def _split_tags(value):
     return [t.strip() for t in (value or "").split(",") if t.strip()]
 
 
-def _first_column(candidates, doctype=INVOICE_DOCTYPE):
+# Field kinds for host-site detection. A marketplace app lands on sites it has
+# never seen, and the SAME field name can mean different things: a site may have
+# `online_order` holding the marketplace order NUMBER while we assume it is the
+# boolean "is this an online order" flag. Matching on the name alone then makes
+# the Yes/No filter compare an order number to 1 (matching nothing) and renders
+# a number where a flag belongs — silently, with no error. So a candidate must
+# match on TYPE as well as name.
+_BOOL_FIELDTYPES = {"Check", "Select"}   # Select only when it looks like Yes/No
+_TEXT_FIELDTYPES = {
+    "Data", "Small Text", "Text", "Long Text", "Select", "Link", "Read Only", "Int",
+}
+
+
+def _is_boolean_field(df):
+    """A field that can hold a 0/1 flag: a Check, or a Yes/No Select."""
+    if df.fieldtype == "Check":
+        return True
+    if df.fieldtype == "Select":
+        options = {o.strip().lower() for o in (df.options or "").split("\n") if o.strip()}
+        return "yes" in options and "no" in options
+    return False
+
+
+def _first_column(candidates, doctype=INVOICE_DOCTYPE, kind=None):
     """First of the candidate fieldnames that actually exists as a column on the
-    given sale doctype (so history search uses the site's real fields), or None
-    if none exist."""
+    given sale doctype (so history search uses the site's real fields), or None.
+
+    `kind` ("bool" | "text") additionally requires the field to BE that kind on
+    this site — see the note above on same-name/different-meaning collisions.
+    Appended as a third parameter on purpose: existing callers pass `doctype`
+    positionally, and reordering would silently bind the doctype into the new
+    argument."""
+    meta = None
+    if kind:
+        try:
+            meta = frappe.get_meta(doctype)
+        except Exception:
+            meta = None
     for fieldname in candidates:
-        if frappe.db.has_column(doctype, fieldname):
-            return fieldname
+        if not frappe.db.has_column(doctype, fieldname):
+            continue
+        if kind and meta:
+            df = meta.get_field(fieldname)
+            if not df:
+                continue  # a real column with no docfield — can't verify, skip
+            if kind == "bool" and not _is_boolean_field(df):
+                continue
+            if kind == "text" and (df.fieldtype not in _TEXT_FIELDTYPES or _is_boolean_field(df)):
+                continue
+        return fieldname
     return None
 
 
@@ -1271,10 +1314,22 @@ def search_sales(filters=None):
     if not frappe.has_permission(doctype, "read"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-    app_field = _first_column(("custom_app_type", "lumenpos_app_type"), doctype)
-    order_field = _first_column(("pick_order_no", "custom_order_id", "lumenpos_order_id"), doctype)
-    online_field = _first_column(("online_order", "custom_online_order", "is_online_order"), doctype)
-    exchange_field = _first_column(("is_exchange", "custom_is_exchange"), doctype)
+    # kind= makes these resolve by TYPE as well as name: a site whose
+    # `online_order` holds the marketplace order NUMBER must not be treated as
+    # the boolean online flag (and vice-versa) — see _first_column.
+    app_field = _first_column(("custom_app_type", "lumenpos_app_type"), doctype, kind="text")
+    # `online_order` is last: on a site where it is a Data field it holds the
+    # marketplace order NUMBER, and without this the number is invisible to
+    # search. Where it's a real Check it fails the "text" kind and is skipped.
+    order_field = _first_column(
+        ("pick_order_no", "custom_order_id", "lumenpos_order_id", "online_order"),
+        doctype,
+        kind="text",
+    )
+    online_field = _first_column(
+        ("online_order", "custom_online_order", "is_online_order"), doctype, kind="bool"
+    )
+    exchange_field = _first_column(("is_exchange", "custom_is_exchange"), doctype, kind="bool")
 
     conds, params = [], {}
 

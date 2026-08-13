@@ -506,12 +506,61 @@ def search_customers(search=""):
     )
 
 
+CUSTOMER_FIELDS = [
+    "name", "customer_name", "customer_group", "customer_type",
+    "mobile_no", "email_id", "tax_id",
+]
+
+# Mobile fields a HOST site may define on Customer in addition to the standard
+# one. Some sites drive their own automation from theirs (naming a customer
+# "name - mobile", for example), so a customer we create filling only mobile_no
+# comes out bare-named and the first name collision breaks at the till.
+_HOST_MOBILE_CANDIDATES = ("custom_mobile_no", "custom_mobile", "mobile", "custom_phone_no")
+_MOBILE_FIELDTYPES = {"Data", "Phone", "Small Text", "Read Only"}
+
+
+def _host_mobile_fields():
+    """Extra mobile fields this site defines on Customer (type-checked)."""
+    try:
+        meta = frappe.get_meta("Customer")
+    except Exception:
+        return []
+    out = []
+    for fieldname in _HOST_MOBILE_CANDIDATES:
+        df = meta.get_field(fieldname)
+        if df and df.fieldtype in _MOBILE_FIELDTYPES:
+            out.append(fieldname)
+    return out
+
+
+def find_customer_by_mobile(mobile):
+    """An existing, enabled customer with this mobile — checking the standard
+    field AND any mobile field the host site added. THE MOBILE IS THE IDENTITY:
+    names repeat endlessly, mobiles don't, so this is what stops the POS
+    creating a second record for a customer the site already has."""
+    mobile = (mobile or "").strip()
+    if not mobile:
+        return None
+    for fieldname in ["mobile_no"] + _host_mobile_fields():
+        try:
+            existing = frappe.db.get_value(
+                "Customer", {fieldname: mobile, "disabled": 0}, "name"
+            )
+        except Exception:
+            continue
+        if existing:
+            return existing
+    return None
+
+
 @frappe.whitelist()
 def create_customer(payload):
     """Strict customer creation:
       Individual -> name + mobile mandatory
       Company    -> name, mobile, tax id and national address details mandatory
-    """
+
+    Match-or-create: an existing customer with this mobile is REUSED rather than
+    duplicated (see find_customer_by_mobile)."""
     import json
 
     if isinstance(payload, str):
@@ -525,6 +574,15 @@ def create_customer(payload):
         frappe.throw(_("Customer name is required"))
     if not mobile:
         frappe.throw(_("Mobile number is required"))
+
+    # Match before creating: the site may already know this mobile (possibly in
+    # its OWN mobile field). Creating a second record for the same person is how
+    # a customer base fills with duplicates that no one can merge later.
+    existing = find_customer_by_mobile(mobile)
+    if existing:
+        found = frappe.db.get_value("Customer", existing, CUSTOMER_FIELDS, as_dict=True)
+        found["matched"] = True
+        return found
 
     address_fields = {}
     if customer_type == "Company":
@@ -543,18 +601,22 @@ def create_customer(payload):
             )
 
     selling = frappe.get_cached_doc("Selling Settings")
-    customer = frappe.get_doc(
-        {
-            "doctype": "Customer",
-            "customer_name": name,
-            "customer_type": customer_type,
-            "customer_group": selling.customer_group,
-            "territory": selling.territory,
-            "mobile_no": mobile,
-            "email_id": (payload.get("email_id") or "").strip() or None,
-            "tax_id": (payload.get("tax_id") or "").strip() or None,
-        }
-    ).insert()
+    doc = {
+        "doctype": "Customer",
+        "customer_name": name,
+        "customer_type": customer_type,
+        "customer_group": selling.customer_group,
+        "territory": selling.territory,
+        "mobile_no": mobile,
+        "email_id": (payload.get("email_id") or "").strip() or None,
+        "tax_id": (payload.get("tax_id") or "").strip() or None,
+    }
+    # Fill the host's own mobile field too, so ITS automation fires (a site that
+    # names customers "name - mobile" from its custom field would otherwise
+    # create ours bare-named, and the first name collision breaks at the till).
+    for fieldname in _host_mobile_fields():
+        doc.setdefault(fieldname, mobile)
+    customer = frappe.get_doc(doc).insert()
 
     if customer_type == "Company":
         frappe.get_doc(
@@ -598,20 +660,13 @@ def resolve_pending_customer(payload):
     if isinstance(payload, str):
         payload = json.loads(payload)
     mobile = (payload.get("mobile_no") or "").strip()
-    if mobile:
-        existing = frappe.db.get_value(
-            "Customer", {"mobile_no": mobile, "disabled": 0}, "name"
-        )
-        if existing:
-            c = frappe.db.get_value(
-                "Customer",
-                existing,
-                ["name", "customer_name", "customer_group", "customer_type",
-                 "mobile_no", "email_id", "tax_id"],
-                as_dict=True,
-            )
-            c["matched"] = True
-            return c
+    # Shared identity rule — also matches a mobile stored in the HOST's own
+    # field, so reconnecting can't duplicate a customer the site already has.
+    existing = find_customer_by_mobile(mobile)
+    if existing:
+        c = frappe.db.get_value("Customer", existing, CUSTOMER_FIELDS, as_dict=True)
+        c["matched"] = True
+        return c
     c = create_customer(payload)
-    c["matched"] = False
+    c.setdefault("matched", False)
     return c
