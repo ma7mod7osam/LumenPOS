@@ -353,6 +353,7 @@ def submit_sale(payload):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
+    _started = _perf_now()
     _require_sell()
     # Idempotency: a queued OFFLINE sale whose server ACK was lost gets retried
     # on the next flush — if it already posted, return the existing receipt
@@ -425,8 +426,11 @@ def submit_sale(payload):
                 row.account = pin_accounts[row.mode_of_payment]
 
     _lock_open_session(session["name"])
+    t_build = _perf_now()
     invoice.insert()
+    t_insert = _perf_now()
     invoice.submit()
+    t_submit = _perf_now()
 
     if store_credit_used:
         store_credit.add_entry(
@@ -442,7 +446,17 @@ def submit_sale(payload):
 
         approval_requests.consume(payload["discount_request"], invoice.name)
 
-    return get_receipt(invoice.name)
+    receipt = get_receipt(invoice.name)
+    _log_slow_sale(
+        invoice.name,
+        started=_started,
+        build=t_build,
+        insert=t_insert,
+        submit=t_submit,
+        done=_perf_now(),
+        lines=len(invoice.items or []),
+    )
+    return receipt
 
 
 @frappe.whitelist()
@@ -1295,6 +1309,123 @@ def recent_sales(pos_profile, limit=50):
     return search_sales({"pos_profile": pos_profile, "limit": limit})
 
 
+SEARCH_PROBE_CAP = 1000
+
+# A sale slower than this writes ONE Error Log entry with a phase breakdown.
+# Without it "the POS is slow" is unfalsifiable; with it, the first real capture
+# tells you whether the time is in this app or in ERPNext's own submit.
+SLOW_SALE_MS = 2500
+
+
+def _perf_now():
+    import time
+
+    return time.monotonic()
+
+
+def _log_slow_sale(invoice_name, *, started, build, insert, submit, done, lines):
+    """Best-effort: never let instrumentation break a sale."""
+    try:
+        total_ms = (done - started) * 1000
+        if total_ms < SLOW_SALE_MS:
+            return
+        frappe.log_error(
+            title="LumenPOS slow sale",
+            message=(
+                f"invoice: {invoice_name}\n"
+                f"lines:   {lines}\n"
+                f"total:   {total_ms:.0f} ms\n"
+                f"  build (price/promo/validate): {(build - started) * 1000:.0f} ms\n"
+                f"  insert:                       {(insert - build) * 1000:.0f} ms\n"
+                f"  submit (ERPNext):             {(submit - insert) * 1000:.0f} ms\n"
+                f"  post (loyalty/gc/receipt):    {(done - submit) * 1000:.0f} ms\n"
+            ),
+        )
+    except Exception:
+        pass
+
+
+def _search_probe_names(doctype, term, order_field=None, cap=SEARCH_PROBE_CAP):
+    """Free-text sales search as SLIM, SINGLE-PREDICATE PROBES.
+
+    One wide OR over invoice-no / customer / customer-name / mobile / order-id —
+    each a leading-wildcard LIKE, one of them across a JOIN — gives the query
+    planner a choice between an index merge and a full table scan. That is why
+    the same search is instant one minute and times out the next once the table
+    is large. Every probe below can use exactly ONE index; we merge the names
+    here, most-precise first, and the caller then filters by primary key so the
+    wide display columns never sit on a scan path.
+
+    A bounded contains-scan runs LAST and only if the precise probes came back
+    thin, so the expensive case is the exception rather than the rule."""
+    term = (term or "").strip()
+    if not term:
+        return []
+
+    names, seen = [], set()
+
+    def add(rows):
+        for row in rows:
+            name = row[0]
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+
+    def q(sql, args):
+        if len(names) >= cap:
+            return []
+        try:
+            return frappe.db.sql(sql, args)  # nosemgrep
+        except Exception:
+            return []
+
+    tbl = f"tab{doctype}"
+    prefix = f"{term}%"
+    anywhere = f"%{term}%"
+    remaining = lambda: max(0, cap - len(names))  # noqa: E731
+
+    # 1) exact invoice number — primary key, instant
+    add(q(f"select name from `{tbl}` where name = %s limit 1", (term,)))
+    # 2) invoice-number prefix — primary-key range
+    add(q(f"select name from `{tbl}` where name like %s limit %s", (prefix, remaining())))
+    # 3) customer id prefix — indexed foreign key
+    add(q(f"select name from `{tbl}` where customer like %s limit %s", (prefix, remaining())))
+    # 4) customer-name prefix — indexed on most sites
+    add(q(f"select name from `{tbl}` where customer_name like %s limit %s", (prefix, remaining())))
+    # 5) mobile: resolve customers first (their own index), then invoices by FK
+    if remaining():
+        customers = q(
+            "select name from `tabCustomer` where mobile_no like %s limit 200", (prefix,)
+        )
+        if customers:
+            add(
+                q(
+                    f"select name from `{tbl}` where customer in %s limit %s",
+                    (tuple(c[0] for c in customers), remaining()),
+                )
+            )
+    # 6) order id / marketplace number prefix
+    if order_field and remaining():
+        add(
+            q(
+                f"select name from `{tbl}` where `{order_field}` like %s limit %s",
+                (prefix, remaining()),
+            )
+        )
+    # 7) last resort — bounded contains scans, only when the precise probes were
+    # thin (a cashier searching a mid-string fragment).
+    if len(names) < 50:
+        add(q(f"select name from `{tbl}` where customer_name like %s limit %s", (anywhere, 200)))
+        if order_field:
+            add(
+                q(
+                    f"select name from `{tbl}` where `{order_field}` like %s limit %s",
+                    (anywhere, 200),
+                )
+            )
+    return names[:cap]
+
+
 @frappe.whitelist()
 def search_sales(filters=None):
     """Sales-history search. filters = {
@@ -1384,13 +1515,16 @@ def search_sales(filters=None):
         conds.append(f"coalesce(pi.{online_field}, 0) = 0")
 
     if f.search:
-        params["search"] = f"%{f.search.strip()}%"
-        order_clause = f" or pi.{order_field} like %(search)s" if order_field else ""
-        conds.append(
-            f"(pi.name like %(search)s or pi.customer_name like %(search)s"
-            f" or pi.customer like %(search)s or c.mobile_no like %(search)s"
-            f"{order_clause})"
-        )
+        # Resolve the free text to a bounded set of invoice names FIRST (slim,
+        # single-index probes — see _search_probe_names), then filter by primary
+        # key. The old single wide OR mixed leading-wildcard LIKEs across a JOIN,
+        # which let the optimizer pick a full table scan: instant on a small
+        # site, a 504 on a large one.
+        probe = _search_probe_names(doctype, f.search.strip(), order_field)
+        if not probe:
+            return []
+        conds.append("pi.name in %(probe_names)s")
+        params["probe_names"] = tuple(probe)
 
     if f.item:
         params["item"] = f"%{f.item.strip()}%"

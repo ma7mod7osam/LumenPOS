@@ -476,6 +476,27 @@ _CF_PICKABLE = {
 
 
 @frappe.whitelist()
+def get_index_health():
+    """Performance-index state for Settings → Status."""
+    _require_manager()
+    from lumenpos.install import index_health
+
+    return index_health()
+
+
+@frappe.whitelist()
+def rebuild_indexes():
+    """Build any missing performance index, in the background (building one on a
+    multi-million-row table stalls writes for minutes, so this never runs inline
+    on a request). No deploy needed — the same builder the migrate uses."""
+    _require_manager()
+    frappe.enqueue(
+        "lumenpos.install.ensure_hot_indexes", queue="long", timeout=3600, is_async=True
+    )
+    return {"queued": True}
+
+
+@frappe.whitelist()
 def receipt_field_options(source):
     """Pickable fields for the receipt custom-field builder: fields of the POS
     Profile, or of the sale invoice (POS Invoice + Sales Invoice, deduped) —

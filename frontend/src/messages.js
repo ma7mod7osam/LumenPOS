@@ -713,6 +713,19 @@ const features = {
   "Add a field": "إضافة حقل",
   "Sample value": "قيمة تجريبية",
   "Text": "نص",
+  "Performance indexes": "فهارس الأداء",
+  "These keep sales, search and shift reports fast on a large site. A build can fail quietly if the table is busy — rebuild it here, no deploy needed.":
+    "تحافظ على سرعة المبيعات والبحث وتقارير الورديات في المواقع الكبيرة. قد يفشل بناء الفهرس بصمت إذا كان الجدول مشغولًا — أعِد بناءه من هنا دون الحاجة إلى نشر جديد.",
+  "Built": "مبني",
+  "Missing": "مفقود",
+  "Not on this site": "غير موجود في هذا الموقع",
+  "Unknown": "غير معروف",
+  "Rebuild missing indexes": "إعادة بناء الفهارس المفقودة",
+  "Rebuilding…": "جارٍ إعادة البناء…",
+  "{n} missing": "{n} مفقود",
+  "Rebuilding indexes in the background — check back shortly.":
+    "تتم إعادة بناء الفهارس في الخلفية — تحقّق بعد قليل.",
+  "Loading…": "جارٍ التحميل…",
 }
 
 // Sell screen, cart, product grid.

@@ -73,7 +73,41 @@ HOT_INDEXES = [
     # Shift queries: every X-report, close and Z-report filters by session.
     ("lumenpos_session_idx", "POS Invoice", ["lumenpos_session"]),
     ("lumenpos_session_idx", "Sales Invoice", ["lumenpos_session"]),
+    # ERPNext itself, on EVERY submit, asks "how much of this item is reserved by
+    # unconsolidated POS invoices?" — joining the largest table on the site, once
+    # per cart line. This composite serves exactly that query.
+    ("lumenpos_item_wh_idx", "POS Invoice Item", ["item_code", "warehouse"]),
+    # Loyalty lookups per sale/receipt.
+    ("lumenpos_loyalty_inv_idx", "Loyalty Point Entry", ["invoice"]),
+    # History free-text probes (see sales._search_probe_names).
+    ("lumenpos_cust_name_idx", "POS Invoice", ["customer_name"]),
+    ("lumenpos_cust_name_idx", "Sales Invoice", ["customer_name"]),
 ]
+
+
+def index_health():
+    """Every performance index with its state: built / missing / n-a (the column
+    doesn't exist on this site). Index builds fail SILENTLY into the Error Log —
+    a big site can refuse the lock — so this is surfaced in Settings → Status
+    with a rebuild button rather than being invisible."""
+    out = []
+    for index_name, doctype, columns in HOT_INDEXES:
+        row = {"index": index_name, "doctype": doctype, "columns": ", ".join(columns)}
+        try:
+            if not frappe.db.table_exists(doctype) or not all(
+                frappe.db.has_column(doctype, c) for c in columns
+            ):
+                row["state"] = "n-a"
+            else:
+                found = frappe.db.sql(
+                    f"SHOW INDEX FROM `tab{doctype}` WHERE Key_name = %s",  # nosemgrep
+                    index_name,
+                )
+                row["state"] = "built" if found else "missing"
+        except Exception:
+            row["state"] = "unknown"
+        out.append(row)
+    return out
 
 
 def ensure_hot_indexes():

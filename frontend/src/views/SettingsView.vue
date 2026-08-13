@@ -1322,6 +1322,36 @@
         <button class="btn btn-outline" @click="offlineLogOpen = true"><Icon name="report" /> {{ t('View offline sales log') }}</button>
         <span style="flex: 1" />
       </div>
+
+      <!-- Performance indexes: builds fail silently into the Error Log on a big
+           site (a busy table can refuse the lock), so show them and offer a
+           rebuild that needs no deploy. -->
+      <div class="sec-card" style="margin-top: 16px">
+        <div class="sec-title"><Icon name="bulb" /> {{ t('Performance indexes') }}</div>
+        <p class="muted hint-row" style="padding: 0 0 10px">
+          {{ t('These keep sales, search and shift reports fast on a large site. A build can fail quietly if the table is busy — rebuild it here, no deploy needed.') }}
+        </p>
+        <div v-if="!indexHealth.length" class="muted small">{{ t('Loading…') }}</div>
+        <table v-else class="idx-table">
+          <tbody>
+            <tr v-for="(ix, i) in indexHealth" :key="i">
+              <td class="idx-doctype">{{ ix.doctype }}</td>
+              <td class="muted small idx-cols">{{ ix.columns }}</td>
+              <td>
+                <span class="idx-badge" :class="ix.state">
+                  {{ ix.state === 'built' ? t('Built') : ix.state === 'missing' ? t('Missing') : ix.state === 'n-a' ? t('Not on this site') : t('Unknown') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="editor-actions" style="margin-top: 10px">
+          <button class="btn btn-outline" :disabled="rebuilding" @click="rebuildIndexes">
+            <Icon name="refresh" /> {{ rebuilding ? t('Rebuilding…') : t('Rebuild missing indexes') }}
+          </button>
+          <span v-if="missingIndexes" class="muted small">{{ t('{n} missing', { n: missingIndexes }) }}</span>
+        </div>
+      </div>
       <p class="muted hint-row">
         {{ t('Store-level settings (price list, warehouse, payment methods, taxes, printer) live on the') }} <b>{{ t('POS Profile') }}</b> {{ t('in ERPNext — that stays the single source of truth. This page covers what Vend kept in Setup: promotions, price books, channels and discount approval.') }}
       </p>
@@ -1371,6 +1401,27 @@ const settingsInfo = ref({})
 const cachedItems = ref(0)
 const cachedCustomers = ref(0)
 const offlineLogOpen = ref(false)
+
+// ---- performance indexes (Status tab) ----
+const indexHealth = ref([])
+const rebuilding = ref(false)
+const missingIndexes = computed(
+  () => indexHealth.value.filter((i) => i.state === 'missing').length
+)
+async function loadIndexHealth() {
+  indexHealth.value = await call('lumenpos.api.settings.get_index_health').catch(() => [])
+}
+async function rebuildIndexes() {
+  rebuilding.value = true
+  try {
+    await call('lumenpos.api.settings.rebuild_indexes')
+    session.notify(t('Rebuilding indexes in the background — check back shortly.'))
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    rebuilding.value = false
+  }
+}
 const persisted = ref(false)
 const groupPick = ref('')
 
@@ -1690,6 +1741,7 @@ async function load() {
   cachedItems.value = await catalogCount().catch(() => 0)
   cachedCustomers.value = await customerCount().catch(() => 0)
   persisted.value = await storagePersisted()
+  loadIndexHealth()
   if (session.offline) return
   const info = await call('lumenpos.api.settings.get_settings')
   settingsInfo.value = info
@@ -2469,6 +2521,21 @@ const filteredBooks = computed(() => {
   font-size: 12.5px;
 }
 .cf-field { flex: 1; min-width: 180px; }
+.idx-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.idx-table td { padding: 5px 6px; border-bottom: 1px solid var(--border-subtle); }
+.idx-doctype { font-weight: 600; }
+.idx-cols { font-family: var(--mono); }
+.idx-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.idx-badge.built { background: rgba(34, 197, 94, 0.16); color: #1a8f4c; }
+.idx-badge.missing { background: rgba(226, 48, 48, 0.14); color: #c23434; }
+.idx-badge.n-a { background: var(--surface-2, rgba(0,0,0,0.05)); color: var(--text-muted); }
+.idx-badge.unknown { background: rgba(245, 166, 35, 0.16); color: #b9791a; }
 .rc-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-bottom: 12px; }
 .rc-textfields { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .rc-textfields input, .rc-textfields textarea { width: 100%; font-size: 13px; }
