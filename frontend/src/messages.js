@@ -1144,4 +1144,7 @@ export const messages = {
   "Grace period (minutes)": "مهلة السماح (دقائق)",
   "Fallback: hours after opening (outlets with no schedule)":
     "احتياطي: عدد الساعات بعد الفتح (للفروع بدون جدول)",
+  "Split": "تقسيم",
+  "Fully covered": "مغطّى بالكامل",
+  "{amount} left to allocate": "متبقٍ {amount} للتوزيع",
 }

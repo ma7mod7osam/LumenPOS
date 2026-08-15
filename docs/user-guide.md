@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.35.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.36.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.36.0 | **Split a refund across payment methods.** A customer who paid partly by card and partly in cash can now be refunded the same way: add as many refund lines as you need, each with its own amount and (where the method requires it) its transaction reference. A running **"x left to allocate"** turns green when the split matches to the cent, and the Refund button stays disabled until it does. **Direction is respected**: collecting money may use any tender, but refunding is still limited to the methods your refund rules allow — and now *every* line is checked, not just the first. Store credit is issued from the split rows, so a part-credit refund credits exactly the part you allocated. |
 | 0.35.0 | **Shift schedules and a forgotten-shift alert.** Build a reusable **POS Shift Schedule** (a timetable of shifts — one schedule can serve many outlets, and a shift whose end time is earlier than its start is understood to cross midnight), then attach it to an outlet on its POS Profile. LumenPOS checks hourly and emails a chosen role when a register is **still open well past when its shift should have ended** — with a configurable grace period, and a simple "hours after opening" fallback for outlets with no schedule. Each shift is reported **once**. Deliberately **no auto-close**: a till closed without a real cash count produces figures nobody can trust, so this alerts a human instead. |
 | 0.34.0 | **Every cashier gets their own till PIN.** The lock screen used to take a **shared** manager passcode — so once it circulated, "who unlocked this till?" had no answer and changing it meant telling everyone. Each person now sets their **own** 4–8 digit PIN the first time they meet the lock screen, and unlocking checks *theirs* (the unlock is written to the audit log with their name). **Forgot your PIN?** emails a 6-digit code, valid 15 minutes, that lets them set a new one. There's deliberately **no manager override** — the lock screen guards an unattended till, it doesn't authorise anything. PINs are stored only as a salted hash, never in readable form. *(The separate approvals passcode for over-limit discounts is unchanged.)* |
 | 0.33.0 | **Jump from a customer's purchase straight to History.** Opening one of a customer's past sales now offers **Open in History**, which takes you there with that sale already open — so a refund is one step away without duplicating the refund flow into the Customers screen. History understands a linked sale (`/history?invoice=…`), searches across all outlets for it and opens it automatically, since the sale may belong to another branch. |

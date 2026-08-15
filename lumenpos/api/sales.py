@@ -1768,6 +1768,50 @@ def _return_window(original):
     return {"restrict": restrict, "window_days": days, "age_days": age, "within": within}
 
 
+def _refund_splits(refund_payments, refund_amount, default_mode, allowed_modes):
+    """Normalise the refund tenders into [{mode_of_payment, amount(neg), reference_no}].
+
+    Splitting a refund matters when the customer paid two ways — but DIRECTION
+    matters too: collecting money may use any tender, whereas REFUNDING is
+    restricted to the configured refund rules. So every requested tender is
+    validated here, not just the first.
+
+    Falls back to the legacy single `refund_mode` when no split is supplied."""
+    if isinstance(refund_payments, str):
+        refund_payments = json.loads(refund_payments or "[]")
+    rows = [
+        {
+            "mode_of_payment": (r.get("mode_of_payment") or "").strip(),
+            "amount": abs(flt(r.get("amount"))),
+            "reference_no": (r.get("reference_no") or "").strip() or None,
+        }
+        for r in (refund_payments or [])
+        if (r.get("mode_of_payment") or "").strip() and abs(flt(r.get("amount"))) > 0
+    ]
+    if not rows:
+        rows = [{"mode_of_payment": default_mode, "amount": abs(refund_amount), "reference_no": None}]
+
+    total = flt(sum(r["amount"] for r in rows), 2)
+    if abs(total - abs(refund_amount)) > 0.005:
+        frappe.throw(
+            _("The refund split adds up to {0} but the refund is {1}.").format(
+                total, abs(refund_amount)
+            )
+        )
+    if allowed_modes is not None:
+        bad = [r["mode_of_payment"] for r in rows if r["mode_of_payment"] not in allowed_modes]
+        if bad:
+            frappe.throw(
+                _("{0} can't be used to refund this sale. Allowed: {1}.").format(
+                    ", ".join(sorted(set(bad))), ", ".join(allowed_modes)
+                )
+            )
+    # amounts on a credit note are negative
+    for r in rows:
+        r["amount"] = -r["amount"]
+    return rows
+
+
 def _allowed_refund_modes(original):
     """The refund tenders permitted for this sale: every mode the customer
     actually paid with, expanded by the configured per-mode rules (e.g. paid
@@ -1848,6 +1892,7 @@ def create_return(
     return_reason=None,
     return_request=None,
     pos_profile=None,
+    refund_payments=None,
 ):
     """Create a POS return (credit note) against a submitted POS sale.
 
@@ -1906,7 +1951,9 @@ def create_return(
     # the next close — no desk trip needed.
 
     allowed_modes = _allowed_refund_modes(original)
-    if allowed_modes is not None and refund_mode not in allowed_modes:
+    # With a split refund every tender is validated in _refund_splits below, so
+    # only check the single legacy mode when no split was supplied.
+    if allowed_modes is not None and not refund_payments and refund_mode not in allowed_modes:
         paid_modes = [p.mode_of_payment for p in original.payments if flt(p.amount) > 0]
         frappe.throw(
             _("This sale was paid by {0}, so it can only be refunded to: {1}. Adjust the refund methods in LumenPOS Settings if needed.").format(
@@ -2009,11 +2056,17 @@ def create_return(
     # not be greater than Grand Total".
     invoice_total = return_doc.rounded_total or return_doc.grand_total
     refund_amount = flt(invoice_total, return_doc.precision("grand_total"))  # negative
-    if refund_mode == store_credit.MODE_OF_PAYMENT:
+    splits = _refund_splits(refund_payments, refund_amount, refund_mode, allowed_modes)
+    if any(r["mode_of_payment"] == store_credit.MODE_OF_PAYMENT for r in splits):
         store_credit.ensure_mode_of_payment(original.company)
     for row in return_doc.payments:
         row.amount = 0
-    _set_payment(return_doc, refund_mode, refund_amount)
+    for r in splits:
+        _set_payment(return_doc, r["mode_of_payment"], r["amount"])
+    _apply_payment_references(
+        return_doc,
+        [{"mode_of_payment": r["mode_of_payment"], "reference_no": r["reference_no"]} for r in splits],
+    )
     return_doc.write_off_amount = 0
     _sync_return_paid_amount(return_doc)  # paid_amount must equal the rows, not the original sale
     return_doc.run_method("calculate_taxes_and_totals")
@@ -2031,11 +2084,18 @@ def create_return(
     return_doc.insert()
     return_doc.submit()
 
-    if refund_mode == store_credit.MODE_OF_PAYMENT:
+    credit_amount = flt(
+        sum(
+            abs(r["amount"]) for r in splits
+            if r["mode_of_payment"] == store_credit.MODE_OF_PAYMENT
+        ),
+        2,
+    )
+    if credit_amount:
         store_credit.add_entry(
             original.customer,
             "Issue",
-            abs(refund_amount),
+            credit_amount,
             return_doc.name,
             original.company,
         )
@@ -2047,7 +2107,9 @@ def create_return(
 
     from lumenpos.api import audit
 
-    detail = _("Refund as {0}").format(refund_mode)
+    detail = _("Refund as {0}").format(
+        ", ".join(f'{r["mode_of_payment"]} {abs(r["amount"]):.2f}' for r in splits)
+    )
     if return_reason:
         detail += f" · {return_reason}"
     if return_approver:

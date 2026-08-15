@@ -97,9 +97,34 @@
               style="width: 100%; margin-top: 6px"
             />
             <label class="field-label">{{ t('Refund to') }}</label>
-            <select v-model="refundMode" style="width: 100%">
-              <option v-for="mode in refundModes" :key="mode" :value="mode">{{ mode }}</option>
-            </select>
+            <!-- Split a refund across tenders (the customer may have paid two
+                 ways). DIRECTION matters: refunding is limited to the allowed
+                 refund methods, unlike collecting. -->
+            <div v-for="(row, i) in refundSplits" :key="'rs' + i" class="refund-split">
+              <select v-model="row.mode_of_payment" class="rs-mode">
+                <option v-for="mode in refundModes" :key="mode" :value="mode">{{ mode }}</option>
+              </select>
+              <input class="rs-amt" type="text" inputmode="decimal" v-model="row.amount" :placeholder="t('Amount')" />
+              <input
+                v-if="refRule(row.mode_of_payment)"
+                class="rs-ref"
+                v-model="row.reference_no"
+                :placeholder="refRule(row.mode_of_payment).reference_label || t('Reference')"
+              />
+              <button v-if="refundSplits.length > 1" class="btn-ghost" @click="refundSplits.splice(i, 1)">
+                <Icon name="close" />
+              </button>
+            </div>
+            <div class="rs-foot">
+              <button class="btn btn-outline btn-sm" @click="addSplit">
+                <Icon name="plus" /> {{ t('Split') }}
+              </button>
+              <span class="muted small" :class="{ neg: !splitCovered }">
+                {{ splitCovered
+                    ? t('Fully covered')
+                    : t('{amount} left to allocate', { amount: money(Math.max(refundTotal - splitTotal, 0)) }) }}
+              </span>
+            </div>
             <p v-if="allowedModes" class="muted small refund-rule-note">
               {{ t('Limited to how this sale was paid (Settings → Refunds).') }}
             </p>
@@ -109,7 +134,7 @@
 
       <div class="modal-footer">
         <button class="btn btn-outline" @click="$emit('close')">{{ t('Cancel') }}</button>
-        <button class="btn btn-danger" :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval" @click="submit">
+        <button class="btn btn-danger" :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval || !splitCovered" @click="submit">
           {{ busy ? t('Refunding…') : t('Refund') }}
         </button>
       </div>
@@ -119,11 +144,11 @@
 
 <script setup>
 import Icon from './Icon.vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
 import { createScanGuard } from '../scanGuard'
-import { money } from '../format'
+import { money, parseMoney } from '../format'
 import { t } from '../i18n'
 
 const props = defineProps({ invoice: String })
@@ -138,6 +163,47 @@ const returnable = ref([])
 const quantities = ref({})
 const selectedSerials = ref({}) // item_code -> [serials]
 const refundMode = ref(null)
+const refundSplits = ref([])
+
+function refRule(mode) {
+  const m = (session.paymentModes || []).find((x) => x.mode_of_payment === mode)
+  return m && (m.require_reference || m.reference_label) ? m : null
+}
+const splitTotal = computed(() =>
+  refundSplits.value.reduce((sum, r) => sum + (parseMoney(r.amount) || 0), 0)
+)
+// To the cent — a refund that doesn't add up must not post.
+const splitCovered = computed(() => Math.abs(splitTotal.value - refundTotal.value) < 0.005)
+// Keep ONE row tracking the full refund until the cashier deliberately splits;
+// after that their allocation is left alone.
+watch(
+  () => [refundTotal.value, refundMode.value],
+  () => {
+    if (refundTotal.value <= 0) {
+      refundSplits.value = []
+      return
+    }
+    if (refundSplits.value.length <= 1) {
+      refundSplits.value = [
+        {
+          mode_of_payment: refundMode.value || refundModes.value[0],
+          amount: refundTotal.value.toFixed(2),
+          reference_no: refundSplits.value[0]?.reference_no || '',
+        },
+      ]
+    }
+  },
+  { immediate: true }
+)
+
+function addSplit() {
+  const left = Math.max(refundTotal.value - splitTotal.value, 0)
+  refundSplits.value.push({
+    mode_of_payment: refundMode.value || refundModes.value[0],
+    amount: left ? left.toFixed(2) : '',
+    reference_no: '',
+  })
+}
 const allowedModes = ref(null) // null = no restriction; else array from the server
 const reason = ref(null)
 const otherReason = ref('')
@@ -356,6 +422,15 @@ async function submit() {
       items,
       serials,
       refund_mode: refundMode.value,
+      refund_payments: JSON.stringify(
+        refundSplits.value
+          .filter((r) => r.mode_of_payment && (parseMoney(r.amount) || 0) > 0)
+          .map((r) => ({
+            mode_of_payment: r.mode_of_payment,
+            amount: parseMoney(r.amount),
+            reference_no: r.reference_no || null,
+          }))
+      ),
       return_reason: reasonValue.value,
       return_request: returnRequest.value,
       // The return posts on the outlet HANDLING it, not the one that sold —
@@ -373,6 +448,12 @@ async function submit() {
 </script>
 
 <style scoped>
+.refund-split { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.rs-mode { flex: 1; min-width: 120px; }
+.rs-amt { width: 110px; }
+.rs-ref { flex: 1; min-width: 110px; }
+.rs-foot { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.rs-foot .neg { color: var(--red, #e23030); font-weight: 700; }
 .return-row {
   display: flex;
   align-items: center;
