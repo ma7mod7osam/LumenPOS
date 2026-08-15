@@ -137,6 +137,15 @@ async function sendRequest() {
       customer: cart.customer?.name || null,
       customer_name: cart.customer?.customer_name || null,
       cart_total: cart.total,
+      // What is actually being discounted — an approver was otherwise asked to
+      // approve a percentage with no idea what it applied to.
+      details: cart.lines
+        .map(
+          (l) =>
+            l.qty + ' x ' + l.item_name +
+            (l.manual_discount_percent ? ' (-' + l.manual_discount_percent + '%)' : '')
+        )
+        .join(String.fromCharCode(10)),
     })
     requestName.value = res.name
     phase.value = 'waiting'

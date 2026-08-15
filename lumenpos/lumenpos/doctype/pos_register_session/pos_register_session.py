@@ -28,3 +28,34 @@ class POSRegisterSession(Document):
                         self.pos_profile, existing.name
                     )
                 )
+
+    def on_cancel(self):
+        self._cancel_opening_entry()
+
+    def on_trash(self):
+        # Deleting a shift that handled cash would leave its movements and its
+        # native opening entry dangling with no way to reconcile them.
+        if self.get("cash_movements"):
+            frappe.throw(
+                _("Shift {0} recorded cash movements and can't be deleted. Cancel it instead.").format(self.name)
+            )
+        self._cancel_opening_entry()
+
+    def _cancel_opening_entry(self):
+        """Cancel the native POS Opening Entry this shift created, so cancelling
+        or deleting the shift never leaves an orphan "Open" entry behind — that
+        orphan is exactly what used to make the next cashier resume a dead
+        shift."""
+        name = self.get("pos_opening_entry")
+        if not name or not frappe.db.exists("POS Opening Entry", name):
+            return
+        try:
+            entry = frappe.get_doc("POS Opening Entry", name)
+            if entry.docstatus == 1:
+                entry.flags.ignore_permissions = True
+                entry.cancel()
+        except Exception:
+            frappe.log_error(
+                title="LumenPOS: could not cancel POS Opening Entry",
+                message=frappe.get_traceback(),
+            )

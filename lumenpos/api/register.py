@@ -476,6 +476,16 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
             },
         )
 
+    # Nothing unconfirmed survives the shift: void pending / approved-but-unused
+    # approval requests BEFORE the flip, so none can be spent on the next shift.
+    try:
+        from lumenpos.api import approval_requests
+
+        approval_requests.expire_session_requests(doc.name)
+    except Exception:
+        frappe.log_error(title="LumenPOS: expiring shift requests failed",
+                         message=frappe.get_traceback())
+
     doc.status = "Closing"
     doc.closed_at = now_datetime()
     doc.closing_started_at = now_datetime()

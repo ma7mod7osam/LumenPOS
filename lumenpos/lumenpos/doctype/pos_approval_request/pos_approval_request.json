@@ -20,6 +20,7 @@
   "return_invoice",
   "invoice_age_days",
   "reason",
+  "request_details",
   "decision_section",
   "status",
   "approved_by",
@@ -180,6 +181,13 @@
    "fieldtype": "Small Text",
    "label": "Decision Note",
    "read_only": 1
+  },
+  {
+   "fieldname": "request_details",
+   "fieldtype": "Small Text",
+   "label": "What is being approved",
+   "read_only": 1,
+   "description": "Cart lines / invoice summary captured when the request was raised."
   }
  ],
  "index_web_pages_for_search": 0,

@@ -223,6 +223,11 @@ async function sendReturnRequest() {
       reason: reasonValue.value || null,
       customer: customer.value || null,
       customer_name: customerName.value || null,
+      // What is actually being returned, so the approver can judge it.
+      details: returnable.value
+        .filter((r) => (quantities.value[r.item_code] || 0) > 0)
+        .map((r) => quantities.value[r.item_code] + ' x ' + r.item_name)
+        .join(String.fromCharCode(10)),
     })
     reqName.value = res.name
     reqPhase.value = 'waiting'

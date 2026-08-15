@@ -28,6 +28,7 @@
               </div>
               <div v-if="r.customer_name" class="muted">{{ t('Customer') }}: {{ r.customer_name }}</div>
               <div v-if="r.reason" class="reason">"{{ r.reason }}"</div>
+              <pre v-if="r.request_details" class="req-details">{{ r.request_details }}</pre>
             </div>
             <div class="req-actions">
               <button class="btn btn-outline danger" :disabled="busy === r.name" @click="reject(r)">
@@ -137,6 +138,17 @@ onUnmounted(() => clearInterval(timer))
 .headline { font-size: 18px; font-weight: 800; margin: 2px 0; }
 .req-meta { font-size: 13px; line-height: 1.5; }
 .reason { font-style: italic; color: var(--text-muted); margin-top: 4px; }
+.req-details {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  background: var(--surface-2, rgba(0,0,0,0.05));
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+}
 .req-actions {
   display: flex;
   justify-content: flex-end;

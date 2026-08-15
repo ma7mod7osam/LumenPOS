@@ -67,9 +67,14 @@ def create_request(
     discount_percent=0,
     cart_total=0,
     return_invoice=None,
+    details=None,
 ):
     """Cashier drops an approval request tied to the open register session.
-    request_type is 'Discount' or 'Return'. Returns {name, status}."""
+    request_type is 'Discount' or 'Return'. Returns {name, status}.
+
+    `details` is a short human-readable summary of WHAT is being approved (the
+    cart lines, or the invoice being returned). Without it an approver was being
+    asked to approve a discount without seeing what was discounted."""
     request_type = (request_type or "").strip().title()
     if request_type not in REQUEST_TYPES:
         frappe.throw(_("Unknown request type {0}").format(request_type))
@@ -125,6 +130,7 @@ def create_request(
             "return_invoice": return_invoice if request_type == "Return" else None,
             "invoice_age_days": age,
             "reason": (reason or "").strip() or None,
+            "request_details": (details or "")[:2000] or None,
             "status": "Pending",
         }
     )
@@ -179,7 +185,7 @@ def pending_requests(pos_profile=None):
         fields=[
             "name", "request_type", "register_session", "pos_profile", "cashier",
             "cashier_name", "customer_name", "discount_percent", "cart_total",
-            "return_invoice", "invoice_age_days", "reason", "creation",
+            "return_invoice", "invoice_age_days", "reason", "request_details", "creation",
         ],
         order_by="creation asc",
         limit_page_length=50,
@@ -280,3 +286,30 @@ def consume(request_name, invoice_name):
     doc.consumed = 1
     doc.invoice = invoice_name
     doc.save(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def expire_session_requests(session_name):
+    """Void every request on a shift that is closing — Pending AND
+    Approved-but-unused.
+
+    The rule: nothing unconfirmed survives the shift. An approval left over from
+    a closed shift could otherwise be spent on the next one, against a drawer and
+    a cashier it was never granted for."""
+    if not session_name:
+        return 0
+    rows = frappe.get_all(
+        REQUEST_DOCTYPE,
+        filters={"register_session": session_name, "status": ["in", ["Pending", "Approved"]]},
+        fields=["name", "status", "consumed"],
+    )
+    voided = 0
+    for row in rows:
+        if row.status == "Approved" and row.consumed:
+            continue  # already spent on a sale — leave the audit trail intact
+        try:
+            frappe.db.set_value(REQUEST_DOCTYPE, row.name, "status", "Expired")
+            voided += 1
+        except Exception:
+            pass
+    return voided
