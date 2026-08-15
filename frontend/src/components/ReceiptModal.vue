@@ -27,6 +27,15 @@
         >
           {{ t('Refund…') }}
         </button>
+        <!-- Refunds live in History (one money-flow path) — jump there with
+             this sale already open rather than duplicating the flow here. -->
+        <button
+          v-if="showOpenInHistory && !receipt.offline"
+          class="btn btn-outline"
+          @click="$emit('open-in-history', receipt.name)"
+        >
+          {{ t('Open in History') }}
+        </button>
         <button
           v-if="session.settings.enable_email_receipt && !receipt.offline"
           class="btn btn-outline"
@@ -56,10 +65,11 @@ import { money } from '../format'
 import { t } from '../i18n'
 
 const props = defineProps({
+  showOpenInHistory: { type: Boolean, default: false },
   receipt: Object,
   canRefund: { type: Boolean, default: false },
 })
-defineEmits(['close', 'refund'])
+defineEmits(['close', 'refund', 'open-in-history'])
 
 const session = useSessionStore()
 const printing = ref(false)

@@ -1121,4 +1121,5 @@ export const messages = {
   "Require reference": "طلب مرجع",
   "Label, e.g. Approval code": "التسمية، مثل: رقم الموافقة",
   "Add a payment rule": "إضافة قاعدة دفع",
+  "Open in History": "فتح في السجل",
 }

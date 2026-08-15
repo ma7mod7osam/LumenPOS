@@ -150,6 +150,7 @@
 <script setup>
 import Icon from '../components/Icon.vue'
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
 import { money, shortTime } from '../format'
@@ -213,7 +214,23 @@ const activeFilterCount = computed(() => {
   return count
 })
 
-onMounted(load)
+const route = useRoute()
+
+// Deep link from a customer's transaction list: /history?invoice=XYZ — one
+// money-flow path (refunds live here), rather than duplicating the refund flow
+// into the Customers screen.
+onMounted(async () => {
+  const invoice = route.query.invoice
+  if (invoice) {
+    filters.value.search = String(invoice)
+    profileFilter.value = '__all__' // the sale may belong to another outlet
+    await load()
+    const hit = sales.value.find((r) => r.name === invoice) || sales.value[0]
+    if (hit) openReceipt(hit)
+    return
+  }
+  load()
+})
 
 function debouncedLoad() {
   clearTimeout(timer)

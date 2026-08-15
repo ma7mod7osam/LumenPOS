@@ -115,13 +115,21 @@
       </template>
     </section>
 
-    <ReceiptModal v-if="receipt" :receipt="receipt" :can-refund="false" @close="receipt = null" />
+    <ReceiptModal
+      v-if="receipt"
+      :receipt="receipt"
+      :can-refund="false"
+      show-open-in-history
+      @open-in-history="openInHistory"
+      @close="receipt = null"
+    />
   </div>
 </template>
 
 <script setup>
 import Icon from '../components/Icon.vue'
 import ReceiptModal from '../components/ReceiptModal.vue'
+import { useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
@@ -261,6 +269,16 @@ async function loadMoreTxns() {
   } finally {
     loadingTxns.value = false
   }
+}
+
+const router = useRouter()
+
+// Refunds happen in History (one money-flow path) — jump there with this sale
+// already open instead of duplicating the refund flow here.
+function openInHistory() {
+  const name = receipt.value?.name
+  receipt.value = null
+  if (name) router.push({ path: '/history', query: { invoice: name } })
 }
 
 async function openReceipt(tx) {
