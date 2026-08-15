@@ -115,11 +115,16 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
         frappe.throw(_("You are not permitted to open a register"), frappe.PermissionError)
 
     # 1) This register must have no live shift (Open or still-finalising Closing).
+    # In "Per cashier" scope the shift belongs to the individual, so the check is
+    # scoped to this user — several cashiers can trade on one counter, each with
+    # their own drawer and Z-report.
+    from lumenpos.api.session import shift_scope
+
+    live_filters = {"pos_profile": profile.name, "status": ["in", LIVE_STATES]}
+    if shift_scope() == "Per cashier":
+        live_filters["opened_by"] = frappe.session.user
     existing = frappe.db.get_value(
-        "POS Register Session",
-        {"pos_profile": profile.name, "status": ["in", LIVE_STATES]},
-        ["name", "status"],
-        as_dict=True,
+        "POS Register Session", live_filters, ["name", "status"], as_dict=True
     )
     if existing:
         if existing.status == "Open":
@@ -208,6 +213,68 @@ def _create_fresh_session(profile, opening_float, bypass_live_guard=False):
     sess.insert()
     _audit_register("open", sess.name, profile.name, opening_float)
     return get_open_session(profile.name)
+
+
+def _role_emails(role):
+    """Enabled users holding a role, with an email address."""
+    if not role:
+        return []
+    users = frappe.get_all("Has Role", filters={"role": role}, pluck="parent")
+    if not users:
+        return []
+    return frappe.get_all(
+        "User",
+        filters={"name": ["in", list(set(users))], "enabled": 1},
+        pluck="email",
+    )
+
+
+def _maybe_alert_variance(doc):
+    """Email a role when a counted drawer differs from expected by more than the
+    threshold. RECORD AND NOTIFY — never an approval gate: a close must not be
+    blocked waiting for a manager, and a shift left open is worse than a
+    variance. Entirely best-effort; a mail failure only logs."""
+    try:
+        settings = frappe.get_cached_doc("LumenPOS Settings")
+        if not settings.get("variance_alert_enabled"):
+            return
+        threshold = flt(settings.get("variance_alert_threshold"))
+        role = settings.get("variance_alert_role")
+        recipients = _role_emails(role)
+        if not recipients:
+            return
+        rows = [
+            r for r in (doc.get("payment_counts") or [])
+            if abs(flt(r.difference)) > threshold
+        ]
+        if not rows:
+            return
+        cells = "".join(
+            f"<tr><td>{frappe.utils.escape_html(r.mode_of_payment or '')}</td>"
+            f"<td align='right'>{flt(r.expected_amount):,.2f}</td>"
+            f"<td align='right'>{flt(r.counted_amount):,.2f}</td>"
+            f"<td align='right'><b>{flt(r.difference):,.2f}</b></td></tr>"
+            for r in rows
+        )
+        frappe.sendmail(
+            recipients=recipients,
+            subject=_("Cash variance on {0} ({1})").format(doc.pos_profile, doc.name),
+            message=(
+                f"<p>{_('A register closed with a counted difference over the alert threshold.')}</p>"
+                f"<p><b>{_('Outlet')}:</b> {frappe.utils.escape_html(doc.pos_profile or '')}<br>"
+                f"<b>{_('Shift')}:</b> {doc.name}<br>"
+                f"<b>{_('Opened by')}:</b> {frappe.utils.escape_html(doc.opened_by or '')}<br>"
+                f"<b>{_('Closed by')}:</b> {frappe.utils.escape_html(frappe.session.user)}</p>"
+                "<table border='1' cellpadding='6' cellspacing='0'>"
+                f"<tr><th>{_('Payment')}</th><th>{_('Expected')}</th>"
+                f"<th>{_('Counted')}</th><th>{_('Difference')}</th></tr>"
+                f"{cells}</table>"
+            ),
+        )
+    except Exception:
+        frappe.log_error(
+            title="LumenPOS variance alert failed", message=frappe.get_traceback()
+        )
 
 
 def _force_new_after_failure(profile, opening_float, stuck_session):
@@ -423,6 +490,9 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
     # nor resumable, whatever happens to the consolidation next. Intentional —
     # the state must survive even if the consolidation step below fails.
     frappe.db.commit()  # nosemgrep
+
+    # AFTER the flip is committed: an email hiccup must never undo a close.
+    _maybe_alert_variance(doc)
 
     if doc.get("pos_opening_entry"):
         _enqueue_consolidation(doc.name, counted)

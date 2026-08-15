@@ -612,11 +612,28 @@ def _lock_open_session(session_name):
 
 
 def _open_session(pos_profile):
-    from lumenpos.api.session import get_open_session
+    """THE chokepoint for every sale, return and gift-card sale — so the
+    shift-ownership rule is enforced here once, for all of them."""
+    from lumenpos.api.session import get_open_session, shift_scope
 
     session = get_open_session(pos_profile)
     if not session:
         frappe.throw(_("No open register session. Open the register first."))
+    # "Per cashier" scope: the takings land in the drawer of whoever OPENED the
+    # shift, so only that cashier may ring one up. Deliberately no manager
+    # bypass — selling is operational, not supervisory (supervision, i.e. cash
+    # in/out and closing, keeps its own owner-or-manager check). Handover is
+    # close + reopen, which is instant.
+    if shift_scope() == "Per cashier":
+        owner = session.get("opened_by")
+        if owner and owner != frappe.session.user:
+            frappe.throw(
+                _(
+                    "This shift belongs to {0}. Only the cashier who opened the register "
+                    "can sell on it — close that shift and open your own."
+                ).format(frappe.utils.get_fullname(owner)),
+                frappe.PermissionError,
+            )
     return session
 
 

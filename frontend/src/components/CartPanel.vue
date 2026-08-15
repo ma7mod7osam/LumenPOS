@@ -172,7 +172,7 @@
       </button>
       <button
         class="btn btn-outline"
-        :disabled="session.offline || !session.registerOpen || session.permissions.sell === false"
+        :disabled="session.offline || !session.registerOpen || session.permissions.sell === false || !!session.sellBlockedBy"
         :title="t('Sell a gift card')"
         @click="giftCardOpen = true"
       >
@@ -181,7 +181,7 @@
     </div>
     <button
       class="btn btn-primary btn-lg pay"
-      :disabled="!cart.lines.length || !session.registerOpen || session.permissions.sell === false"
+      :disabled="!cart.lines.length || !session.registerOpen || session.permissions.sell === false || !!session.sellBlockedBy"
       :title="session.permissions.sell === false ? t('You do not have permission to make sales') : ''"
       @click="$emit('pay')"
     >

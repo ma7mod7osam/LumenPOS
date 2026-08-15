@@ -76,6 +76,10 @@ def get_settings():
         "default_price_list": _default_selling_price_list(),
         "protected_price_lists": sorted(_protected_price_lists()),
         "offline_stock_only": doc.get("offline_stock_only") or 0,
+        "shift_scope": doc.get("shift_scope") or "Per outlet",
+        "variance_alert_enabled": 1 if doc.get("variance_alert_enabled") else 0,
+        "variance_alert_threshold": flt(doc.get("variance_alert_threshold")),
+        "variance_alert_role": doc.get("variance_alert_role") or "",
         "show_out_of_stock": doc.get("show_out_of_stock") or 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
         "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
@@ -173,6 +177,10 @@ def save_settings(payload):
         payload = json.loads(payload)
     doc = frappe.get_doc("LumenPOS Settings")
     doc.offline_stock_only = 1 if payload.get("offline_stock_only") else 0
+    doc.shift_scope = payload.get("shift_scope") or "Per outlet"
+    doc.variance_alert_enabled = 1 if payload.get("variance_alert_enabled") else 0
+    doc.variance_alert_threshold = flt(payload.get("variance_alert_threshold"))
+    doc.variance_alert_role = payload.get("variance_alert_role") or None
     doc.show_out_of_stock = 1 if payload.get("show_out_of_stock") else 0
     doc.serial_scan_only = 1 if payload.get("serial_scan_only") else 0
     doc.enable_order_discount = 1 if payload.get("enable_order_discount") else 0

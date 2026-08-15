@@ -264,6 +264,7 @@ def _client_settings(profile_name=None):
         "return_window_days": cint(doc.get("return_window_days")) or 0,
         "show_out_of_stock": 1 if doc.get("show_out_of_stock") else 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
+        "shift_scope": doc.get("shift_scope") or "Per outlet",
         "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
         "enable_service_charge": 1 if doc.get("enable_service_charge") else 0,
         "service_charge_percent": flt(doc.get("service_charge_percent")),
@@ -376,10 +377,24 @@ def check_coupon(pos_profile, code):
     frappe.throw(_("Invalid or expired coupon code"))
 
 
-def get_open_session(pos_profile):
-    name = frappe.db.get_value(
-        "POS Register Session", {"pos_profile": pos_profile, "status": "Open"}, "name"
-    )
+def shift_scope():
+    """"Per outlet" (default) — ONE shift per register; any assigned cashier
+    sells on it. "Per cashier" — each cashier opens their OWN shift on that
+    register and sells only on their own, so several people can share one
+    counter and each still gets their own Z-report and drawer accountability."""
+    try:
+        return (
+            frappe.db.get_single_value("LumenPOS Settings", "shift_scope") or "Per outlet"
+        )
+    except Exception:
+        return "Per outlet"
+
+
+def get_open_session(pos_profile, user=None):
+    filters = {"pos_profile": pos_profile, "status": "Open"}
+    if shift_scope() == "Per cashier":
+        filters["opened_by"] = user or frappe.session.user
+    name = frappe.db.get_value("POS Register Session", filters, "name")
     if not name:
         return None
     doc = frappe.get_doc("POS Register Session", name)

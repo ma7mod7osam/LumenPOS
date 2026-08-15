@@ -1,5 +1,10 @@
 ﻿<template>
   <div class="sell">
+    <!-- "Per cashier" shift scope: the drawer belongs to whoever opened it. -->
+    <div v-if="session.sellBlockedBy" class="shift-owner-banner">
+      <Icon name="warning" />
+      {{ t('This shift belongs to {name}. Close it and open your own to sell.', { name: session.sellBlockedBy }) }}
+    </div>
     <section class="catalog">
       <div class="search-row">
         <div class="search-box">
@@ -341,6 +346,16 @@ function onDiscountApproved(result) {
 </script>
 
 <style scoped>
+.shift-owner-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(226, 48, 48, 0.12);
+  color: #c23434;
+  font-weight: 700;
+  font-size: 13px;
+}
 .sell {
   flex: 1;
   display: flex;

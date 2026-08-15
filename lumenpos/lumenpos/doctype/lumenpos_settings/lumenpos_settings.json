@@ -9,6 +9,10 @@
   "offline_stock_only",
   "show_out_of_stock",
   "serial_scan_only",
+  "shift_scope",
+  "variance_alert_enabled",
+  "variance_alert_threshold",
+  "variance_alert_role",
   "companies_section",
   "company_settings",
   "profile_receipts_section",
@@ -524,6 +528,36 @@
    "fieldname": "receipt_terms",
    "fieldtype": "Small Text",
    "label": "Terms & conditions"
+  },
+  {
+   "default": "Per outlet",
+   "description": "Per outlet: ONE shift per register — whoever opens it, any assigned cashier can sell on it (default; how LumenPOS has always worked). Per cashier: each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer.",
+   "fieldname": "shift_scope",
+   "fieldtype": "Select",
+   "label": "A shift belongs to",
+   "options": "Per outlet\nPer cashier"
+  },
+  {
+   "default": "0",
+   "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies — it never blocks the close.",
+   "fieldname": "variance_alert_enabled",
+   "fieldtype": "Check",
+   "label": "Email an alert on a large closing variance"
+  },
+  {
+   "default": "0",
+   "depends_on": "variance_alert_enabled",
+   "description": "Absolute difference (over or short) on any payment method that triggers the email.",
+   "fieldname": "variance_alert_threshold",
+   "fieldtype": "Currency",
+   "label": "Variance threshold"
+  },
+  {
+   "depends_on": "variance_alert_enabled",
+   "fieldname": "variance_alert_role",
+   "fieldtype": "Link",
+   "label": "Notify role",
+   "options": "Role"
   }
  ],
  "index_web_pages_for_search": 0,

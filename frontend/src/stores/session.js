@@ -88,6 +88,14 @@ export const useSessionStore = defineStore('session', {
 
   getters: {
     registerOpen: (s) => Boolean(s.registerSession),
+    // "Per cashier" scope: the takings land in the drawer of whoever OPENED the
+    // shift, so only they may ring one up (no manager bypass — handover is
+    // close + reopen). Empty when the shift is the outlet's.
+    sellBlockedBy: (s) => {
+      if ((s.settings?.shift_scope || 'Per outlet') !== 'Per cashier') return ''
+      const owner = s.registerSession?.opened_by
+      return owner && owner !== s.user ? owner : ''
+    },
     // Cashier-facing return reasons (configured in Settings → Return Reasons).
     returnReasons: (s) => s.settings?.return_reasons || [],
     // Over-limit discount approval flow (Settings → Discount Approval).

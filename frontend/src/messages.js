@@ -1094,4 +1094,16 @@ export const messages = {
   "Open with an opening float of 0.00? Confirm the drawer is empty.":
     "الفتح برصيد افتتاحي 0.00؟ أكّد أن الدرج فارغ.",
   "Enter the amount as a number, e.g. 250 or 250.50": "أدخل المبلغ كرقم، مثل 250 أو 250.50",
+  "A shift belongs to": "الوردية تخص",
+  "The outlet — one shift per register, any cashier sells on it": "الفرع — وردية واحدة لكل صندوق، ويبيع عليها أي كاشير",
+  "The cashier — each opens their own shift and sells only on it": "الكاشير — يفتح كل واحد ورديته ويبيع عليها فقط",
+  "Per cashier lets several people share one counter, each with their own drawer and Z-report.":
+    "خيار \"الكاشير\" يتيح لعدة أشخاص مشاركة نفس الصندوق، ولكل منهم درجه وتقرير Z الخاص به.",
+  "Email an alert on a large closing variance": "إرسال تنبيه بالبريد عند فرق إغلاق كبير",
+  "Records and notifies — it never blocks the close.": "يسجّل ويُنبّه — ولا يمنع الإغلاق أبدًا.",
+  "Variance threshold": "حد الفرق",
+  "Notify role": "إشعار الدور",
+  "e.g. LumenPOS Manager": "مثال: LumenPOS Manager",
+  "This shift belongs to {name}. Close it and open your own to sell.":
+    "هذه الوردية تخص {name}. أغلقها وافتح ورديتك للبيع.",
 }

@@ -756,6 +756,31 @@
       <div class="sec-card">
         <div class="sec-title"><Icon name="store" /> {{ t('Register & Offline') }}</div>
         <div class="setting-list">
+          <label class="field span-2" style="display:block; margin-bottom: 10px">
+            <span class="setting-title">{{ t('A shift belongs to') }}</span>
+            <select v-model="generalForm.shift_scope" class="cf-in" style="width: 100%; margin-top: 4px">
+              <option value="Per outlet">{{ t('The outlet — one shift per register, any cashier sells on it') }}</option>
+              <option value="Per cashier">{{ t('The cashier — each opens their own shift and sells only on it') }}</option>
+            </select>
+            <span class="setting-desc">{{ t('Per cashier lets several people share one counter, each with their own drawer and Z-report.') }}</span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.variance_alert_enabled" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Email an alert on a large closing variance') }}</span>
+              <span class="setting-desc">{{ t('Records and notifies — it never blocks the close.') }}</span>
+            </span>
+          </label>
+          <div v-if="generalForm.variance_alert_enabled" class="field-grid" style="margin: 6px 0 12px">
+            <label class="field">
+              <span>{{ t('Variance threshold') }}</span>
+              <input type="number" min="0" step="0.01" v-model.number="generalForm.variance_alert_threshold" />
+            </label>
+            <label class="field">
+              <span>{{ t('Notify role') }}</span>
+              <LinkPicker doctype="Role" v-model="generalForm.variance_alert_role" :placeholder="t('e.g. LumenPOS Manager')" />
+            </label>
+          </div>
           <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.offline_stock_only" :true-value="1" :false-value="0" />
             <span class="setting-text">
@@ -1453,6 +1478,10 @@ const generalForm = ref({
   restrict_returns_to_window: 0,
   return_window_days: 14,
   offline_stock_only: 0,
+  shift_scope: 'Per outlet',
+  variance_alert_enabled: 0,
+  variance_alert_threshold: 0,
+  variance_alert_role: '',
   show_out_of_stock: 0,
   serial_scan_only: 0,
   enable_order_discount: 1,
@@ -1752,6 +1781,10 @@ async function load() {
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,
     offline_stock_only: info.offline_stock_only || 0,
+    shift_scope: info.shift_scope || 'Per outlet',
+    variance_alert_enabled: info.variance_alert_enabled || 0,
+    variance_alert_threshold: info.variance_alert_threshold || 0,
+    variance_alert_role: info.variance_alert_role || '',
     show_out_of_stock: info.show_out_of_stock || 0,
     serial_scan_only: info.serial_scan_only || 0,
     enable_order_discount: info.enable_order_discount ?? 1,
