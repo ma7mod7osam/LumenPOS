@@ -44,12 +44,30 @@
                 <template v-if="!m.is_stock_item">{{ t('Non-stock') }}</template>
                 <template v-else>
                   {{ t('{qty} in stock', { qty: fmtQty(m.stock_here) }) }}
-                  <span v-if="m.stock_total !== m.stock_here" class="muted">
+                  <!-- "Do you have it at the other branch?" answered here
+                       instead of by phoning around. -->
+                  <button
+                    v-if="m.stock_total !== m.stock_here"
+                    class="pc-where"
+                    @click.stop="toggleWarehouses(m)"
+                  >
                     · {{ t('{qty} all stores', { qty: fmtQty(m.stock_total) }) }}
-                  </span>
+                    <span class="pc-caret">{{ openFor === m.item_code ? '▴' : '▾' }}</span>
+                  </button>
                 </template>
               </div>
             </div>
+            <ul v-if="openFor === m.item_code" class="pc-wh">
+              <li v-if="whLoading" class="muted small">{{ t('Loading…') }}</li>
+              <li v-for="w in warehouses" :key="w.warehouse" :class="{ here: w.is_here }">
+                <span>{{ w.warehouse }}<span v-if="w.is_here" class="pc-here-tag">{{ t('this store') }}</span></span>
+                <span>
+                  <b>{{ fmtQty(w.available_qty) }}</b>
+                  <span v-if="w.reserved_qty" class="muted small"> ({{ t('{qty} reserved', { qty: fmtQty(w.reserved_qty) }) }})</span>
+                </span>
+              </li>
+              <li v-if="!whLoading && !warehouses.length" class="muted small">{{ t('No other store has stock.') }}</li>
+            </ul>
           </li>
         </ul>
       </div>
@@ -73,6 +91,29 @@ const scanGuard = createScanGuard()
 const query = ref('')
 const lastQuery = ref('')
 const matches = ref([])
+const openFor = ref('')
+const warehouses = ref([])
+const whLoading = ref(false)
+
+async function toggleWarehouses(m) {
+  if (openFor.value === m.item_code) {
+    openFor.value = ''
+    return
+  }
+  openFor.value = m.item_code
+  warehouses.value = []
+  whLoading.value = true
+  try {
+    warehouses.value = await call('lumenpos.api.catalog.stock_by_warehouse', {
+      item_code: m.item_code,
+      pos_profile: session.posProfile,
+    })
+  } catch {
+    warehouses.value = []
+  } finally {
+    whLoading.value = false
+  }
+}
 const loading = ref(false)
 const searched = ref(false)
 const input = ref(null)
@@ -128,6 +169,33 @@ function stockClass(m) {
 </script>
 
 <style scoped>
+.pc-where {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.pc-where:hover { color: var(--brand); }
+.pc-caret { margin-inline-start: 2px; }
+.pc-wh {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  background: var(--surface-2, rgba(0,0,0,0.04));
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.pc-wh li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+.pc-wh li.here { font-weight: 700; }
+.pc-here-tag {
+  margin-inline-start: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--brand);
+}
 .price-check { width: 460px; max-width: 94vw; }
 .modal-header { display: flex; align-items: center; gap: 8px; }
 .close { margin-inline-start: auto; }

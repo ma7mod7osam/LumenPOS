@@ -220,11 +220,17 @@ function debouncedLoad() {
   timer = setTimeout(load, 300)
 }
 
+// Typing fires several searches. A slow EARLY one returning last used to wipe
+// the correct results, so each request carries a sequence number and only the
+// newest may write.
+let searchSeq = 0
+
 async function load() {
   if (session.offline) {
     loading.value = false
     return
   }
+  const seq = ++searchSeq
   loading.value = true
   try {
     // pos_profile is always sent (drives which backend table to read); a
@@ -235,11 +241,13 @@ async function load() {
     } else if (profileFilter.value) {
       payload.pos_profile = profileFilter.value
     }
-    sales.value = await call('lumenpos.api.sales.search_sales', { filters: payload })
+    const rows = await call('lumenpos.api.sales.search_sales', { filters: payload })
+    if (seq !== searchSeq) return // a newer search already answered
+    sales.value = rows
   } catch (e) {
-    session.notify(e.message, true)
+    if (seq === searchSeq) session.notify(e.message, true)
   } finally {
-    loading.value = false
+    if (seq === searchSeq) loading.value = false
   }
 }
 

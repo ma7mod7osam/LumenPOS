@@ -232,6 +232,48 @@ def _app_price_list(app_type):
 
 
 @frappe.whitelist()
+def stock_by_warehouse(item_code, pos_profile=None):
+    """Where else is this item in stock? Answers "do you have it at the other
+    branch?" at the counter instead of a phone call.
+
+    This-store-first, then the rest by quantity. Only warehouses in the same
+    company as the till are shown."""
+    if not frappe.has_permission("Bin", "read"):
+        return []
+    here = None
+    company = None
+    if pos_profile:
+        profile = frappe.get_cached_doc("POS Profile", pos_profile)
+        here, company = profile.get("warehouse"), profile.company
+    rows = frappe.get_all(
+        "Bin",
+        filters={"item_code": item_code},
+        fields=["warehouse", "actual_qty", "reserved_qty"],
+    )
+    out = []
+    for r in rows:
+        wh_company = frappe.get_cached_value("Warehouse", r.warehouse, "company")
+        if company and wh_company != company:
+            continue
+        actual = flt(r.actual_qty)
+        reserved = flt(r.reserved_qty)
+        if actual == 0 and reserved == 0:
+            continue
+        out.append(
+            {
+                "warehouse": r.warehouse,
+                "company": wh_company,
+                "actual_qty": actual,
+                "reserved_qty": reserved,
+                "available_qty": actual - reserved,
+                "is_here": 1 if r.warehouse == here else 0,
+            }
+        )
+    out.sort(key=lambda x: (-x["is_here"], -x["available_qty"]))
+    return out
+
+
+@frappe.whitelist()
 def price_check(pos_profile, query):
     """Look up an item's live price + stock WITHOUT adding it to a sale
     (Settings → Features → Price / stock checker). Matches a barcode, serial,

@@ -1109,4 +1109,7 @@ export const messages = {
   "Allow refunding to Store Credit": "السماح بالاسترداد كرصيد للعميل",
   "Off = money back only. Credit the customer actually spent on that sale can always go back to credit.":
     "إيقاف = استرداد نقدي فقط. أما الرصيد الذي أنفقه العميل فعليًا في تلك الفاتورة فيمكن دائمًا إعادته كرصيد.",
+  "this store": " (هذا الفرع)",
+  "{qty} reserved": "{qty} محجوز",
+  "No other store has stock.": "لا يوجد مخزون في فرع آخر.",
 }

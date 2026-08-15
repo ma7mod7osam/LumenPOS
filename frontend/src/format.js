@@ -4,15 +4,29 @@ export function setCurrency(code) {
   if (code) currency = code
 }
 
+// Unicode isolate: on an RTL page a bare amount is re-ordered by the bidi
+// algorithm — a refund's minus sign migrates to the wrong end of the number
+// ("‎-25.00 SAR" rendering as "25.00 SAR-"). Wrapping each amount in FSI…PDI
+// isolates it from the surrounding text so it always reads correctly.
+const FSI = '⁨'
+const PDI = '⁩'
+
+export function isolate(text) {
+  const s = String(text ?? '')
+  return s ? `${FSI}${s}${PDI}` : s
+}
+
 export function money(amount) {
+  let formatted
   try {
-    return new Intl.NumberFormat(undefined, {
+    formatted = new Intl.NumberFormat(undefined, {
       style: 'currency',
       currency,
     }).format(amount || 0)
   } catch {
-    return `${currency} ${(amount || 0).toFixed(2)}`
+    formatted = `${currency} ${(amount || 0).toFixed(2)}`
   }
+  return isolate(formatted)
 }
 
 // Human-friendly warranty length from a number of days.

@@ -408,7 +408,15 @@ def get_open_session(pos_profile, user=None):
 
 
 def _default_pos_profile():
+    """Prefer an outlet this user already has a LIVE shift on — otherwise a
+    manager (or anyone on several outlets) lands on an arbitrary assignment row
+    while their open register sits somewhere else."""
     user = frappe.session.user
+    live = frappe.db.get_value(
+        "POS Register Session", {"opened_by": user, "status": "Open"}, "pos_profile"
+    )
+    if live:
+        return live
     name = frappe.db.get_value(
         "POS Profile User", {"user": user, "parenttype": "POS Profile"}, "parent"
     )
@@ -443,7 +451,16 @@ def _other_open_registers(current_profile):
 
 
 def _user_profiles():
+    """Outlets this user may operate. A MANAGER sees every enabled outlet — they
+    supervise the shop, and being stranded on one arbitrary assignment row (or on
+    none at all) left them unable to help a branch that needed them."""
     user = frappe.session.user
+    from lumenpos.api import permissions
+
+    if permissions.is_manager():
+        return sorted(
+            frappe.get_all("POS Profile", filters={"disabled": 0}, pluck="name")
+        )
     names = frappe.get_all(
         "POS Profile User",
         filters={"user": user, "parenttype": "POS Profile"},
