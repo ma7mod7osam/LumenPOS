@@ -1111,6 +1111,13 @@
               <span class="setting-desc">{{ t('A sale can only be refunded to a method the customer actually paid with (Store Credit is always allowed). Add exceptions below.') }}</span>
             </span>
           </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.allow_store_credit_refund" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Allow refunding to Store Credit') }}</span>
+              <span class="setting-desc">{{ t('Off = money back only. Credit the customer actually spent on that sale can always go back to credit.') }}</span>
+            </span>
+          </label>
         </div>
         <template v-if="generalForm.restrict_refund_to_paid_mode">
           <p class="muted hint-row" style="padding: 10px 0 0">
@@ -1520,6 +1527,7 @@ const generalForm = ref({
   gift_card_account: '',
   gift_card_item: '',
   restrict_refund_to_paid_mode: 1,
+  allow_store_credit_refund: 1,
   refund_rules: [],
   return_reasons: [],
   approvers: [],

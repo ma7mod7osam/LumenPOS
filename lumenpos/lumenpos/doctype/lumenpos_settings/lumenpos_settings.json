@@ -25,6 +25,7 @@
   "refunds_section",
   "restrict_refund_to_paid_mode",
   "refund_rules",
+  "allow_store_credit_refund",
   "returns_section",
   "restrict_returns_to_window",
   "return_window_days",
@@ -558,6 +559,13 @@
    "fieldtype": "Link",
    "label": "Notify role",
    "options": "Role"
+  },
+  {
+   "default": "1",
+   "description": "Allow a refund to be parked on the customer's Store Credit instead of handing money back. Turn OFF if shop policy is money-back only. Note: credit the customer actually SPENT on that sale can always be returned to credit (capped at what they spent) — otherwise a credit-paid sale would have no refund method at all.",
+   "fieldname": "allow_store_credit_refund",
+   "fieldtype": "Check",
+   "label": "Allow refunding to Store Credit"
   }
  ],
  "index_web_pages_for_search": 0,

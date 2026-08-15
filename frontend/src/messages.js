@@ -1106,4 +1106,7 @@ export const messages = {
   "e.g. LumenPOS Manager": "مثال: LumenPOS Manager",
   "This shift belongs to {name}. Close it and open your own to sell.":
     "هذه الوردية تخص {name}. أغلقها وافتح ورديتك للبيع.",
+  "Allow refunding to Store Credit": "السماح بالاسترداد كرصيد للعميل",
+  "Off = money back only. Credit the customer actually spent on that sale can always go back to credit.":
+    "إيقاف = استرداد نقدي فقط. أما الرصيد الذي أنفقه العميل فعليًا في تلك الفاتورة فيمكن دائمًا إعادته كرصيد.",
 }

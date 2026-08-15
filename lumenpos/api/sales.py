@@ -1643,6 +1643,14 @@ def get_returnable(invoice):
             returned[row.item_code] = abs(flt(row.qty))
 
     sold_serials = _sold_serials(doc)
+    # Which serials have ALREADY come back on a prior credit note — read from our
+    # own return documents, not from Serial No.status.
+    #
+    # ERPNext v15 routes serials through the Serial and Batch Bundle and no
+    # longer reliably marks a sold serial "Delivered", so keying returnability
+    # off that status made every serialized item show NOTHING to pick — the item
+    # was un-returnable at the till. Our own records are authoritative here.
+    already_returned = _returned_serials(doctype, return_names)
     items = []
     for row in doc.items:
         already = min(returned.get(row.item_code, 0), row.qty)
@@ -1650,11 +1658,9 @@ def get_returnable(invoice):
         has_serial = frappe.get_cached_value("Item", row.item_code, "has_serial_no")
         returnable_serials = []
         if has_serial:
-            # A sold serial is returnable while its status is still Delivered
-            # (a prior return flips it back to Active)
-            for serial in sold_serials.get(row.item_code, []):
-                if frappe.db.get_value("Serial No", serial, "status") == "Delivered":
-                    returnable_serials.append(serial)
+            returnable_serials = [
+                s for s in sold_serials.get(row.item_code, []) if s not in already_returned
+            ]
         items.append(
             {
                 "item_code": row.item_code,
@@ -1702,8 +1708,43 @@ def _allowed_refund_modes(original):
     for rule in settings.get("refund_rules") or []:
         if rule.paid_mode in paid and rule.refund_mode:
             allowed.add(rule.refund_mode)
-    allowed.add(store_credit.MODE_OF_PAYMENT)
+    # Refunding onto the customer's account used to be hard-wired as always
+    # allowed, so a cashier could park a refund on credit against shop policy.
+    # It's a switch now — with ONE carve-out: credit the customer actually SPENT
+    # on this sale can always go back to credit (capped at what they spent),
+    # because otherwise a credit-paid sale would have no refund method at all.
+    if settings.get("allow_store_credit_refund") or store_credit.MODE_OF_PAYMENT in paid:
+        allowed.add(store_credit.MODE_OF_PAYMENT)
     return sorted(allowed)
+
+
+def _returned_serials(doctype, return_names):
+    """Set of serials already returned on the given credit notes.
+
+    Batched on purpose: the previous approach asked Serial No for a status ONE
+    QUERY PER SERIAL, so a serialized invoice crawled. Two queries total now.
+    """
+    if not return_names:
+        return set()
+    out = set()
+    rows = frappe.get_all(
+        f"{doctype} Item",
+        filters={"parent": ["in", return_names]},
+        fields=["serial_no", "serial_and_batch_bundle"],
+    )
+    bundles = [r.serial_and_batch_bundle for r in rows if r.get("serial_and_batch_bundle")]
+    for r in rows:
+        if r.get("serial_no"):
+            out.update(s.strip() for s in str(r.serial_no).split("\n") if s.strip())
+    if bundles:
+        out.update(
+            frappe.get_all(
+                "Serial and Batch Entry",
+                filters={"parent": ["in", bundles]},
+                pluck="serial_no",
+            )
+        )
+    return {s for s in out if s}
 
 
 def _sold_serials(invoice_doc):
@@ -1849,6 +1890,14 @@ def create_return(
     if not return_doc.items:
         frappe.throw(_("Selected items were not found on the original sale"))
     sold = _sold_serials(original)
+    # Serials already returned on a previous credit note (our own record — see
+    # _returned_serials on why Serial No.status can't be trusted on v15).
+    prior_returns = frappe.get_all(
+        sale_doctype,
+        filters={"return_against": invoice, "docstatus": 1, "is_return": 1},
+        pluck="name",
+    )
+    already_returned = _returned_serials(sale_doctype, prior_returns)
     for row in return_doc.items:
         # Lines carry the ORIGINAL outlet's warehouse / cost center too — stock
         # would come back into the selling branch instead of the one taking it.
@@ -1860,7 +1909,11 @@ def create_return(
         if row.get("stock_qty"):
             row.stock_qty = row.qty * flt(row.conversion_factor or 1)
         row_serials = _validate_return_serials(
-            row.item_code, items[row.item_code], serials.get(row.item_code), sold
+            row.item_code,
+            items[row.item_code],
+            serials.get(row.item_code),
+            sold,
+            already_returned,
         )
         if row_serials:
             row.serial_and_batch_bundle = None
@@ -1962,9 +2015,14 @@ def _enforce_return_groups(returnable_items, items):
                 )
 
 
-def _validate_return_serials(item_code, qty, serial_nos, sold):
+def _validate_return_serials(item_code, qty, serial_nos, sold, already_returned=None):
     """STRICT: returning a serialized item requires picking exactly which
-    sold serials are coming back."""
+    sold serials are coming back.
+
+    `already_returned` is OUR record of serials that came back on a previous
+    credit note. It replaces a Serial No.status check: ERPNext v15 no longer
+    reliably marks a sold serial "Delivered", so that check rejected every
+    genuine serialized return."""
     if not frappe.get_cached_value("Item", item_code, "has_serial_no"):
         return []
     serial_list = [s.strip() for s in (serial_nos or []) if s and s.strip()]
@@ -1982,7 +2040,7 @@ def _validate_return_serials(item_code, qty, serial_nos, sold):
         seen.add(serial)
         if serial not in sold_for_item:
             frappe.throw(_("Serial {0} was not sold on this invoice").format(serial))
-        if frappe.db.get_value("Serial No", serial, "status") != "Delivered":
+        if already_returned and serial in already_returned:
             frappe.throw(_("Serial {0} was already returned").format(serial))
     return serial_list
 
