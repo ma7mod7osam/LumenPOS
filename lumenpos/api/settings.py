@@ -80,6 +80,10 @@ def get_settings():
         "variance_alert_enabled": 1 if doc.get("variance_alert_enabled") else 0,
         "variance_alert_threshold": flt(doc.get("variance_alert_threshold")),
         "variance_alert_role": doc.get("variance_alert_role") or "",
+        "overdue_alert_enabled": 1 if doc.get("overdue_alert_enabled") else 0,
+        "overdue_alert_role": doc.get("overdue_alert_role") or "",
+        "overdue_alert_hours": cint(doc.get("overdue_alert_hours")) or 14,
+        "overdue_grace_minutes": cint(doc.get("overdue_grace_minutes")) or 60,
         "show_out_of_stock": doc.get("show_out_of_stock") or 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
         "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
@@ -190,6 +194,10 @@ def save_settings(payload):
     doc.variance_alert_enabled = 1 if payload.get("variance_alert_enabled") else 0
     doc.variance_alert_threshold = flt(payload.get("variance_alert_threshold"))
     doc.variance_alert_role = payload.get("variance_alert_role") or None
+    doc.overdue_alert_enabled = 1 if payload.get("overdue_alert_enabled") else 0
+    doc.overdue_alert_role = payload.get("overdue_alert_role") or None
+    doc.overdue_alert_hours = cint(payload.get("overdue_alert_hours")) or 14
+    doc.overdue_grace_minutes = cint(payload.get("overdue_grace_minutes")) or 60
     doc.show_out_of_stock = 1 if payload.get("show_out_of_stock") else 0
     doc.serial_scan_only = 1 if payload.get("serial_scan_only") else 0
     doc.enable_order_discount = 1 if payload.get("enable_order_discount") else 0

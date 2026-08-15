@@ -1111,3 +1111,134 @@ def _payments_by_mode(session, doctype="POS Invoice", drawer=None):
         if target:
             result[target] = flt(result[target] - change)
     return result
+
+# ---------------------------------------------------------------------------
+# Forgotten-shift alert (POS Shift Schedule)
+# ---------------------------------------------------------------------------
+
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def _as_time(value):
+    """Frappe returns a Time field as a timedelta — normalise to a `time`."""
+    import datetime
+
+    if value is None:
+        return None
+    if isinstance(value, datetime.time):
+        return value
+    if isinstance(value, datetime.timedelta):
+        total = int(value.total_seconds())
+        return datetime.time((total // 3600) % 24, (total % 3600) // 60, total % 60)
+    try:
+        parts = [int(p) for p in str(value).split(":")[:3]]
+        while len(parts) < 3:
+            parts.append(0)
+        return datetime.time(*parts)
+    except Exception:
+        return None
+
+
+def _scheduled_end(schedule_name, opened_at):
+    """When SHOULD the shift that was opened at `opened_at` have ended?
+
+    Builds candidate windows from the opening day AND the previous day, because a
+    shift whose end time is at or before its start crosses midnight — a 22:00→06:00
+    shift opened at 23:40 belongs to the PREVIOUS day's window. Returns the end of
+    the window containing the open time; failing that, the next window starting
+    later the same day (a cashier who opens a few minutes early); else None so the
+    caller falls back to a flat number of hours."""
+    import datetime
+
+    if not schedule_name or not opened_at:
+        return None
+    try:
+        slots = frappe.get_all(
+            "POS Shift Schedule Slot",
+            filters={"parent": schedule_name, "parenttype": "POS Shift Schedule"},
+            fields=["day", "start_time", "end_time"],
+        )
+    except Exception:
+        return None
+    if not slots:
+        return None
+
+    candidates = []
+    for base_offset in (1, 0):  # previous day first, then the opening day
+        base_date = opened_at.date() - datetime.timedelta(days=base_offset)
+        day_name = DAY_NAMES[base_date.weekday()]
+        for slot in slots:
+            if slot.day not in ("Every Day", day_name):
+                continue
+            start_t, end_t = _as_time(slot.start_time), _as_time(slot.end_time)
+            if not start_t or not end_t:
+                continue
+            start = datetime.datetime.combine(base_date, start_t)
+            end = datetime.datetime.combine(base_date, end_t)
+            if end <= start:  # crosses midnight
+                end += datetime.timedelta(days=1)
+            candidates.append((start, end))
+
+    inside = [end for start, end in candidates if start <= opened_at < end]
+    if inside:
+        return min(inside)
+    later = [end for start, end in candidates if start > opened_at]
+    return min(later) if later else None
+
+
+def notify_overdue_sessions():
+    """Hourly: email a role about shifts that are still open well past when they
+    should have ended. ALERT ONLY — never an auto-close: a close without a real
+    cash count produces figures nobody can trust."""
+    try:
+        settings = frappe.get_cached_doc("LumenPOS Settings")
+        if not settings.get("overdue_alert_enabled"):
+            return
+        role = settings.get("overdue_alert_role")
+        recipients = _role_emails(role)
+        if not recipients:
+            return
+        grace = cint(settings.get("overdue_grace_minutes")) or 60
+        fallback_hours = cint(settings.get("overdue_alert_hours")) or 14
+        import datetime
+
+        now = now_datetime()
+        rows = frappe.get_all(
+            "POS Register Session",
+            filters={"status": "Open", "overdue_notified": 0},
+            fields=["name", "pos_profile", "opened_by", "opened_at"],
+        )
+        for row in rows:
+            if not row.opened_at:
+                continue
+            schedule = frappe.db.get_value(
+                "POS Profile", row.pos_profile, "lumenpos_shift_schedule"
+            )
+            end = _scheduled_end(schedule, row.opened_at)
+            deadline = (
+                end + datetime.timedelta(minutes=grace)
+                if end
+                else row.opened_at + datetime.timedelta(hours=fallback_hours)
+            )
+            if now < deadline:
+                continue
+            frappe.sendmail(
+                recipients=recipients,
+                subject=_("Register still open: {0}").format(row.pos_profile),
+                message=(
+                    f"<p>{_('A register is still open well past the end of its shift.')}</p>"
+                    f"<p><b>{_('Outlet')}:</b> {frappe.utils.escape_html(row.pos_profile or '')}<br>"
+                    f"<b>{_('Shift')}:</b> {row.name}<br>"
+                    f"<b>{_('Opened by')}:</b> {frappe.utils.escape_html(row.opened_by or '')}<br>"
+                    f"<b>{_('Opened at')}:</b> {row.opened_at}<br>"
+                    f"<b>{_('Expected to end')}:</b> {end or _('not scheduled')}</p>"
+                    f"<p>{_('The till has NOT been closed automatically — a close without a real cash count is worthless.')}</p>"
+                ),
+            )
+            frappe.db.set_value(
+                "POS Register Session", row.name, "overdue_notified", 1, update_modified=False
+            )
+    except Exception:
+        frappe.log_error(
+            title="LumenPOS overdue-shift alert failed", message=frappe.get_traceback()
+        )

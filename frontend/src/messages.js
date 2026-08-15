@@ -1138,4 +1138,10 @@ export const messages = {
   "Email me a code": "أرسل لي رمزًا",
   "Working…": "جارٍ التنفيذ…",
   "Saving…": "جارٍ الحفظ…",
+  "Email an alert when a shift is left open": "إرسال تنبيه عند ترك وردية مفتوحة",
+  "A till is never closed automatically — a close without a real cash count is worthless.":
+    "لا يُغلق الصندوق تلقائيًا أبدًا — فالإغلاق بدون جرد نقدي حقيقي بلا قيمة.",
+  "Grace period (minutes)": "مهلة السماح (دقائق)",
+  "Fallback: hours after opening (outlets with no schedule)":
+    "احتياطي: عدد الساعات بعد الفتح (للفروع بدون جدول)",
 }

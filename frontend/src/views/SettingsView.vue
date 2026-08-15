@@ -788,6 +788,27 @@
               <span class="setting-desc">{{ t('Records and notifies — it never blocks the close.') }}</span>
             </span>
           </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.overdue_alert_enabled" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Email an alert when a shift is left open') }}</span>
+              <span class="setting-desc">{{ t('A till is never closed automatically — a close without a real cash count is worthless.') }}</span>
+            </span>
+          </label>
+          <div v-if="generalForm.overdue_alert_enabled" class="field-grid" style="margin: 6px 0 12px">
+            <label class="field">
+              <span>{{ t('Notify role') }}</span>
+              <LinkPicker doctype="Role" v-model="generalForm.overdue_alert_role" :placeholder="t('e.g. LumenPOS Manager')" />
+            </label>
+            <label class="field">
+              <span>{{ t('Grace period (minutes)') }}</span>
+              <input type="number" min="0" v-model.number="generalForm.overdue_grace_minutes" />
+            </label>
+            <label class="field span-2">
+              <span>{{ t('Fallback: hours after opening (outlets with no schedule)') }}</span>
+              <input type="number" min="1" v-model.number="generalForm.overdue_alert_hours" />
+            </label>
+          </div>
           <div v-if="generalForm.variance_alert_enabled" class="field-grid" style="margin: 6px 0 12px">
             <label class="field">
               <span>{{ t('Variance threshold') }}</span>
@@ -1507,6 +1528,10 @@ const generalForm = ref({
   variance_alert_enabled: 0,
   variance_alert_threshold: 0,
   variance_alert_role: '',
+  overdue_alert_enabled: 0,
+  overdue_alert_role: '',
+  overdue_alert_hours: 14,
+  overdue_grace_minutes: 60,
   show_out_of_stock: 0,
   serial_scan_only: 0,
   enable_order_discount: 1,
@@ -1812,6 +1837,10 @@ async function load() {
     variance_alert_enabled: info.variance_alert_enabled || 0,
     variance_alert_threshold: info.variance_alert_threshold || 0,
     variance_alert_role: info.variance_alert_role || '',
+    overdue_alert_enabled: info.overdue_alert_enabled || 0,
+    overdue_alert_role: info.overdue_alert_role || '',
+    overdue_alert_hours: info.overdue_alert_hours || 14,
+    overdue_grace_minutes: info.overdue_grace_minutes || 60,
     show_out_of_stock: info.show_out_of_stock || 0,
     serial_scan_only: info.serial_scan_only || 0,
     enable_order_discount: info.enable_order_discount ?? 1,

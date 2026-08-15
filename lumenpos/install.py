@@ -341,6 +341,14 @@ def make_custom_fields():
                     collapsible=1,
                 ),
                 dict(
+                    fieldname="lumenpos_shift_schedule",
+                    label="Shift Schedule",
+                    fieldtype="Link",
+                    options="POS Shift Schedule",
+                    insert_after="lumenpos_si_opening_closing",
+                    description="Used by the forgotten-shift alert to know when this outlet's shifts should end.",
+                ),
+                dict(
                     fieldname="lumenpos_printer_ip",
                     label="Printer IP (ESC/POS, RAW 9100)",
                     fieldtype="Data",

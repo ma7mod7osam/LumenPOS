@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.34.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.35.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.35.0 | **Shift schedules and a forgotten-shift alert.** Build a reusable **POS Shift Schedule** (a timetable of shifts — one schedule can serve many outlets, and a shift whose end time is earlier than its start is understood to cross midnight), then attach it to an outlet on its POS Profile. LumenPOS checks hourly and emails a chosen role when a register is **still open well past when its shift should have ended** — with a configurable grace period, and a simple "hours after opening" fallback for outlets with no schedule. Each shift is reported **once**. Deliberately **no auto-close**: a till closed without a real cash count produces figures nobody can trust, so this alerts a human instead. |
 | 0.34.0 | **Every cashier gets their own till PIN.** The lock screen used to take a **shared** manager passcode — so once it circulated, "who unlocked this till?" had no answer and changing it meant telling everyone. Each person now sets their **own** 4–8 digit PIN the first time they meet the lock screen, and unlocking checks *theirs* (the unlock is written to the audit log with their name). **Forgot your PIN?** emails a 6-digit code, valid 15 minutes, that lets them set a new one. There's deliberately **no manager override** — the lock screen guards an unattended till, it doesn't authorise anything. PINs are stored only as a salted hash, never in readable form. *(The separate approvals passcode for over-limit discounts is unchanged.)* |
 | 0.33.0 | **Jump from a customer's purchase straight to History.** Opening one of a customer's past sales now offers **Open in History**, which takes you there with that sale already open — so a refund is one step away without duplicating the refund flow into the Customers screen. History understands a linked sale (`/history?invoice=…`), searches across all outlets for it and opens it automatically, since the sale may belong to another branch. |
 | 0.32.0 | **Approvals you can actually judge, and no dangling shift paperwork.** (1) **An approval request now shows what it's for** — the cart lines being discounted, or the items being returned — instead of asking a manager to approve a bare percentage. (2) **Nothing unconfirmed survives a shift**: pending (and approved-but-unused) requests are voided when the register closes, so an approval can't be spent on the next shift's drawer. (3) **Cancelling or deleting a shift now cancels its ERPNext opening entry**, so no orphan "Open" entry is left behind — that orphan was the thing that used to make the next cashier resume a dead shift. A shift that recorded cash movements refuses deletion outright and must be cancelled instead. |

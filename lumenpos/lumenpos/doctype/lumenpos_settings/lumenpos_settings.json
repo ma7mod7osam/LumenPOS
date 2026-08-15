@@ -13,6 +13,10 @@
   "variance_alert_enabled",
   "variance_alert_threshold",
   "variance_alert_role",
+  "overdue_alert_enabled",
+  "overdue_alert_role",
+  "overdue_alert_hours",
+  "overdue_grace_minutes",
   "companies_section",
   "company_settings",
   "profile_receipts_section",
@@ -580,6 +584,36 @@
    "fieldtype": "Table",
    "label": "Payment Method Rules",
    "options": "LumenPOS Payment Method Rule"
+  },
+  {
+   "default": "0",
+   "fieldname": "overdue_alert_enabled",
+   "fieldtype": "Check",
+   "label": "Email an alert when a shift is left open",
+   "description": "Alert only — a till is never closed automatically, because a close without a real cash count produces figures nobody can trust."
+  },
+  {
+   "depends_on": "overdue_alert_enabled",
+   "fieldname": "overdue_alert_role",
+   "fieldtype": "Link",
+   "label": "Notify role",
+   "options": "Role"
+  },
+  {
+   "default": "14",
+   "depends_on": "overdue_alert_enabled",
+   "fieldname": "overdue_alert_hours",
+   "fieldtype": "Int",
+   "label": "Fallback: hours after opening",
+   "description": "Used when the outlet has no shift schedule."
+  },
+  {
+   "default": "60",
+   "depends_on": "overdue_alert_enabled",
+   "fieldname": "overdue_grace_minutes",
+   "fieldtype": "Int",
+   "label": "Grace period (minutes)",
+   "description": "How long after the scheduled end before alerting."
   }
  ],
  "index_web_pages_for_search": 0,

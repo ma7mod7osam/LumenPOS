@@ -21,6 +21,12 @@ scheduler_events = {
         "*/10 * * * *": [
             "lumenpos.api.register.reconcile_stuck_closings",
         ],
+        # Forgotten-shift alert. Hourly is enough — it emails once per shift
+        # (de-duped by the session's overdue_notified flag) and never closes a
+        # till, so it can't race anything.
+        "0 * * * *": [
+            "lumenpos.api.register.notify_overdue_sessions",
+        ],
     },
 }
 

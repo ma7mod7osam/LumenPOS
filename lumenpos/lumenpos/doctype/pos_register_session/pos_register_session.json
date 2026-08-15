@@ -30,7 +30,8 @@
   "total_sales",
   "total_discounts",
   "column_break_3",
-  "sales_count"
+  "sales_count",
+  "overdue_notified"
  ],
  "fields": [
   {
@@ -181,6 +182,14 @@
    "fieldname": "sales_count",
    "fieldtype": "Int",
    "label": "Number of Sales",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "overdue_notified",
+   "fieldtype": "Check",
+   "label": "Overdue Notified",
+   "hidden": 1,
    "read_only": 1
   }
  ],
