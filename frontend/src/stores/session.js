@@ -77,6 +77,7 @@ export const useSessionStore = defineStore('session', {
       receipt_terms: '',
     },
     locked: false,
+    pinSet: true,
     bundles: [],
     permissions: {},
     pendingClosing: null,
@@ -211,6 +212,7 @@ export const useSessionStore = defineStore('session', {
       this.bundles = data.bundles || []
       this.permissions = data.permissions || {}
       this.pendingClosing = data.pending_closing || null
+      this.pinSet = data.pin_set !== false
       syncFromErp(data.desk_theme) // follow ERPNext theme unless overridden in LumenPOS
       setCurrency(data.currency)
     },

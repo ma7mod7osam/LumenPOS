@@ -99,6 +99,7 @@ def get_bootstrap(pos_profile=None):
         "store_credit_mode": "Store Credit",
         "gift_card_mode": _gift_card_mode(),
         "sales_persons": _sales_persons(),
+        "pin_set": _pin_set(),
         "settings": _client_settings(profile_name),
         "bundles": get_bundles(profile_name),
     }
@@ -111,6 +112,15 @@ def _payment_rules():
         return rules()
     except Exception:
         return {}
+
+
+def _pin_set():
+    from lumenpos.api import pin as pin_api
+
+    try:
+        return bool(pin_api.pin_is_set())
+    except Exception:
+        return True  # fail open — never lock a half-migrated site out
 
 
 def _gift_card_mode():
@@ -326,34 +336,33 @@ def _client_settings(profile_name=None):
 
 @frappe.whitelist()
 def unlock_till(passcode=None):
-    """Unlock the PIN lock screen (Settings → Features → Lock screen). A manager
-    (System / LumenPOS Manager) can always unlock; everyone else needs a valid
-    manager/approver PIN. Lightly throttled to blunt PIN guessing."""
+    """Unlock the till lock screen with the caller's OWN personal PIN.
+
+    No manager bypass and no shared code: the lock screen protects an unattended
+    till, it doesn't authorise anything, so "let a manager in with the master
+    code" bought nothing while a shared code destroyed the answer to "who
+    unlocked this?". The separate approvals passcode (over-limit discounts) is
+    untouched. Still throttled to blunt PIN guessing."""
     from frappe.utils import cint
 
-    from lumenpos.api import audit, permissions
-    from lumenpos.api.settings import check_passcode
-
-    if permissions.is_manager():
-        audit.log(audit.TILL_UNLOCK, detail=_("Unlocked by manager"))
-        return {"ok": True}
+    from lumenpos.api import audit, pin as pin_api
 
     user = frappe.session.user
     key = f"lumenpos_unlock:{user}"
     attempts = cint(frappe.cache().get_value(key) or 0)
     if attempts >= 8:
         frappe.throw(_("Too many attempts — wait a minute and try again."))
-    result = check_passcode(passcode)
-    if not result:
+
+    result = pin_api.check_own_pin(passcode)
+    if result == "no_pin":
+        # Nothing to check against — the client shows the "create your PIN" step.
+        return {"ok": False, "no_pin": True}
+    if result != "ok":
         frappe.cache().set_value(key, attempts + 1, expires_in_sec=60)
         return {"ok": False}
     frappe.cache().delete_value(key)
-    approver = result if isinstance(result, str) else None
-    audit.log(
-        audit.TILL_UNLOCK,
-        detail=_("Unlocked by {0}").format(approver) if approver else _("Unlocked with master passcode"),
-    )
-    return {"ok": True, "approver": approver}
+    audit.log(audit.TILL_UNLOCK, detail=_("Unlocked by {0}").format(frappe.utils.get_fullname(user)))
+    return {"ok": True}
 
 
 @frappe.whitelist()
