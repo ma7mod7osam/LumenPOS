@@ -50,7 +50,9 @@
           v-for="mode in methodTiles"
           :key="mode.mode_of_payment"
           class="method card"
-          :class="{ branded: mode.brand }"
+          :class="{ branded: mode.brand, blocked: !!blockedModes[mode.mode_of_payment] }"
+          :disabled="!!blockedModes[mode.mode_of_payment]"
+          :title="blockedModes[mode.mode_of_payment] || ''"
           @click="addPayment(mode.mode_of_payment)"
         >
           <PaymentBrand :brand="mode.brand" :type="mode.type" :size="mode.brand ? 30 : 22" />
@@ -94,6 +96,15 @@
           <span>{{ payment.mode_of_payment }}<span v-if="payment.card_no" class="muted"> ({{ payment.card_no }})</span></span>
           <span>{{ money(payment.amount) }}</span>
           <button class="btn-ghost" @click="payments.splice(i, 1)"><Icon name="close" /></button>
+          <!-- Terminal / transfer reference, so a disputed card payment can be
+               traced back later. Required when the shop configured it. -->
+          <input
+            v-if="refRule(payment.mode_of_payment)"
+            v-model="payment.reference_no"
+            class="split-ref"
+            :class="{ missing: refRule(payment.mode_of_payment).require_reference && !(payment.reference_no || '').trim() }"
+            :placeholder="refRule(payment.mode_of_payment).reference_label || t('Reference')"
+          />
         </div>
       </div>
 
@@ -162,7 +173,8 @@ const remaining = computed(() => round2(total.value - paid.value - loyaltyAmount
 const canComplete = computed(
   () =>
     (payments.value.length || loyaltyAmount.value > 0) &&
-    paid.value + loyaltyAmount.value >= total.value - 0.005
+    paid.value + loyaltyAmount.value >= total.value - 0.005 &&
+    referencesOk.value
 )
 
 const visibleModes = computed(() =>
@@ -205,6 +217,7 @@ const quickAmounts = computed(() => {
 })
 
 onMounted(async () => {
+  loadBlockedModes()
   amount.value = round2(Math.max(cart.total, 0))
   amountInput.value?.focus()
   amountInput.value?.select()
@@ -218,7 +231,45 @@ onMounted(async () => {
   }
 })
 
+const blockedModes = ref({})
+
+function refRule(mode) {
+  const m = (session.paymentModes || []).find((x) => x.mode_of_payment === mode)
+  if (!m) return null
+  return m.require_reference || m.reference_label ? m : null
+}
+
+// Every required reference must be filled before the sale can complete.
+const referencesOk = computed(() =>
+  payments.value.every((p) => {
+    const rule = refRule(p.mode_of_payment)
+    return !rule || !rule.require_reference || (p.reference_no || '').trim()
+  })
+)
+
+async function loadBlockedModes() {
+  if (session.offline) return
+  try {
+    blockedModes.value = await call('lumenpos.api.catalog.blocked_payment_modes', {
+      pos_profile: session.posProfile,
+      item_codes: JSON.stringify(cart.lines.map((l) => l.item_code)),
+    })
+  } catch {
+    blockedModes.value = {}
+  }
+}
+
 function addPayment(mode) {
+  if (blockedModes.value[mode]) {
+    session.notify(
+      t("{mode} can't be used for this sale ({why}).", {
+        mode,
+        why: blockedModes.value[mode],
+      }),
+      true
+    )
+    return
+  }
   const value = round2(Number(amount.value) || 0)
   if (value <= 0) return
   const isCash = session.paymentModes.find((m) => m.mode_of_payment === mode)?.type === 'Cash'
@@ -307,6 +358,18 @@ function round2(n) {
 </script>
 
 <style scoped>
+.method.blocked { opacity: 0.4; cursor: not-allowed; }
+.split-ref {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12.5px;
+  width: 100%;
+}
+.split-ref.missing { border-color: var(--red, #e23030); background: rgba(226, 48, 48, 0.06); }
 .pay-overlay {
   position: fixed;
   inset: 0;

@@ -232,6 +232,36 @@ def _app_price_list(app_type):
 
 
 @frappe.whitelist()
+def blocked_payment_modes(pos_profile, item_codes):
+    """Payment methods the shop has blocked for this basket (Settings → payment
+    restrictions). The till greys them out; the server re-checks at submit."""
+    import json as _json
+
+    if isinstance(item_codes, str):
+        item_codes = _json.loads(item_codes)
+    codes = [c for c in (item_codes or []) if c]
+    if not codes:
+        return {}
+    rows = frappe.get_all(
+        "Item",
+        filters={"name": ["in", list(set(codes))]},
+        fields=["name", "item_group", "brand", "_user_tags"],
+    )
+    items = [
+        {
+            "item_code": r.name,
+            "item_group": r.item_group,
+            "brand": r.brand,
+            "tags": [t.strip() for t in (r.get("_user_tags") or "").split(",") if t.strip()],
+        }
+        for r in rows
+    ]
+    from lumenpos import payment_restrictions
+
+    return payment_restrictions.blocked_modes(items, pos_profile)
+
+
+@frappe.whitelist()
 def stock_by_warehouse(item_code, pos_profile=None):
     """Where else is this item in stock? Answers "do you have it at the other
     branch?" at the counter instead of a phone call.

@@ -747,6 +747,23 @@
             <b>{{ t('“{list}” is a base selling list', { list: app.price_list }) }}</b> {{ t('— set a dedicated list for this app (＋ new) so its prices don\'t change your normal selling prices.') }}
           </div>
         </div>
+        <div class="sub-label" style="margin-top: 18px">{{ t('Payment Methods') }}</div>
+        <p class="muted small" style="margin: 0 0 8px">
+          {{ t('Require a terminal or transfer reference on a method so a disputed payment can be traced later. Blocking a method for certain products is set up in POS Payment Restriction.') }}
+        </p>
+        <div v-for="(rule, i) in generalForm.payment_method_rules" :key="'pmr' + i" class="cf-row">
+          <LinkPicker doctype="Mode of Payment" v-model="rule.mode_of_payment" :placeholder="t('Method')" />
+          <label class="inline-check">
+            <input type="checkbox" v-model="rule.require_reference" :true-value="1" :false-value="0" />
+            {{ t('Require reference') }}
+          </label>
+          <input class="cf-in cf-field" v-model="rule.reference_label" :placeholder="t('Label, e.g. Approval code')" />
+          <button class="btn-ghost" @click="generalForm.payment_method_rules.splice(i, 1)"><Icon name="close" /></button>
+        </div>
+        <button class="btn btn-outline add-row" @click="generalForm.payment_method_rules.push({ mode_of_payment: '', require_reference: 1, reference_label: '' })">
+          <Icon name="plus" /> {{ t('Add a payment rule') }}
+        </button>
+
         <button class="btn btn-outline add-row" @click="generalForm.delivery_apps.push({ app_name: '', price_list: '', require_order_id: 1 })">
           {{ t('+ Add delivery app') }}
         </button>
@@ -1475,6 +1492,7 @@ let cardTimer = null
 
 const generalForm = ref({
   delivery_apps: [],
+  payment_method_rules: [],
   discount_limit_percent: 0,
   discount_passcode: '',
   discount_approval_mode: 'Passcode only',
@@ -1779,6 +1797,7 @@ async function load() {
   loadFieldOptions('POS Profile')
   generalForm.value = {
     delivery_apps: JSON.parse(JSON.stringify(info.delivery_apps || [])),
+    payment_method_rules: JSON.parse(JSON.stringify(info.payment_method_rules || [])),
     discount_limit_percent: info.discount_limit_percent || 0,
     discount_passcode: '',
     discount_approval_mode: info.discount_approval_mode || 'Passcode only',

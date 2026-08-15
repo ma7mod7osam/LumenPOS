@@ -1112,4 +1112,13 @@ export const messages = {
   "this store": " (هذا الفرع)",
   "{qty} reserved": "{qty} محجوز",
   "No other store has stock.": "لا يوجد مخزون في فرع آخر.",
+  "Reference": "المرجع",
+  "{mode} can't be used for this sale ({why}).": "لا يمكن استخدام {mode} في هذه العملية ({why}).",
+  "Payment Methods": "طرق الدفع",
+  "Require a terminal or transfer reference on a method so a disputed payment can be traced later. Blocking a method for certain products is set up in POS Payment Restriction.":
+    "اطلب مرجع الجهاز أو التحويل لطريقة دفع ليتم تتبّع أي عملية متنازع عليها لاحقًا. أما منع طريقة دفع لمنتجات معيّنة فيُضبط من POS Payment Restriction.",
+  "Method": "الطريقة",
+  "Require reference": "طلب مرجع",
+  "Label, e.g. Approval code": "التسمية، مثل: رقم الموافقة",
+  "Add a payment rule": "إضافة قاعدة دفع",
 }

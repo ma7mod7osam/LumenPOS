@@ -410,6 +410,14 @@ def submit_sale(payload):
 
     _reconcile_payment(invoice, profile)
     _drop_empty_payments(invoice)
+    # Shop rules on HOW this basket may be paid — re-checked server-side so a
+    # stale tab, a queued offline sale or a direct API call can't bypass them.
+    from lumenpos import payment_restrictions
+
+    payment_restrictions.assert_allowed(
+        _restriction_items(invoice), payload.get("payments"), profile.name
+    )
+    _apply_payment_references(invoice, payload.get("payments"))
     # Pin liability-backed tenders (gift card, store credit) to THEIR liability
     # account so ERPNext can't resolve them to the company Receivable (debtors):
     # a payment leg on a Receivable account posts WITHOUT a party and fails
@@ -1078,6 +1086,71 @@ def _reconcile_payment(invoice, profile):
         biggest = max(rows, key=lambda row: flt(row.amount))
         biggest.amount = flt(biggest.amount + shortfall, 2)
         invoice.run_method("calculate_taxes_and_totals")
+
+
+def _restriction_items(doc):
+    """Cart lines as {item_code, item_group, brand, tags} for payment-restriction
+    matching. Read from the built invoice so it reflects exactly what will post."""
+    codes = list({r.item_code for r in (doc.items or []) if r.item_code})
+    if not codes:
+        return []
+    rows = frappe.get_all(
+        "Item",
+        filters={"name": ["in", codes]},
+        fields=["name", "item_group", "brand", "_user_tags"],
+    )
+    return [
+        {
+            "item_code": r.name,
+            "item_group": r.item_group,
+            "brand": r.brand,
+            "tags": _split_tags(r.get("_user_tags")),
+        }
+        for r in rows
+    ]
+
+
+def _payment_rules():
+    """{mode: {require_reference, reference_label}} from LumenPOS Settings."""
+    try:
+        doc = frappe.get_cached_doc("LumenPOS Settings")
+    except Exception:
+        return {}
+    out = {}
+    for row in doc.get("payment_method_rules") or []:
+        if row.mode_of_payment:
+            out[row.mode_of_payment] = {
+                "require_reference": 1 if row.get("require_reference") else 0,
+                "reference_label": row.get("reference_label") or "",
+            }
+    return out
+
+
+def _apply_payment_references(doc, payments):
+    """Stamp each tender's transaction reference onto its payment row, and
+    enforce the ones configured as required — a card payment with no approval
+    code can't be traced back to the terminal when a customer disputes it."""
+    rules = _payment_rules()
+    if not rules:
+        return
+    supplied = {}
+    for p in payments or []:
+        mode = p.get("mode_of_payment")
+        if mode and (p.get("reference_no") or "").strip():
+            supplied[mode] = str(p["reference_no"]).strip()
+    for row in doc.payments:
+        rule = rules.get(row.mode_of_payment)
+        if not rule:
+            continue
+        ref = supplied.get(row.mode_of_payment)
+        if ref and doc.meta.has_field("payments") and hasattr(row, "reference_no"):
+            row.reference_no = ref
+        if rule["require_reference"] and flt(row.amount) and not ref:
+            frappe.throw(
+                _("{0} needs a {1} before this sale can be completed.").format(
+                    row.mode_of_payment, rule["reference_label"] or _("transaction reference")
+                )
+            )
 
 
 def _set_payment(invoice, mode_of_payment, amount):

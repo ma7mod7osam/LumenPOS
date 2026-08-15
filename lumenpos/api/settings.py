@@ -160,6 +160,14 @@ def get_settings():
             {"approver_name": row.approver_name, "has_passcode": bool(row.passcode)}
             for row in (doc.get("discount_approvers") or [])
         ],
+        "payment_method_rules": [
+            {
+                "mode_of_payment": r.mode_of_payment,
+                "require_reference": 1 if r.require_reference else 0,
+                "reference_label": r.reference_label or "",
+            }
+            for r in (doc.get("payment_method_rules") or [])
+        ],
         "delivery_apps": [
             {
                 "app_name": row.app_name,
@@ -284,6 +292,18 @@ def save_settings(payload):
                     "passcode": row.get("passcode") or existing_pins.get(name),
                 },
             )
+    if "payment_method_rules" in payload:
+        doc.set("payment_method_rules", [])
+        for row in payload.get("payment_method_rules") or []:
+            if (row.get("mode_of_payment") or "").strip():
+                doc.append(
+                    "payment_method_rules",
+                    {
+                        "mode_of_payment": row["mode_of_payment"],
+                        "require_reference": 1 if row.get("require_reference") else 0,
+                        "reference_label": (row.get("reference_label") or "").strip() or None,
+                    },
+                )
     doc.delivery_apps = []
     for row in payload.get("delivery_apps") or []:
         if not (row.get("app_name") or "").strip():

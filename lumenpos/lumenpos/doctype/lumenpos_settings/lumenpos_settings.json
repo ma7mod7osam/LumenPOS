@@ -42,6 +42,8 @@
   "price_edit_role",
   "return_role",
   "return_exceed_role",
+  "payment_rules_section",
+  "payment_method_rules",
   "channels_section",
   "delivery_apps",
   "features_section",
@@ -566,6 +568,18 @@
    "fieldname": "allow_store_credit_refund",
    "fieldtype": "Check",
    "label": "Allow refunding to Store Credit"
+  },
+  {
+   "fieldname": "payment_rules_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Methods",
+   "description": "Per-method rules. Use these to require a terminal/transfer reference on card or bank payments so the transaction can be traced later."
+  },
+  {
+   "fieldname": "payment_method_rules",
+   "fieldtype": "Table",
+   "label": "Payment Method Rules",
+   "options": "LumenPOS Payment Method Rule"
   }
  ],
  "index_web_pages_for_search": 0,

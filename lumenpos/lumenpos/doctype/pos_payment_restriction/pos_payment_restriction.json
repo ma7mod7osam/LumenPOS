@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:PAYRES-{####}",
+ "creation": "2026-08-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "enabled",
+  "mode_of_payment",
+  "applies_to",
+  "item_code",
+  "item_group",
+  "brand",
+  "tag",
+  "pos_profiles_section",
+  "pos_profiles"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Blocked Mode of Payment",
+   "options": "Mode of Payment",
+   "reqd": 1,
+   "description": "This payment method cannot be used when the cart contains a matching item."
+  },
+  {
+   "default": "Item Group",
+   "fieldname": "applies_to",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Applies To",
+   "options": "Item\nItem Group\nBrand\nTag"
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Item'",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Item Group'",
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "description": "Applies to this group AND everything under it."
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Brand'",
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "depends_on": "eval:doc.applies_to=='Tag'",
+   "fieldname": "tag",
+   "fieldtype": "Data",
+   "label": "Tag"
+  },
+  {
+   "fieldname": "pos_profiles_section",
+   "fieldtype": "Section Break",
+   "label": "Outlets"
+  },
+  {
+   "fieldname": "pos_profiles",
+   "fieldtype": "Table",
+   "label": "Outlets",
+   "options": "POS Promotion Profile",
+   "description": "Leave empty to apply at every outlet."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-08-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Payment Restriction",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "LumenPOS Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LumenPOS Cashier"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

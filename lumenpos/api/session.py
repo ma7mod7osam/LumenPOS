@@ -38,11 +38,14 @@ def get_bootstrap(pos_profile=None):
     payment_modes = []
     for row in profile.payments:
         mop_type = frappe.db.get_value("Mode of Payment", row.mode_of_payment, "type")
+        rule = _payment_rules().get(row.mode_of_payment) or {}
         payment_modes.append(
             {
                 "mode_of_payment": row.mode_of_payment,
                 "type": mop_type or "General",
                 "default": row.default,
+                "require_reference": rule.get("require_reference", 0),
+                "reference_label": rule.get("reference_label", ""),
             }
         )
 
@@ -99,6 +102,15 @@ def get_bootstrap(pos_profile=None):
         "settings": _client_settings(profile_name),
         "bundles": get_bundles(profile_name),
     }
+
+
+def _payment_rules():
+    from lumenpos.api.sales import _payment_rules as rules
+
+    try:
+        return rules()
+    except Exception:
+        return {}
 
 
 def _gift_card_mode():
