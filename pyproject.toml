@@ -14,8 +14,14 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
-# LumenPOS supports Frappe/ERPNext v15 AND v16 from this one branch. The upper
-# bound used to be <16.0.0, which made bench (and the Frappe Cloud marketplace)
-# treat the app as v15-only and refuse to offer it for a v16 site.
-frappe = ">=15.0.0,<17.0.0"
-erpnext = ">=15.0.0,<17.0.0"
+# One branch serves v14, v15 and v16.
+#
+# The upper bound used to be <16.0.0, which made bench (and the Frappe Cloud
+# marketplace) treat the app as v15-only and refuse a Version 16 build.
+#
+# The lower bound is 14, not 13: Frappe v13 runs on Python 3.7-3.9 while this
+# package requires 3.10 (v14's own minimum), so a v13 bench cannot install it.
+# Serial handling is version-aware either way — v15+ reads the Serial and Batch
+# Bundle, v14 the legacy serial_no field (see sales._has_serial_bundle).
+frappe = ">=14.0.0,<17.0.0"
+erpnext = ">=14.0.0,<17.0.0"

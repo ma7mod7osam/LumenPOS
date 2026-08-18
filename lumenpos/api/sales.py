@@ -1623,13 +1623,21 @@ def search_sales(filters=None):
     if f.serial_no:
         params["serial_like"] = f"%{f.serial_no.strip()}%"
         params["serial_exact"] = f.serial_no.strip()
-        conds.append(
-            f"(exists (select 1 from `tab{doctype} Item` pis"
+        legacy = (
+            f"exists (select 1 from `tab{doctype} Item` pis"
             "   where pis.parent = pi.name and pis.serial_no like %(serial_like)s)"
-            " or exists (select 1 from `tabSerial and Batch Bundle` b"
-            "   join `tabSerial and Batch Entry` e on e.parent = b.name"
-            "   where b.voucher_no = pi.name and e.serial_no = %(serial_exact)s))"
         )
+        if _has_serial_bundle():
+            # v15+ also keeps serials on the Bundle; pre-v15 those tables don't
+            # exist and joining them is a hard SQL error.
+            conds.append(
+                f"({legacy}"
+                " or exists (select 1 from `tabSerial and Batch Bundle` b"
+                "   join `tabSerial and Batch Entry` e on e.parent = b.name"
+                "   where b.voucher_no = pi.name and e.serial_no = %(serial_exact)s))"
+            )
+        else:
+            conds.append(f"({legacy})")
 
     if f.get("payment_mode"):
         conds.append(
@@ -1831,6 +1839,27 @@ def _allowed_refund_modes(original):
     return sorted(allowed)
 
 
+def _has_serial_bundle(doctype=None):
+    """Does this site have ERPNext v15+'s Serial and Batch Bundle?
+
+    v15 moved serials onto a Bundle doctype; v13/v14 keep them in the plain
+    `serial_no` text field. Querying the Bundle (or selecting its column) on an
+    older site is a hard SQL error, so every Bundle-specific query is gated on
+    this. Cached per request — it can't change mid-request."""
+    key = f"_lumenpos_has_sbb:{doctype or ''}"
+    cached = getattr(frappe.local, key, None)
+    if cached is not None:
+        return cached
+    try:
+        ok = bool(frappe.db.table_exists("Serial and Batch Bundle"))
+        if ok and doctype:
+            ok = bool(frappe.db.has_column(doctype, "serial_and_batch_bundle"))
+    except Exception:
+        ok = False
+    setattr(frappe.local, key, ok)
+    return ok
+
+
 def _returned_serials(doctype, return_names):
     """Set of serials already returned on the given credit notes.
 
@@ -1840,10 +1869,10 @@ def _returned_serials(doctype, return_names):
     if not return_names:
         return set()
     out = set()
+    has_sbb = _has_serial_bundle(f"{doctype} Item")
+    fields = ["serial_no", "serial_and_batch_bundle"] if has_sbb else ["serial_no"]
     rows = frappe.get_all(
-        f"{doctype} Item",
-        filters={"parent": ["in", return_names]},
-        fields=["serial_no", "serial_and_batch_bundle"],
+        f"{doctype} Item", filters={"parent": ["in", return_names]}, fields=fields
     )
     bundles = [r.serial_and_batch_bundle for r in rows if r.get("serial_and_batch_bundle")]
     for r in rows:

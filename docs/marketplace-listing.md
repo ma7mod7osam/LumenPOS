@@ -63,7 +63,7 @@ Want full control instead? Point the POS Profile at any ERPNext **Print Format**
 
 ## What you need
 
-- Frappe / ERPNext **v15 or v16**
+- Frappe / ERPNext **v14, v15 or v16**
 - A configured **POS Profile** (company, price list, warehouse, payment methods) with your cashier added to it
 
 The front end ships pre-built, so there's no Node or build step — it installs like any other Frappe app.

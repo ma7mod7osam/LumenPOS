@@ -40,7 +40,7 @@ It's designed for real counters, so it also handles the things a shop needs day 
 
 ## Requirements
 
-- **Frappe / ERPNext v15 or v16**
+- **Frappe / ERPNext v14, v15 or v16**
 - A configured **POS Profile** — company, selling price list, warehouse, and payment methods
 - Your cashier's user added to that POS Profile (under *Applicable for Users*)
 
