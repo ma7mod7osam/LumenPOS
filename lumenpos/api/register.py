@@ -684,10 +684,9 @@ def _consolidate_now(closing):
     stays inside our global lock and concurrent shifts can't deadlock. Returns
     the resulting closing-entry status. A failed consolidation rolls back every
     merge log (ERPNext is atomic here), so this is always safe to retry."""
-    from erpnext.accounts.doctype.pos_invoice_merge_log.pos_invoice_merge_log import (
-        create_merge_logs,
-        get_invoice_customer_map,
-    )
+    from lumenpos.erpnext_compat import merge_log_api
+
+    create_merge_logs, get_invoice_customer_map = merge_log_api()
 
     # Only feed invoices that aren't already consolidated, so a retry after a
     # partial/odd state can't double-post.

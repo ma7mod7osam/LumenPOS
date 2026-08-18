@@ -1191,13 +1191,9 @@ def _apply_loyalty_redemption(invoice, customer, company, payload):
     points = cint(payload.get("redeem_loyalty_points"))
     if points <= 0:
         return
-    from erpnext.accounts.doctype.loyalty_program.loyalty_program import (
-        get_loyalty_program_details_with_points,
-    )
+    from lumenpos.erpnext_compat import loyalty_details
 
-    details = get_loyalty_program_details_with_points(
-        customer, company=company, silent=True, include_expired_entry=False
-    )
+    details = loyalty_details(customer, company)
     if not details or not details.get("loyalty_program"):
         frappe.throw(_("Customer {0} is not enrolled in a loyalty program").format(customer))
     if points > cint(details.loyalty_points):
@@ -1988,7 +1984,7 @@ def create_return(
         )
     session = _open_session(handling_profile_name)
 
-    from erpnext.controllers.sales_and_purchase_return import make_return_doc
+    from lumenpos.erpnext_compat import make_return_doc
 
     return_doc = make_return_doc(sale_doctype, invoice)
     # Re-stamp the copied header onto THIS till.

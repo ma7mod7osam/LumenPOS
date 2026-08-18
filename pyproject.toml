@@ -14,5 +14,8 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
-frappe = ">=15.0.0,<16.0.0"
-erpnext = ">=15.0.0,<16.0.0"
+# LumenPOS supports Frappe/ERPNext v15 AND v16 from this one branch. The upper
+# bound used to be <16.0.0, which made bench (and the Frappe Cloud marketplace)
+# treat the app as v15-only and refuse to offer it for a v16 site.
+frappe = ">=15.0.0,<17.0.0"
+erpnext = ">=15.0.0,<17.0.0"

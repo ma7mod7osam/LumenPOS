@@ -16,13 +16,9 @@ def get_wallet(customer, company):
         "store_credit": get_balance(customer),
     }
     try:
-        from erpnext.accounts.doctype.loyalty_program.loyalty_program import (
-            get_loyalty_program_details_with_points,
-        )
+        from lumenpos.erpnext_compat import loyalty_details
 
-        details = get_loyalty_program_details_with_points(
-            customer, company=company, silent=True, include_expired_entry=False
-        )
+        details = loyalty_details(customer, company)
         if details and details.get("loyalty_program"):
             wallet.update(
                 {

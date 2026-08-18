@@ -68,7 +68,7 @@ ERPNext desk. Brand accent color: `#2E5BFF`.
 
 ## Requirements
 
-- Frappe / ERPNext **v15**
+- Frappe / ERPNext **v15 or v16**
 - A configured **POS Profile** (company, selling price list, warehouse,
   payment methods; add your cashier under *Applicable for Users*)
 
