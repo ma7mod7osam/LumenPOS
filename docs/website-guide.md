@@ -1,6 +1,6 @@
 # LumenPOS Documentation
 
-A fast, single-screen point of sale for ERPNext / Frappe (v15 and v16). This guide covers everything from installing the app to running a busy shift — written for shop owners, managers and the ERPNext admin setting it up.
+A fast, single-screen point of sale for ERPNext / Frappe (v14, v15 and v16). This guide covers everything from installing the app to running a busy shift — written for shop owners, managers and the ERPNext admin setting it up.
 
 > **In a hurry?** Install the app → open a POS Profile and add your cashier → go to `https://your-site/pos` → enter an opening float → start selling.
 
