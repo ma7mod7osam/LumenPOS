@@ -6,6 +6,7 @@ authors = [
 description = "Professional, multi-business Point of Sale for ERPNext / Frappe (LumenPOS)"
 requires-python = ">=3.10"
 readme = "README.md"
+license = { file = "license.txt" }
 dynamic = ["version"]
 dependencies = []
 

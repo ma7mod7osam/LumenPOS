@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.38.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.39.0. This document is updated with every feature change.*
 
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
@@ -623,6 +623,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.39.0 | **Licence changed to GPL-3.0-or-later.** From this release LumenPOS is published under the **GNU GPL v3 (or later)** instead of MIT. Two reasons: it keeps LumenPOS consistent with **ERPNext, which is GPLv3** and whose code LumenPOS calls directly; and it means anyone distributing a modified version must publish their changes, so the work can't be taken and closed. Nothing changes for you as a **user** — you can still run, modify and even sell it; a shop running LumenPOS has no obligations at all. **Earlier releases up to 0.38.0 remain MIT** — that grant cannot be revoked and isn't. |
 | 0.38.0 | **Also installs on v14, and serial handling adapts to the version.** The requirement is now **v14, v15 or v16** from one branch. Serial numbers moved into a *Serial and Batch Bundle* in v15; LumenPOS now detects whether a site has that and reads serials the right way for each — on an older site it uses the classic serial field instead of querying tables that don't exist there. That removes two places (opening a refund, searching history by serial) that would have failed outright on v14. **v13 is not offered**: it runs on Python 3.7–3.9 while this app needs 3.10, so a v13 bench cannot install it at all. |
 | 0.37.0 | **Runs on Frappe/ERPNext v16 as well as v15.** The app declared `frappe <16` / `erpnext <16`, so bench and the Frappe Cloud marketplace treated it as v15-only and wouldn't offer it to a v16 site — the reason the marketplace listing couldn't add a Version 16 build. The requirement is now **v15 or v16 from the same branch**. The four places LumenPOS calls ERPNext's own code (loyalty points, POS-invoice consolidation, the credit-note builder) now go through a single compatibility layer: if a future ERPNext release moves one of them, the till shows one clear message naming what broke and the ERPNext version, instead of an internal error mid-sale. |
 | 0.36.0 | **Split a refund across payment methods.** A customer who paid partly by card and partly in cash can now be refunded the same way: add as many refund lines as you need, each with its own amount and (where the method requires it) its transaction reference. A running **"x left to allocate"** turns green when the split matches to the cent, and the Refund button stays disabled until it does. **Direction is respected**: collecting money may use any tender, but refunding is still limited to the methods your refund rules allow — and now *every* line is checked, not just the first. Store credit is issued from the split rows, so a part-credit refund credits exactly the part you allocated. |

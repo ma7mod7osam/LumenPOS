@@ -169,3 +169,20 @@ npm run dev    # Vite dev server on :8080, proxies /api to a bench on :8000
 - Sale-level manual discount and per-line price override
 - Promo codes (coupon-gated promotions)
 - Gift cards, customer-facing display, email receipts
+
+## Licence
+
+LumenPOS is licensed under the **GNU General Public License v3.0 or later**
+(`GPL-3.0-or-later`) — see [license.txt](license.txt).
+
+You may run, study, share and modify it freely. If you distribute a modified
+version, that version must be released under the same licence, with its source.
+
+ERPNext itself is GPLv3, and LumenPOS calls its code directly, so this keeps the
+two consistent. GPL-3.0-or-later is on the Frappe Cloud Marketplace's accepted
+licence list.
+
+> **Earlier releases:** versions up to and including **0.38.0** were published
+> under the MIT licence. That grant is not revoked — a copy obtained under MIT
+> stays MIT for its recipient. The change applies from **0.39.0** onwards.
+> See [NOTICE](NOTICE).

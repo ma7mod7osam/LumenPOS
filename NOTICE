@@ -1,0 +1,30 @@
+LumenPOS
+Copyright (C) 2026 Lumen Solutions
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+LICENCE HISTORY
+---------------
+LumenPOS versions up to and including 0.38.0 were released under the MIT
+licence. That grant cannot be, and is not, revoked: any copy obtained under MIT
+remains under MIT for its recipient, permanently.
+
+From version 0.39.0 onwards LumenPOS is licensed under GPL-3.0-or-later. The
+change applies to new releases only.
+
+The reason is compatibility as much as protection: LumenPOS calls ERPNext's own
+code directly (loyalty points, POS invoice consolidation, the credit-note
+builder — see lumenpos/erpnext_compat.py), and ERPNext is licensed GPLv3.
+GPL-3.0-or-later is also on the Frappe Cloud Marketplace's accepted list, which
+requires apps to be open source and MIT- or GPL-compatible.
