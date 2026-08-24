@@ -2,6 +2,14 @@
 
 *Applies to LumenPOS v0.39.1. This document is updated with every feature change.*
 
+> **Note on this document.** Sections 1–17 below were written up to v0.17 and are
+> being brought forward release by release; the **changelog in section 18 is
+> authoritative and current**. For a complete, up-to-date description of every
+> feature — multi-outlet shifts, shift ownership, per-user PINs, shift schedules,
+> payment restrictions, split refunds, per-outlet and dynamic receipts, the
+> offline sales log and the performance-index page — see
+> **[the full product guide](website-guide.md)**, which is current as of v0.39.1.
+
 **Dark mode:** the nav rail has a **Dark / Light** toggle at the bottom. On
 first run LumenPOS follows your **ERPNext desk theme** (My Settings → Theme:
 Light / Dark / Automatic); Automatic falls back to the operating system's

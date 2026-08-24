@@ -24,9 +24,10 @@ A fast, single-screen point of sale for ERPNext / Frappe (v14, v15 and v16). Thi
 14. [Serial numbers](#serial-numbers)
 15. [Multi-company and invoice modes](#multi-company-and-invoice-modes)
 16. [Permissions and the audit log](#permissions-and-the-audit-log)
-17. [Language](#language)
-18. [Troubleshooting and FAQ](#troubleshooting-and-faq)
-19. [Support](#support)
+17. [Keeping a big shop fast](#keeping-a-big-shop-fast)
+18. [Language](#language)
+19. [Troubleshooting and FAQ](#troubleshooting-and-faq)
+20. [Support](#support)
 
 ---
 
@@ -102,6 +103,13 @@ The sell screen is one page:
 
 When you're ready, press **Pay** to go to the payment screen.
 
+### Checking a price or stock
+
+The **Price check** button looks up any item without adding it to the sale — scan it, or type a name, code or barcode. It shows the live price and the stock here.
+
+If the item is held elsewhere too, tap the all-stores figure to expand a **per-branch list** — available and reserved quantity, this store first. That answers *"do you have it at the other branch?"* at the counter instead of over the phone.
+
+
 Prices and promotions are always worked out on the server when the sale is submitted, so the amount you charge is exactly what the posted invoice shows — no rounding surprises.
 
 ---
@@ -152,6 +160,11 @@ On the payment screen:
 
 Press **Complete Sale** to post the invoice. If the sale can't post for any reason, nothing is half-saved — your cart and entered payments stay on screen so you can fix the issue and try again.
 
+### Payment rules (optional)
+
+- **Require a transaction reference** on a method (Settings → Payment Methods) — the payment screen then asks for the terminal or transfer reference, with your own label (e.g. *Approval code*), and won't complete the sale until it's filled. A disputed card payment can always be traced back.
+- **Block a method for certain products** — create a **POS Payment Restriction** to stop, say, gift cards being used on a buy-now-pay-later method. Match by item, item group (including everything beneath it), brand or tag, optionally per outlet. The till greys the method out and says why; the server re-checks before posting, so a stale tab or an offline sale can't slip past.
+
 ---
 
 ## The register
@@ -160,21 +173,49 @@ LumenPOS treats each shift as a register session so the cash drawer always balan
 
 - **Open the register** at the start of a shift and enter the **opening float** (the cash you start with).
 - **Cash in / cash out** records money added to or taken from the drawer during the shift.
-- **X-report** — a mid-shift read of sales and expected takings, available any time from the top bar. It does **not** close the drawer or post anything.
+- **X-report** — a mid-shift read of sales and expected takings, available any time from the top bar. It does **not** close the drawer or post anything. Any cashier on the till can pull one.
 - **Close the register** at the end of the shift: count the drawer (a blind count, so the expected figure doesn't bias it), and LumenPOS compares counted vs expected per payment method and produces a **Z-report**.
 
-In the standard POS-Invoice mode, closing consolidates the shift's sales the way ERPNext expects.
+### Several outlets, one login
+
+If you're assigned to more than one outlet, the **Open register** dialog has an **Outlet** picker — choose which till you're operating and enter its float. Each outlet runs its **own independent shift**, so a shift open in one branch never blocks another, and you're warned if you still have a register open elsewhere. Managers see every outlet.
+
+### Who owns a shift
+
+Under **Settings → A shift belongs to** you choose:
+
+- **The outlet** *(default)* — one shift per register; any assigned cashier can sell on it.
+- **The cashier** — each person opens their **own** shift on that register and can only sell on their own. Several people can share one counter while each stays accountable for their own drawer and gets their own Z-report.
+
+### Safeguards at closing
+
+- **Queued offline sales block the close.** They belong to *this* shift's drawer, so the close screen shows how many are waiting with an **Upload now** button.
+- **A stale closing screen is refused.** If a sale lands from another till or tab after you opened the closing screen, the figures you counted against are out of date — LumenPOS asks you to refresh and re-check rather than posting a wrong variance.
+- **A slow or failed end-of-day close never blocks the next shift.** The moment you close, the register is free; consolidation finishes in the background and self-heals.
+- **Typed amounts are read exactly as typed** — `1,500`, spaces and Arabic-Indic digits all work, and an unreadable box stops the action instead of silently becoming zero.
+
+### Alerts (optional)
+
+- **Cash variance** — email a chosen role when a counted amount differs from expected by more than a threshold. It records and notifies; it never blocks the close.
+- **Forgotten shift** — build a **shift schedule** (a reusable timetable, including shifts that cross midnight) and attach it to an outlet. LumenPOS emails a role when a register is still open past its shift end, with a grace period. A till is **never** closed automatically — a close without a real cash count is worthless.
+
+### Locking the till
+
+Turn on the lock screen in Settings and each cashier sets their **own PIN** (4–8 digits) the first time they meet it. Unlocking checks *their* PIN and is recorded with their name. **Forgot your PIN?** emails a 6-digit code, valid 15 minutes. There's no shared code and no manager override — the lock screen guards an unattended till, it doesn't authorise anything.
 
 ---
 
 ## Returns and refunds
 
-- Open **History**, find the sale, and choose **Refund**.
+- Open **History**, find the sale, and choose **Refund**. (From a customer's purchase list, **Open in History** takes you straight there.)
 - Refund the whole sale or selected lines.
-- Send the refund back to any **payment method** or to **store credit**.
+- **Split the refund** across several methods — useful when the customer paid partly by card and partly in cash. Each line has its own amount and, where the method requires it, its transaction reference; a running *"x left to allocate"* must match to the cent before the refund can post.
+- **Refunding is restricted** to the methods your refund rules allow (unlike collecting, where any tender is fine), and every line is checked.
+- **Refunding to Store Credit is a setting.** Turn it off if shop policy is money-back only — with one exception: credit the customer actually *spent* on that sale can always go back to credit.
+- A return **posts on the outlet handling it**, not the one that made the sale — so the money and the returned stock land where they really moved. Returns across different companies are refused.
 - The refund posts as a proper credit-note invoice, linked to the register session, so the drawer count stays correct.
 
-Who is allowed to process a return — and who can approve one past the return window — is controlled in Permissions (below).
+Who may process a return — and who may approve one past the return window — is controlled in Permissions (below). An approval request shows the approver **what** is being returned or discounted, and any request left unconfirmed is voided when the shift closes.
 
 ---
 
@@ -198,6 +239,24 @@ You have three ways to print, and LumenPOS picks the best available automaticall
 2. **Your own ERPNext Print Format.** Set a Print Format on the POS Profile and it takes over — full control over layout, bilingual receipts, QR blocks, anything a Print Format can do.
 3. **The built-in receipt designer.** In **Settings → Receipt**, choose a template (Compact, Standard, Detailed), pick what to show (item code, barcode, serial number, unit price, payment methods, note, tax ID, address, terms), and add a logo, header and footer. A live preview shows your changes as you make them.
 
+### A different receipt per outlet
+
+At the top of the designer, **Editing receipt for** lets you switch between **All outlets (default)** and a specific POS Profile. Give a branch its own logo, header, footer, template and fields; outlets with their own receipt are marked with a •, and **Reset to default** puts one back. At the till, each outlet prints its own receipt if it has one, otherwise the shared default.
+
+### Put any field on the receipt (including a ZATCA QR)
+
+Under **Custom fields** you can add any field from the **POS Profile** or from **the sale itself** onto the receipt:
+
+| Choose | Meaning |
+|---|---|
+| **Source** | *POS Profile* (branch details) or *Sale invoice* |
+| **Field** | picked from a dropdown of that record's fields — **your own custom fields appear here too** |
+| **Label** | what prints before the value (optional) |
+| **Show as** | **Text**, or **Image / QR** |
+| **Where** | **Header** or **Footer** |
+
+So a **ZATCA QR** stored as an image field on the invoice prints as the actual QR; a CR number, a branch licence, or any country-specific line prints as text. Fields are global by default, with per-outlet extras — and everything shows in the live preview as you build it.
+
 ---
 
 ## Working offline
@@ -206,7 +265,8 @@ LumenPOS is built to keep selling through a network outage.
 
 - **Products, prices and promotions** are cached on the device the first time you open the POS online, and refreshed in the background.
 - If the connection drops, the till keeps working. **Sales are queued locally** and upload automatically when you're back online. Queued writes carry a safety key so a lost confirmation can never post a sale twice.
-- **The offline sales log** (open it from the Offline / Syncing pill in the top bar, or Settings → Status) shows every offline sale and its status: **Pending** (queued), **Uploaded** (posted, with the real invoice number), or **Needs attention** (the server rejected it, with the reason). Nothing is removed until the server confirms it.
+- **The offline sales log** (open it from the Offline / Syncing pill in the top bar, or Settings → Status) shows every offline sale and its status: **Pending** (queued), **Uploaded** (posted, with the real invoice number), or **Needs attention** (the server rejected it, with the reason). Nothing is removed until the server confirms it, and one rejected sale never blocks the good ones behind it.
+- **Queued sales must upload before you can close the register** — they belong to this shift's drawer.
 
 **Good to know:**
 
@@ -246,11 +306,23 @@ Under **Settings → Permissions**, decide which roles can:
 
 - **edit a price / apply a discount** at the till,
 - **process a return**, and
-- **approve a return beyond the return window** (with a manager passcode).
+- **approve a return beyond the return window**.
 
-Sensitive actions — over-limit discounts, returns, register open/close, settings changes, receipt emails — are written to a **LumenPOS Audit Log** you can review in the desk.
+When a cashier needs an over-limit discount or a late return, they send an **approval request**. The approver sees **what** is being approved — the cart lines being discounted, or the items being returned — instead of a bare percentage. Anything still unconfirmed is voided when the shift closes, so an approval can never be spent on the next shift's drawer.
 
-There's also an optional **till lock**: a PIN lock screen that can lock the register manually or after a period of inactivity, so an unattended till is protected.
+Sensitive actions — over-limit discounts, returns, register open/close, settings changes, receipt emails, till unlocks — are written to a **LumenPOS Audit Log** you can review in the desk.
+
+There's also an optional **till lock**: a lock screen that engages manually or after a period of inactivity. Each cashier sets their **own PIN**, so an unlock is always attributable to a person — see [The register](#the-register).
+
+---
+
+## Keeping a big shop fast
+
+On a large site (hundreds of thousands of sales) LumenPOS relies on database indexes to keep selling, searching and shift reports quick. **Settings → Status → Performance indexes** lists each one as **Built**, **Missing** or **Not on this site**, with a **Rebuild missing indexes** button that runs in the background.
+
+This is visible on purpose: building an index on a huge, busy table can be refused by the database, and previously that failed silently. If a site ever feels slow, check here first.
+
+The same page shows the offline catalogue and customer cache sizes, the connection state, and a link to the offline sales log.
 
 ---
 
