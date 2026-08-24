@@ -85,6 +85,28 @@ HOT_INDEXES = [
 ]
 
 
+def _index_exists(doctype, index_name):
+    """Is this index present? Asked via information_schema so the table name is a
+    BOUND PARAMETER, not an interpolated identifier.
+
+    A "SHOW INDEX FROM tab<doctype>" cannot bind its table name, which meant an
+    f-string inside a frappe.db.sql call — the exact shape of a SQL-injection
+    finding, and one a reader has to reason about rather than simply trust.
+    This form has nothing interpolated, so there is nothing to suppress."""
+    return bool(
+        frappe.db.sql(
+            """
+            select 1 from information_schema.statistics
+            where table_schema = database()
+              and table_name = %s
+              and index_name = %s
+            limit 1
+            """,
+            (f"tab{doctype}", index_name),
+        )
+    )
+
+
 def index_health():
     """Every performance index with its state: built / missing / n-a (the column
     doesn't exist on this site). Index builds fail SILENTLY into the Error Log —
@@ -99,11 +121,7 @@ def index_health():
             ):
                 row["state"] = "n-a"
             else:
-                found = frappe.db.sql(
-                    f"SHOW INDEX FROM `tab{doctype}` WHERE Key_name = %s",  # nosemgrep
-                    index_name,
-                )
-                row["state"] = "built" if found else "missing"
+                row["state"] = "built" if _index_exists(doctype, index_name) else "missing"
         except Exception:
             row["state"] = "unknown"
         out.append(row)
@@ -122,10 +140,7 @@ def ensure_hot_indexes():
                 continue
             if not all(frappe.db.has_column(doctype, c) for c in columns):
                 continue
-            existing = frappe.db.sql(
-                f"SHOW INDEX FROM `{table}` WHERE Key_name = %s", index_name  # nosemgrep
-            )
-            if existing:
+            if _index_exists(doctype, index_name):
                 continue
             cols = ", ".join(f"`{c}`" for c in columns)
             frappe.db.sql(f"ALTER TABLE `{table}` ADD INDEX `{index_name}` ({cols})")  # nosemgrep
