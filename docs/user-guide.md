@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.39.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.40.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1–17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -631,6 +631,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.40.0 | **Installs on v13 as well, so all four versions are covered.** The requirement is now **v13, v14, v15 or v16** from one branch. The only thing that had been blocking v13 was our own package declaring it needed Python 3.10, while Frappe v13 runs on Python 3.7 to 3.9. Every line of the app was checked and none of it needs anything newer than 3.7, so that floor was lowered. Serial numbers already adapt to the version (older sites use the classic serial field instead of v15's bundle), and the places where LumenPOS calls ERPNext's own code report a clear message if a release ever moves one. |
 | 0.39.1 | **Cleared the marketplace security audit.** The index checks asked the database "does this index exist?" in a way that built the table name into the SQL text — harmless in practice (the names are fixed constants in our own code, never user input), but it's the same shape as a SQL-injection flaw and the audit flagged it. Rewritten to ask `information_schema` instead, where the table name is passed as a **bound value**, so there is nothing interpolated and nothing to justify. No behaviour change. |
 | 0.39.0 | **Licence changed to GPL-3.0-or-later.** From this release LumenPOS is published under the **GNU GPL v3 (or later)** instead of MIT. Two reasons: it keeps LumenPOS consistent with **ERPNext, which is GPLv3** and whose code LumenPOS calls directly; and it means anyone distributing a modified version must publish their changes, so the work can't be taken and closed. Nothing changes for you as a **user** — you can still run, modify and even sell it; a shop running LumenPOS has no obligations at all. **Earlier releases up to 0.38.0 remain MIT** — that grant cannot be revoked and isn't. |
 | 0.38.0 | **Also installs on v14, and serial handling adapts to the version.** The requirement is now **v14, v15 or v16** from one branch. Serial numbers moved into a *Serial and Batch Bundle* in v15; LumenPOS now detects whether a site has that and reads serials the right way for each — on an older site it uses the classic serial field instead of querying tables that don't exist there. That removes two places (opening a refund, searching history by serial) that would have failed outright on v14. **v13 is not offered**: it runs on Python 3.7–3.9 while this app needs 3.10, so a v13 bench cannot install it at all. |

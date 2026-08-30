@@ -4,7 +4,10 @@ authors = [
     { name = "Lumen Solutions", email = "support@lumen-solutions.co" },
 ]
 description = "Professional, multi-business Point of Sale for ERPNext / Frappe (LumenPOS)"
-requires-python = ">=3.10"
+# 3.7, not 3.10: Frappe v13 runs on Python 3.7 to 3.9, and every line of this
+# app parses under 3.7 (verified by AST). A >=3.10 floor was blocking v13
+# installs for no reason in our own code.
+requires-python = ">=3.7"
 readme = "README.md"
 license = { file = "license.txt" }
 dynamic = ["version"]
@@ -15,14 +18,15 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
-# One branch serves v14, v15 and v16.
+# One branch serves v13, v14, v15 and v16.
 #
 # The upper bound used to be <16.0.0, which made bench (and the Frappe Cloud
 # marketplace) treat the app as v15-only and refuse a Version 16 build.
 #
-# The lower bound is 14, not 13: Frappe v13 runs on Python 3.7-3.9 while this
-# package requires 3.10 (v14's own minimum), so a v13 bench cannot install it.
-# Serial handling is version-aware either way — v15+ reads the Serial and Batch
-# Bundle, v14 the legacy serial_no field (see sales._has_serial_bundle).
-frappe = ">=14.0.0,<17.0.0"
-erpnext = ">=14.0.0,<17.0.0"
+# Version-sensitive behaviour is handled in code, not by excluding releases:
+#   * serials  - v15+ reads the Serial and Batch Bundle, v13/v14 the legacy
+#                serial_no field (sales._has_serial_bundle)
+#   * ERPNext  - the four internals we call go through lumenpos/erpnext_compat.py,
+#                which reports a clear message if a release moves one
+frappe = ">=13.0.0,<17.0.0"
+erpnext = ">=13.0.0,<17.0.0"
