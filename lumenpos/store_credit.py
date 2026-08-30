@@ -30,13 +30,34 @@ def get_balance(customer):
     return flt(balance, 2)
 
 
-def add_entry(customer, entry_type, amount, reference_invoice=None, company=None):
+def add_entry(
+    customer,
+    entry_type,
+    amount,
+    reference_invoice=None,
+    company=None,
+    reference_doctype=None,
+):
+    """Record one movement on a customer's store credit.
+
+    `reference_doctype` says WHICH sale doctype `reference_invoice` names. It
+    matters because LumenPOS posts POS Invoices by default but a profile can be
+    set to post Sales Invoices, and the reference is a Dynamic Link. Left blank
+    it is inferred from the document that actually exists, so older callers keep
+    working.
+    """
+    if reference_invoice and not reference_doctype:
+        for doctype in ("POS Invoice", "Sales Invoice"):
+            if frappe.db.exists(doctype, reference_invoice):
+                reference_doctype = doctype
+                break
     frappe.get_doc(
         {
             "doctype": "POS Store Credit Entry",
             "customer": customer,
             "entry_type": entry_type,
             "amount": flt(amount, 2),
+            "reference_doctype": reference_doctype if reference_invoice else None,
             "reference_invoice": reference_invoice,
             "company": company,
             "posting_datetime": now_datetime(),

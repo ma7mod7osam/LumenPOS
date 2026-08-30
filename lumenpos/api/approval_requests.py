@@ -13,6 +13,7 @@ expires if the register closes before it's approved.
 import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, get_fullname, now_datetime, nowdate
+from lumenpos import erpnext_compat
 
 REQUEST_DOCTYPE = "POS Approval Request"
 SESSION_DOCTYPE = "POS Register Session"
@@ -115,7 +116,7 @@ def create_request(
     if not session:
         frappe.throw(_("Open the register before requesting approval."))
 
-    doc = frappe.new_doc(REQUEST_DOCTYPE)
+    doc = erpnext_compat.new_doc(REQUEST_DOCTYPE)
     doc.update(
         {
             "request_type": request_type,

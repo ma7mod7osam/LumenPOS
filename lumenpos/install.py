@@ -59,7 +59,53 @@ def ensure_setup():
     migrate_price_books()
     ensure_return_reasons()
     migrate_coupon_limits()
+    backfill_store_credit_references()
     ensure_hot_indexes()
+
+
+def backfill_store_credit_references():
+    """Give every existing store-credit entry a reference_doctype.
+
+    POS Store Credit Entry.reference_invoice used to be a plain Link to Sales
+    Invoice, so a POS Invoice reference could not be written at all: it failed
+    link validation and took the whole refund or redemption down with it. The
+    field is a Dynamic Link now and needs a reference_doctype beside it.
+
+    Rather than assume every old row points at a Sales Invoice, each reference
+    is resolved against both doctypes, and one that resolves to neither has its
+    dangling value cleared. Idempotent: rows that already carry a type are
+    skipped, so re-running on every migrate costs nothing.
+
+    Deliberately NOT a patch. Frappe v13 has no [post_model_sync] section, so a
+    patch would run before the column exists.
+    """
+    if not frappe.db.has_column("POS Store Credit Entry", "reference_doctype"):
+        return
+    rows = frappe.get_all(
+        "POS Store Credit Entry",
+        filters={
+            "reference_invoice": ["not in", ("", None)],
+            "reference_doctype": ["in", ("", None)],
+        },
+        fields=["name", "reference_invoice"],
+    )
+    for row in rows:
+        resolved = None
+        for doctype in ("Sales Invoice", "POS Invoice"):
+            if frappe.db.exists(doctype, row.reference_invoice):
+                resolved = doctype
+                break
+        frappe.db.set_value(
+            "POS Store Credit Entry",
+            row.name,
+            {
+                "reference_doctype": resolved,
+                "reference_invoice": row.reference_invoice if resolved else None,
+            },
+            update_modified=False,
+        )
+    if rows:
+        frappe.db.commit()
 
 
 # Indexes LumenPOS's own hot paths need. Harmless on a small site, decisive on a

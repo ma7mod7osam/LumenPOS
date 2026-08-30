@@ -11,6 +11,7 @@
   "amount",
   "column_break_1",
   "company",
+  "reference_doctype",
   "reference_invoice",
   "posting_datetime"
  ],
@@ -52,11 +53,19 @@
    "options": "Company"
   },
   {
-   "fieldname": "reference_invoice",
+   "default": "POS Invoice",
+   "description": "The sale doctype this entry came from. LumenPOS posts POS Invoices by default, but a profile can be set to post Sales Invoices instead.",
+   "fieldname": "reference_doctype",
    "fieldtype": "Link",
+   "label": "Reference Type",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_invoice",
+   "fieldtype": "Dynamic Link",
    "in_list_view": 1,
    "label": "Reference Invoice",
-   "options": "Sales Invoice"
+   "options": "reference_doctype"
   },
   {
    "fieldname": "posting_datetime",
@@ -66,7 +75,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-06-11 00:00:00.000000",
+ "modified": "2026-08-30 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Store Credit Entry",

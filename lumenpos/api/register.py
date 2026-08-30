@@ -37,6 +37,7 @@ from frappe import _
 from frappe.utils import cint, flt, now_datetime, nowdate
 
 from lumenpos.api.session import get_open_session
+from lumenpos import erpnext_compat
 
 LIVE_STATES = ["Open", "Closing"]  # a shift that blocks opening another
 CLOSING_LOCK = "lumenpos_pos_closing"
@@ -743,7 +744,7 @@ def _make_closing_entry(session_doc, counted):
         fields=["name", "customer", "grand_total", "is_return", "posting_date"],
     )
 
-    closing = frappe.new_doc("POS Closing Entry")
+    closing = erpnext_compat.new_doc("POS Closing Entry")
     closing.update(
         {
             "pos_opening_entry": opening.name,

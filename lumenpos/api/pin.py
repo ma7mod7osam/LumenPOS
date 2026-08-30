@@ -20,6 +20,7 @@ import secrets
 import frappe
 from frappe import _
 from frappe.utils import add_to_date, cint, now_datetime
+from lumenpos import erpnext_compat
 
 DOCTYPE = "LumenPOS User PIN"
 ITERATIONS = 60_000
@@ -53,7 +54,7 @@ def _row(user=None, create=False):
         return frappe.get_doc(DOCTYPE, name)
     if not create:
         return None
-    doc = frappe.new_doc(DOCTYPE)
+    doc = erpnext_compat.new_doc(DOCTYPE)
     doc.user = user
     return doc
 

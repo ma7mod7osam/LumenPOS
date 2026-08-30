@@ -119,8 +119,22 @@ def is_active(promo, now, cart):
 
 
 def _norm_time(value):
-    value = str(value)
-    return value if len(value) > 5 else value + ":00"
+    """Zero padded "HH:MM:SS", microseconds dropped.
+
+    These are compared as strings against now.strftime("%H:%M:%S"), so a single
+    digit hour breaks the comparison: str(timedelta) gives "9:00:00", and
+    "9:00:00" sorts ABOVE "09:30:00". Normalising here keeps a morning happy
+    hour working. Kept in step with normTime() in frontend/src/promotions.js.
+    """
+    text = str(value).split(".")[0]
+    parts = text.split(":")
+    try:
+        nums = [int(p) for p in parts[:3]]
+    except ValueError:
+        return text
+    while len(nums) < 3:
+        nums.append(0)
+    return "%02d:%02d:%02d" % (nums[0], nums[1], nums[2])
 
 
 def _line_matches(line, rows, role=None):

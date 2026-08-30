@@ -227,7 +227,7 @@ Who may process a return — and who may approve one past the return window — 
 
 **Loyalty.** LumenPOS uses ERPNext's native Loyalty Program. Assign a program to your customers (directly or via customer group); points are earned automatically on sales, and the customer can redeem them at the payment screen.
 
-> **Setup tip:** to switch loyalty on, create a Loyalty Program in ERPNext and assign it to customers. To use store credit, just take it as payment — the account and payment method are created on first use.
+> **Setup tip:** to switch loyalty on, create a Loyalty Program in ERPNext, set it to **auto opt-in** and assign it to customers. On ERPNext v15 and v16, also tick **Allow Partial Payment** on the POS Profile, otherwise ERPNext refuses any sale paid partly with points: it counts only the cash and card against the total, even though the points settle the rest. LumenPOS checks every sale adds up before it posts, so nothing is lost by ticking it. To use store credit, just take it as payment — the account and payment method are created on first use.
 
 ---
 

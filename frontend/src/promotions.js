@@ -54,9 +54,14 @@ function localTime(d) {
 function pad(n) {
   return String(n).padStart(2, '0')
 }
+// Zero padded HH:MM:SS, microseconds dropped. These are compared as strings
+// against the local clock, so a single digit hour ("9:00:00") would sort above
+// "09:30:00" and break a morning happy hour. Kept in step with _norm_time() in
+// lumenpos/promotions/engine.py.
 function normTime(v) {
-  v = String(v)
-  return v.length > 5 ? v : v + ':00'
+  const parts = String(v).split('.')[0].split(':')
+  const nums = [0, 0, 0].map((_, i) => parseInt(parts[i], 10) || 0)
+  return nums.map((n) => String(n).padStart(2, '0')).join(':')
 }
 
 function lineMatches(line, rows, role = null) {

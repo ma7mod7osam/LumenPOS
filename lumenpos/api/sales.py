@@ -8,6 +8,7 @@ from lumenpos import coupons, gift_cards, store_credit
 from lumenpos.price_books import effective_prices, resolve_price_list, standard_prices
 from lumenpos.promotions.engine import evaluate
 from lumenpos.promotions.loader import get_active_promotions
+from lumenpos import erpnext_compat
 
 INVOICE_DOCTYPE = "POS Invoice"
 
@@ -160,7 +161,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     # (Sets POS Profile → Ignore Pricing Rule so the flag survives submit.)
     _ensure_ignore_pricing_rule(profile)
 
-    invoice = frappe.new_doc(_sale_doctype(profile))
+    invoice = erpnext_compat.new_doc(_sale_doctype(profile))
     invoice.update(
         {
             "is_pos": 1,
@@ -442,7 +443,12 @@ def submit_sale(payload):
 
     if store_credit_used:
         store_credit.add_entry(
-            customer, "Redeem", store_credit_used, invoice.name, profile.company
+            customer,
+            "Redeem",
+            store_credit_used,
+            invoice.name,
+            profile.company,
+            invoice.doctype,
         )
     for card in redeem_cards:
         gift_cards.redeem(card["card_no"], card["amount"], invoice.name)
@@ -507,7 +513,7 @@ def sell_gift_card(payload):
             ).format(profile.company)
         )
 
-    invoice = frappe.new_doc(_sale_doctype(profile))
+    invoice = erpnext_compat.new_doc(_sale_doctype(profile))
     invoice.update(
         {
             "is_pos": 1,
@@ -1187,6 +1193,47 @@ def _sync_return_paid_amount(doc):
     )
 
 
+
+def _assert_points_payable(invoice):
+    """Stop a part points sale that ERPNext v15+ would reject at submit.
+
+    Redeeming points settles the invoice properly on every version: ERPNext
+    subtracts the points in calculate_outstanding_amount, so the sale posts with
+    outstanding_amount 0. `paid_amount` deliberately stays at what the customer
+    actually tendered.
+
+    ERPNext v15 then added POSInvoice.validate_full_payment, which compares
+    `paid_amount` against the total WITHOUT allowing for the points, and throws
+    "Partial Payment in POS Invoice is not allowed." on a sale that is in fact
+    settled in full. Its escape hatch is Allow Partial Payment on the POS
+    Profile. That is safe here because LumenPOS reconciles every sale against
+    the posted total itself (see _reconcile_payment) and refuses a short one
+    before ERPNext ever sees it.
+
+    Raised here, up front, so the cashier gets one clear instruction rather than
+    an ERPNext failure at the end of the sale.
+    """
+    if invoice.doctype != "POS Invoice":
+        return
+    if not frappe.get_meta("POS Invoice").has_field("pos_profile"):
+        return
+    meta = frappe.get_meta("POS Profile")
+    if not meta.has_field("allow_partial_payment"):
+        return  # v13 / v14: no such guard, nothing to do
+    profile = invoice.get("pos_profile")
+    if frappe.db.get_value("POS Profile", profile, "allow_partial_payment"):
+        return
+    frappe.throw(
+        _(
+            "To let customers pay with loyalty points, tick 'Allow Partial Payment' "
+            "on the POS Profile {0}. This version of ERPNext counts only cash and "
+            "card towards the total, so it rejects a sale that is part points even "
+            "though the sale is fully settled. LumenPOS still checks every sale "
+            "adds up before it posts."
+        ).format(profile)
+    )
+
+
 def _apply_loyalty_redemption(invoice, customer, company, payload):
     points = cint(payload.get("redeem_loyalty_points"))
     if points <= 0:
@@ -1202,6 +1249,7 @@ def _apply_loyalty_redemption(invoice, customer, company, payload):
                 cint(details.loyalty_points), points
             )
         )
+    _assert_points_payable(invoice)
     invoice.redeem_loyalty_points = 1
     invoice.loyalty_program = details.loyalty_program
     invoice.loyalty_points = points
@@ -2123,6 +2171,7 @@ def create_return(
             credit_amount,
             return_doc.name,
             original.company,
+            return_doc.doctype,
         )
     # Consume the single-use late-return approval the credit note was built with.
     if return_request and return_approver:

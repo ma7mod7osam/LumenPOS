@@ -1,9 +1,47 @@
 """Load POS Promotion documents and serialize them for the engine
 (and for shipping to the POS frontend, which runs the mirrored JS engine)."""
 
+import datetime
+
 import frappe
 
 from lumenpos.promotions.engine import DAYS
+
+
+def time_str(value):
+    """A Time field as a plain, zero padded "HH:MM:SS" string, or None.
+
+    Two things make this necessary:
+
+    * Frappe stores Time columns as time(6) and REFILLS an empty one with the
+      current time on insert. A promotion saved with no daily window therefore
+      lands with a start and an end a few microseconds apart, which the engines
+      read as a window that is open for a few microseconds a day - so the
+      promotion never applies. Truncating to whole seconds makes those two
+      values identical, and both engines already read equal times as "no daily
+      window". A real happy hour is never set to sub second precision, so
+      nothing legitimate is lost.
+    * The raw value is a timedelta, and str(timedelta) drops the leading zero
+      ("9:00:00"), which breaks the string comparison the engines do against
+      "%H:%M:%S". Pad it here, once, for both engines.
+    """
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime.timedelta):
+        total = int(value.total_seconds())
+    elif isinstance(value, datetime.time):
+        total = value.hour * 3600 + value.minute * 60 + value.second
+    else:
+        parts = str(value).split(".")[0].split(":")
+        try:
+            nums = [int(p) for p in parts[:3]]
+        except ValueError:
+            return None
+        while len(nums) < 3:
+            nums.append(0)
+        total = nums[0] * 3600 + nums[1] * 60 + nums[2]
+    total %= 24 * 3600
+    return "%02d:%02d:%02d" % (total // 3600, (total % 3600) // 60, total % 60)
 
 
 def serialize(doc):
@@ -17,8 +55,8 @@ def serialize(doc):
         "price_basis": doc.get("price_basis") or "Price Book Price",
         "start_date": str(doc.start_date) if doc.start_date else None,
         "end_date": str(doc.end_date) if doc.end_date else None,
-        "start_time": str(doc.start_time) if doc.start_time else None,
-        "end_time": str(doc.end_time) if doc.end_time else None,
+        "start_time": time_str(doc.start_time),
+        "end_time": time_str(doc.end_time),
         "days": {day: doc.get(day) or 0 for day in DAYS},
         "pos_profiles": [row.pos_profile for row in (doc.pos_profiles or [])],
         "customer_eligibility": doc.customer_eligibility or "All Customers",

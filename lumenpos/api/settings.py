@@ -9,6 +9,7 @@ from frappe.utils import cint, flt, getdate, nowdate
 from frappe.utils.password import get_decrypted_password
 
 from lumenpos import __version__
+from lumenpos import erpnext_compat
 
 def _can_manage():
     """Can the user change LumenPOS-wide settings (the General tab)?"""
@@ -684,7 +685,7 @@ def save_promotion(payload):
         doc = frappe.get_doc("POS Promotion", payload["name"])
     else:
         _require("POS Promotion", "create")
-        doc = frappe.new_doc("POS Promotion")
+        doc = erpnext_compat.new_doc("POS Promotion")
 
     # Empty date/time inputs arrive as "" — store None, never 00:00:00
     # (a 00:00-00:00 window would silently disable the promotion)
@@ -727,6 +728,17 @@ def save_promotion(payload):
         )
 
     doc.save()
+    # Frappe REFILLS an empty Time column with the current time on save, so a
+    # promotion with no happy hour would otherwise store (and show in the desk)
+    # a window the user never set. The engines already ignore it -- see
+    # promotions.loader.time_str -- but leave the record honest.
+    blanks = {
+        field: None
+        for field in ("start_time", "end_time")
+        if not payload.get(field) and doc.get(field)
+    }
+    if blanks:
+        frappe.db.set_value("POS Promotion", doc.name, blanks, update_modified=False)
     return doc.name
 
 
@@ -899,7 +911,7 @@ def save_bundle(payload):
         doc = frappe.get_doc("POS Bundle", payload["name"])
     else:
         _require("POS Bundle", "create")
-        doc = frappe.new_doc("POS Bundle")
+        doc = erpnext_compat.new_doc("POS Bundle")
     doc.title = payload.get("title")
     doc.status = payload.get("status") or "Active"
     doc.bundle_price = payload.get("bundle_price")
@@ -967,7 +979,7 @@ def save_price_book(payload):
         doc = frappe.get_doc("POS Price Book", payload["name"])
     else:
         _require("POS Price Book", "create")
-        doc = frappe.new_doc("POS Price Book")
+        doc = erpnext_compat.new_doc("POS Price Book")
     for field in ("title", "status", "priority", "valid_from", "valid_to"):
         if field in payload:
             doc.set(field, payload[field] or None)
