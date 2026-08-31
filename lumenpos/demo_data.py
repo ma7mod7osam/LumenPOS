@@ -541,8 +541,28 @@ def _loyalty(company, abbr):
                 "collection_rules": [{"tier_name": "Member", "collection_factor": 20, "min_spent": 0}],
             }
         ).insert(ignore_permissions=True)
-    say("loyalty: %s (auto opt-in, 1 point per 20 %s spent)" % (name, CURRENCY))
+    say("loyalty: %s (auto opt-in, 1 point per 20 spent)" % name)
     return name
+
+
+def _enrol(customers, program, share=0.4):
+    """Put some customers on the loyalty programme.
+
+    A POS Invoice only earns points when the invoice carries a loyalty_program,
+    and it inherits that from the customer record. ERPNext's own auto opt-in
+    lookup runs in the Sales Invoice validate that POS Invoice deliberately
+    skips, so without this nobody in the demo would ever earn a point.
+    Enrolling a share of them, rather than all, is also closer to a real shop.
+    """
+    members = customers[: max(1, int(len(customers) * share))]
+    for customer in members:
+        if not frappe.db.get_value("Customer", customer, "loyalty_program"):
+            frappe.db.set_value(
+                "Customer", customer, "loyalty_program", program, update_modified=False
+            )
+    frappe.db.commit()
+    say("loyalty: %d of %d customers enrolled" % (len(members), len(customers)))
+    return members
 
 
 def _pos_profiles(company, abbr, warehouses, walk_in, vat_template):
@@ -996,7 +1016,8 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
         serial_codes = {code for code, _p, serialised in codes if serialised}
         _modes_of_payment(company, abbr)
         walk_in, customers = _customers()
-        _loyalty(company, abbr)
+        program = _loyalty(company, abbr)
+        _enrol(customers, program)
         profiles = _pos_profiles(company, abbr, warehouses, walk_in, vat_template)
         _finish_open_sessions(profiles)
         _settings(company, profiles)
