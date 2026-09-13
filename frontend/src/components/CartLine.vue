@@ -1,4 +1,7 @@
-﻿<template>
+<!-- Copyright (c) 2026 Lumen Solutions
+     SPDX-License-Identifier: AGPL-3.0-only
+     "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
+<template>
   <div class="line" :class="{ expanded }">
     <button class="line-main" @click="expanded = !expanded">
       <div class="line-info">

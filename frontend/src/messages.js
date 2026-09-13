@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Lumen Solutions
+// SPDX-License-Identifier: AGPL-3.0-only
+// "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 // Arabic translations for the POS chrome, keyed by the English source string.
 // A missing key falls back to English (see i18n.js). Keep keys EXACTLY equal to
 // the English text passed to t(). Master data is never translated here.

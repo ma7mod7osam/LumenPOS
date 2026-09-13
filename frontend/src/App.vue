@@ -1,4 +1,7 @@
-﻿<template>
+<!-- Copyright (c) 2026 Lumen Solutions
+     SPDX-License-Identifier: AGPL-3.0-only
+     "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
+<template>
   <!-- Customer-facing display: a chrome-free second screen, no app shell and
        no bootstrap — it only listens for cart snapshots over BroadcastChannel. -->
   <router-view v-if="isDisplay" />

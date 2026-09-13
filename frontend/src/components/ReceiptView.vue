@@ -1,3 +1,6 @@
+<!-- Copyright (c) 2026 Lumen Solutions
+     SPDX-License-Identifier: AGPL-3.0-only
+     "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
 <template>
   <div :id="printable ? 'receipt-print' : null" class="receipt" :class="`tpl-${tpl}`">
     <div class="receipt-head">

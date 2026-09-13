@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Lumen Solutions
+// SPDX-License-Identifier: AGPL-3.0-only
+// "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 // Mirror of lumenpos/promotions/engine.py — keep both in sync.
 // Runs client-side so the cart updates instantly; the server re-evaluates
 // authoritatively on submit.

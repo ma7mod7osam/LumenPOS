@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Standalone tests for the promotion engine (no Frappe needed).
 
 Run directly:  python -m unittest lumenpos.promotions.test_engine

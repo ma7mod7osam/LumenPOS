@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """POS approval requests — a generic, role-approved request used for two cases:
 
 - **Discount**: a manual discount above LumenPOS Settings → Discount Limit, when the

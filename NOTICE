@@ -1,30 +1,53 @@
 LumenPOS
-Copyright (C) 2026 Lumen Solutions
+Copyright (c) 2026 Lumen Solutions
 
 This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3 of the License.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with
-this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+"LumenPOS" and the LumenPOS logo are trademarks of Lumen Solutions. They are not
+covered by the licence above. See TRADEMARKS.md.
 
 
 LICENCE HISTORY
 ---------------
-LumenPOS versions up to and including 0.38.0 were released under the MIT
-licence. That grant cannot be, and is not, revoked: any copy obtained under MIT
-remains under MIT for its recipient, permanently.
+Up to and including 0.38.0    MIT
+0.39.0 to 0.42.1              GPL-3.0-or-later
+From 0.43.0                   AGPL-3.0-only
 
-From version 0.39.0 onwards LumenPOS is licensed under GPL-3.0-or-later. The
-change applies to new releases only.
+Each change applies to new releases only. A grant already made is not revoked,
+and it cannot be. A copy obtained under MIT stays under MIT for its recipient,
+and a copy obtained under GPL-3.0-or-later stays under GPL-3.0-or-later,
+permanently.
 
-The reason is compatibility as much as protection: LumenPOS calls ERPNext's own
-code directly (loyalty points, POS invoice consolidation, the credit-note
-builder — see lumenpos/erpnext_compat.py), and ERPNext is licensed GPLv3.
-GPL-3.0-or-later is also on the Frappe Cloud Marketplace's accepted list, which
-requires apps to be open source and MIT- or GPL-compatible.
+LumenPOS moved to the AGPL because it is software people use over a network.
+Under the GPL, a modified LumenPOS could be offered to shops as a hosted service
+without its changes ever being shared, because running a service is not
+distribution. Under the AGPL, anyone who runs a modified version for users over
+a network must offer those users its complete source code.
+
+
+COMPATIBILITY WITH ERPNEXT AND FRAPPE
+-------------------------------------
+LumenPOS calls ERPNext's own code directly (loyalty points, POS invoice
+consolidation and the credit note builder, see lumenpos/erpnext_compat.py).
+ERPNext is licensed under version 3 of the GNU General Public License.
+
+The two licences are designed to be combined. Section 13 of the GPLv3 permits
+linking or combining a work it covers with a work licensed under version 3 of
+the GNU Affero General Public License into a single combined work, and section
+13 of the AGPLv3 gives the same permission from the other side. Each part keeps
+its own licence, and the network interaction requirement of the AGPLv3 applies
+to the combination as such.
+
+Frappe Framework is licensed under MIT, which is compatible with both.
+
+AGPL-3.0 is accepted on the Frappe Cloud Marketplace, which requires apps to be
+open source and compatible with MIT or the GPL.

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Customer lookup screen — paginated client search plus a per-customer profile
 with balances, lifetime stats and (via sales.search_sales) their POS
 transactions. Every query is server-paginated and scoped to indexed columns, so

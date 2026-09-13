@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Lumen Solutions
+// SPDX-License-Identifier: AGPL-3.0-only
+// "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 // Offline layer: IndexedDB cache for bootstrap + catalog, and a queue for
 // sales made while the network is down. No external dependencies.
 

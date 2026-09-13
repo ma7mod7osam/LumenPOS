@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
@@ -104,8 +107,12 @@ def backfill_store_credit_references():
             },
             update_modified=False,
         )
-    if rows:
-        frappe.db.commit()
+    # No commit here. ensure_setup() runs as an after_migrate hook, and on
+    # every supported version that hook chain is already committed for us.
+    # v14 and v15 wrap it in migrate.py's @atomic, which commits on success
+    # and rolls back on any exception. v13's migrate() commits right after
+    # running every installed app's after_migrate hooks. Verified on frappe
+    # 13.58.22, 14.101.1 and 15.119.1.
 
 
 # Indexes LumenPOS's own hot paths need. Harmless on a small site, decisive on a

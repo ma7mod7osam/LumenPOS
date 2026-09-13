@@ -172,17 +172,30 @@ npm run dev    # Vite dev server on :8080, proxies /api to a bench on :8000
 
 ## Licence
 
-LumenPOS is licensed under the **GNU General Public License v3.0 or later**
-(`GPL-3.0-or-later`) — see [license.txt](license.txt).
+Copyright (c) 2026 Lumen Solutions.
 
-You may run, study, share and modify it freely. If you distribute a modified
-version, that version must be released under the same licence, with its source.
+LumenPOS is licensed under the **GNU Affero General Public License v3.0**
+(`AGPL-3.0-only`). See [license.txt](license.txt).
 
-ERPNext itself is GPLv3, and LumenPOS calls its code directly, so this keeps the
-two consistent. GPL-3.0-or-later is on the Frappe Cloud Marketplace's accepted
-licence list.
+You may use, study and modify it. If you distribute it, or run a modified version
+as a network service, you must offer your complete source code to the people who
+receive or use it, under the same licence, and keep every copyright notice. It
+may not be relicensed or resold as closed-source software.
+
+ERPNext is GPLv3 and LumenPOS calls its code directly. The GPLv3 and the AGPLv3
+each permit combining with the other (section 13 of both), so the two remain
+compatible. AGPL-3.0 is accepted on the Frappe Cloud Marketplace.
+
+For a commercial licence without the AGPL obligations, contact
+hello@lumen-solutions.co.
 
 > **Earlier releases:** versions up to and including **0.38.0** were published
-> under the MIT licence. That grant is not revoked — a copy obtained under MIT
-> stays MIT for its recipient. The change applies from **0.39.0** onwards.
-> See [NOTICE](NOTICE).
+> under MIT, and versions **0.39.0 to 0.42.1** under GPL-3.0-or-later. Those
+> grants are not revoked. A copy obtained under either keeps those terms for its
+> recipient. See [NOTICE](NOTICE).
+
+## Trademarks
+
+"LumenPOS" and the LumenPOS logo are trademarks of Lumen Solutions. The code
+licence does not grant permission to use them. Forks and modified versions must
+use a different name and logo. See [TRADEMARKS.md](TRADEMARKS.md).

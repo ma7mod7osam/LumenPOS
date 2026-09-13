@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Lumen Solutions
+// SPDX-License-Identifier: AGPL-3.0-only
+// "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 // Lightweight i18n for the POS UI (no extra dependency).
 //
 // Translations are keyed by the ENGLISH source string, so a missing key simply

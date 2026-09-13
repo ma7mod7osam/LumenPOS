@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Thin shims over the Frappe/ERPNext internals LumenPOS calls directly.
 
 LumenPOS supports Frappe/ERPNext **v13 through v16** from one branch. Almost all

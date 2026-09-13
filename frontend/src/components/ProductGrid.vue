@@ -1,4 +1,7 @@
-﻿<template>
+<!-- Copyright (c) 2026 Lumen Solutions
+     SPDX-License-Identifier: AGPL-3.0-only
+     "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
+<template>
   <div class="grid-wrap">
     <div v-if="catalog.loading" class="grid-empty">{{ t('Loading…') }}</div>
     <div v-else-if="!visibleItems.length" class="grid-empty">

@@ -1,9 +1,12 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 app_name = "lumenpos"
 app_title = "LumenPOS"
 app_publisher = "Lumen Solutions"
 app_description = "Professional, multi-business Point of Sale for ERPNext / Frappe"
 app_email = "support@lumen-solutions.co"
-app_license = "GPL-3.0-or-later"
+app_license = "AGPL-3.0-only"
 
 required_apps = ["erpnext"]
 
@@ -28,6 +31,19 @@ scheduler_events = {
             "lumenpos.api.register.notify_overdue_sessions",
         ],
     },
+}
+
+# Demo builder only (lumenpos/demo_data.py). Dates the documents of a demo
+# history through Frappe's own hook instead of patching the framework at
+# runtime. It returns at once unless a demo run has set
+# frappe.flags.lumenpos_demo_stamp, so a real sale is never touched.
+doc_events = {
+    "POS Invoice": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
+    "Sales Invoice": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
+    "Stock Entry": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
+    "POS Opening Entry": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
+    "POS Closing Entry": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
+    "Payment Entry": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
 }
 
 # The POS single-page app is served at /pos (see lumenpos/www/pos.py).

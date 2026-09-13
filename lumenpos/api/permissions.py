@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Capability checks for till actions that a store may want to restrict to
 certain staff: editing price (manual discounts), making returns, and returning
 past the return window without approval.

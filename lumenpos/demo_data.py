@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Build a realistic LumenPOS demo site: masters, settings, and a month of trade.
 
 Trigger it from a browser, signed in as a System Manager:
@@ -31,7 +34,6 @@ import json
 import random
 
 import frappe
-from frappe.model.document import Document
 from frappe.utils import add_days, flt, nowdate
 
 # ---------------------------------------------------------------------------
@@ -164,34 +166,34 @@ def _note_failure(exc):
 # ---------------------------------------------------------------------------
 # Backdating
 # ---------------------------------------------------------------------------
-_ORIGINAL_INSERT = Document.insert
-_DATED = (
-    "POS Invoice",
-    "Sales Invoice",
-    "Stock Entry",
-    "POS Opening Entry",
-    "POS Closing Entry",
-    "Payment Entry",
-)
-
-
-def _dated_insert(self, *args, **kwargs):
-    """Post historical documents on the day they belong to.
+# Registered as a before_insert doc_event in hooks.py, for exactly the
+# doctypes a demo day creates. A doc_event composes safely with whatever else
+# is installed on the site. Patching Document.insert itself would not. A
+# crash before the patch was undone would leave every doctype's insert
+# patched for the rest of that worker's life, and a second app patching the
+# same method would clobber this one.
+def apply_demo_stamp(doc, method=None):
+    """Post a historical demo document on the day it belongs to.
 
     submit_sale has no posting-date argument, on purpose: a till sells today.
-    A demo history needs dated documents, so the date is applied here instead
-    of adding a back-dating path to the product. This patch lives only for the
-    length of the run, and is removed in a finally block.
+    A demo history needs dated documents, so this hook applies the date
+    instead of adding a back-dating path to the product. For every insert on
+    the site it is a single flag check (`if not stamp: return`), and it does
+    nothing at all unless a demo run has armed
+    frappe.flags.lumenpos_demo_stamp, so a real sale is never touched.
+
+    before_insert fires after Frappe's own _set_defaults() but before
+    validate() (see model/document.py Document.insert), which is late enough
+    to override the posting_date ERPNext's set_missing_values already
+    defaulted to today. LumenPOS calls set_missing_values while building the
+    invoice, before insert() runs, so "only if empty" would never fire here.
+    Overwriting unconditionally is intentional.
     """
     stamp = frappe.flags.get("lumenpos_demo_stamp")
-    if stamp and self.doctype in _DATED:
-        # Overwrite unconditionally. ERPNext has already defaulted posting_date
-        # to today by the time insert() runs (set_missing_values does it while
-        # the cart is being priced), so "only if empty" would never fire and the
-        # whole history would land on one day.
-        self.set_posting_time = 1
-        self.posting_date, self.posting_time = stamp
-    return _ORIGINAL_INSERT(self, *args, **kwargs)
+    if not stamp:
+        return
+    doc.set_posting_time = 1
+    doc.posting_date, doc.posting_time = stamp
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +233,12 @@ def _company():
             "fy_end_date": "%d-12-31" % (year - 1),
         }
     )
-    frappe.db.commit()
+    # Checkpoint after ERPNext's own company/CoA setup, which
+    # this whole run depends on and which is not cheap to redo. Runs inside
+    # the background job (see run()), which only commits once at the very
+    # end on success. Without this, a later failure would also discard the
+    # company.
+    frappe.db.commit()  # nosemgrep
     name = frappe.db.get_value("Company", {}, "name")
     _ksa_company_fields(name)
     say("company: set up %s through ERPNext's own setup wizard" % name)
@@ -560,7 +567,8 @@ def _enrol(customers, program, share=0.4):
             frappe.db.set_value(
                 "Customer", customer, "loyalty_program", program, update_modified=False
             )
-    frappe.db.commit()
+    # No commit here: the enclosing run() commits everything from
+    # _fiscal_years through _price_book together, right after _price_book.
     say("loyalty: %d of %d customers enrolled" % (len(members), len(customers)))
     return members
 
@@ -634,9 +642,12 @@ def _finish_open_sessions(profiles):
                         for line in (summary.get("expected") or [])
                     }
                     register.close_register(row.name, json.dumps(counted))
-                    frappe.db.commit()
+                # Neither call needs a commit here: close_register() persists
+                # the "Closing" flip itself before it returns, and every
+                # return path out of build_closing_entry() ends by committing
+                # the session's final state (Closed or Failed). See
+                # register.py.
                 register.build_closing_entry(row.name, {})
-                frappe.db.commit()
             except Exception as exc:
                 say("  ! could not finish %s: %s" % (row.name, str(exc)[:120]))
                 frappe.db.rollback()
@@ -837,7 +848,11 @@ def _sell_day(profile, day, count, codes, walk_in, customers, serial_codes):
     frappe.flags.lumenpos_demo_stamp = (day, "08:30:00")
     opened = register.open_register(profile, opening_float=500)
     session = opened.get("name") or opened.get("session")
-    frappe.db.commit()
+    # open_register() does not commit internally (it is an ordinary
+    # whitelisted endpoint that normally relies on the HTTP request boundary,
+    # which does not exist here). The rest of this shift depends on the
+    # session row existing on a later retry.
+    frappe.db.commit()  # nosemgrep
 
     made, returned, takings = 0, 0, 0.0
     for i in range(count):
@@ -895,7 +910,11 @@ def _sell_day(profile, day, count, codes, walk_in, customers, serial_codes):
         made += 1
         takings += flt(frappe.db.get_value("POS Invoice", name, "grand_total"))
         if made % 25 == 0:
-            frappe.db.commit()
+            # Batch checkpoint. submit_sale() does not commit
+            # internally, and this job posts 1000+ invoices over close to an
+            # hour. Without this, one failure near the end would discard
+            # every sale made since the job started, not just this batch.
+            frappe.db.commit()  # nosemgrep
         # A few come back.
         if rng.random() < 0.04:
             first = lines[0]
@@ -911,7 +930,10 @@ def _sell_day(profile, day, count, codes, walk_in, customers, serial_codes):
                     returned += 1
                 except Exception:
                     frappe.db.rollback()
-    frappe.db.commit()
+    # Flushes the tail of this day's batch (fewer than 25 sales
+    # since the last checkpoint above) plus any returns, none of which
+    # commit on their own.
+    frappe.db.commit()  # nosemgrep
 
     frappe.flags.lumenpos_demo_stamp = (day, "22:15:00")
     summary = register.get_session_summary(session)
@@ -921,10 +943,13 @@ def _sell_day(profile, day, count, codes, walk_in, customers, serial_codes):
         # Real tills are a few riyals out now and then.
         drift = rng.choice([0, 0, 0, 0, -5, 5, -10, 2.5]) if row.get("is_cash") else 0
         counted[row["mode_of_payment"]] = flt(expected + drift, 2)
+    # Neither call needs a commit here: close_register() persists the
+    # "Closing" flip itself before it returns, and every return path out of
+    # build_closing_entry() ends by committing the session's final state
+    # (Closed or Failed). Both are justified in register.py, not repeated
+    # here.
     register.close_register(session, json.dumps(counted))
-    frappe.db.commit()
     register.build_closing_entry(session, counted)
-    frappe.db.commit()
     frappe.flags.lumenpos_demo_stamp = None
     return made, returned, takings
 
@@ -969,7 +994,9 @@ def _gift_cards(profile, walk_in):
                 }
             )
             made.append("%s (%s)" % (result.get("gift_card_no"), amount))
-            frappe.db.commit()
+            # sell_gift_card() does not commit internally either, and this is
+            # the last write of the whole run before it reports success.
+            frappe.db.commit()  # nosemgrep
         except Exception as exc:
             say("  gift card %s skipped: %s" % (amount, str(exc)[:120]))
             frappe.db.rollback()
@@ -1005,7 +1032,6 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
         )
     abbr = frappe.db.get_value("Company", company, "abbr")
 
-    Document.insert = _dated_insert
     try:
         _fiscal_years(company)
         _price_list(company)
@@ -1024,11 +1050,15 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
         _promotions(profiles)
         _bundle()
         _price_book(profiles)
-        frappe.db.commit()
+        # Checkpoint for the whole masters phase (fiscal years
+        # through price book) before the hour-long selling phase starts.
+        frappe.db.commit()  # nosemgrep
 
         _stock(company, warehouses, codes, add_days(nowdate(), -(days + 1)))
         _seed_used_serials()
-        frappe.db.commit()
+        # Checkpoint after opening stock is received into every
+        # warehouse, before the selling phase starts spending it.
+        frappe.db.commit()  # nosemgrep
 
         import math
 
@@ -1053,7 +1083,9 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
         from lumenpos.api import register, sales
 
         opened = register.open_register(profiles[0], opening_float=500)
-        frappe.db.commit()
+        # Same reason as the open_register() checkpoint in
+        # _sell_day. The endpoint does not commit internally.
+        frappe.db.commit()  # nosemgrep
         topups = 0
         while total_made < invoice_target + 6 and topups < invoice_target:
             topups += 1
@@ -1074,7 +1106,8 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
             except Exception as exc:
                 frappe.db.rollback()
                 _note_failure(exc)
-        frappe.db.commit()
+        # Flushes the top-up sales before the run reports success.
+        frappe.db.commit()  # nosemgrep
         _gift_cards(profiles[0], walk_in)
 
         if not total_made:
@@ -1102,7 +1135,6 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
             "log": LOG,
         }
     finally:
-        Document.insert = _ORIGINAL_INSERT
         frappe.flags.lumenpos_demo_stamp = None
         frappe.flags.in_test = False
 

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Pure promotion-evaluation engine (Vend / Lightspeed X-Series style).
 
 This module has NO Frappe imports. Carts and promotion definitions are plain

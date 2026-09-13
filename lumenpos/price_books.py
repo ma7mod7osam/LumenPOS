@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Vend-style price books — a set of per-item override prices that apply for a
 period, scoped by outlet and customer group, with a priority to break ties.
 

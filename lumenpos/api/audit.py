@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Lumen Solutions
+# SPDX-License-Identifier: AGPL-3.0-only
+# "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Lightweight audit trail of sensitive till actions.
 
 `log()` is best-effort: gated by the Settings → Features toggle, it never raises

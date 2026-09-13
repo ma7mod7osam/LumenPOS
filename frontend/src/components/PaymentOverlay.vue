@@ -1,4 +1,7 @@
-﻿<template>
+<!-- Copyright (c) 2026 Lumen Solutions
+     SPDX-License-Identifier: AGPL-3.0-only
+     "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
+<template>
   <div class="pay-overlay">
     <header class="pay-header">
       <button class="btn-ghost back" @click="$emit('close')">‹ {{ t('Back to sale') }}</button>

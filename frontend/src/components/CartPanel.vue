@@ -1,4 +1,7 @@
-﻿<template>
+<!-- Copyright (c) 2026 Lumen Solutions
+     SPDX-License-Identifier: AGPL-3.0-only
+     "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
+<template>
   <aside class="cart card">
     <div class="customer-row" role="button" tabindex="0" @click="customerOpen = true" @keydown.enter="customerOpen = true">
       <div class="avatar">{{ customerInitials }}</div>
