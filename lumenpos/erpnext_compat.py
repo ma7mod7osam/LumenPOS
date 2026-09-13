@@ -28,7 +28,7 @@ def _fail(what, exc):
             "LumenPOS could not use ERPNext's {0} on this version of ERPNext ({1}). "
             "This usually means the site is running an ERPNext release LumenPOS "
             "has not been updated for yet — please report it to "
-            "support@lumen-solutions.co with this message."
+            "hello@lumen-solutions.co with this message."
         ).format(what, _erpnext_version())
     )
 

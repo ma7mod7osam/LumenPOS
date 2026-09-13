@@ -359,7 +359,7 @@ On the **POS Profile** in ERPNext — that's the source of truth. The in-POS Set
 
 ## Support
 
-- **Email:** support@lumen-solutions.co
+- **Email:** hello@lumen-solutions.co
 - **Website:** https://lumen-solutions.co
 
 Please include your ERPNext version and, if you hit an error, the message shown at the till — it makes fixing things much faster.

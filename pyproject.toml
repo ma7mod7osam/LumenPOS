@@ -1,7 +1,7 @@
 [project]
 name = "lumenpos"
 authors = [
-    { name = "Lumen Solutions", email = "support@lumen-solutions.co" },
+    { name = "Lumen Solutions", email = "hello@lumen-solutions.co" },
 ]
 description = "Professional, multi-business Point of Sale for ERPNext / Frappe (LumenPOS)"
 # 3.7, not 3.10: Frappe v13 runs on Python 3.7 to 3.9, and every line of this
