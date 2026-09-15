@@ -13,6 +13,7 @@ from frappe.utils.password import get_decrypted_password
 
 from lumenpos import __version__
 from lumenpos import erpnext_compat
+from lumenpos.api import insights
 
 def _can_manage():
     """Can the user change LumenPOS-wide settings (the General tab)?"""
@@ -95,6 +96,7 @@ def get_settings():
         "service_charge_percent": flt(doc.get("service_charge_percent")),
         "service_charge_account": doc.get("service_charge_account") or "",
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
+        "enable_insights": 1 if insights.enabled() else 0,
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
         "enable_audit_log": 1 if doc.get("enable_audit_log") else 0,
         "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
@@ -209,6 +211,7 @@ def save_settings(payload):
     doc.service_charge_percent = flt(payload.get("service_charge_percent"))
     doc.service_charge_account = payload.get("service_charge_account") or None
     doc.enable_price_checker = 1 if payload.get("enable_price_checker") else 0
+    doc.enable_insights = 1 if payload.get("enable_insights") else 0
     doc.enable_xreport = 1 if payload.get("enable_xreport") else 0
     doc.enable_audit_log = 1 if payload.get("enable_audit_log") else 0
     doc.enable_email_receipt = 1 if payload.get("enable_email_receipt") else 0

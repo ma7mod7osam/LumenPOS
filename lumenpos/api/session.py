@@ -147,6 +147,7 @@ def get_user_permissions():
             "delete": bool(has(doctype, "delete")),
         }
 
+    from lumenpos.api import insights as insights_mod
     from lumenpos.api import permissions as caps_mod
 
     roles = set(frappe.get_roles())
@@ -166,6 +167,10 @@ def get_user_permissions():
         "edit_item_prices": bool(has("Item Price", "write")),
         "create_price_list": bool(has("Price List", "create")),
         "settings": bool(has("LumenPOS Settings", "write")),
+        # Insights: sales statistics are for managers, and the page itself
+        # can be switched off in Settings. Both re-checked server-side in
+        # lumenpos.api.insights.
+        "insights": bool(insights_mod.enabled() and caps_mod.is_manager()),
         "loyalty": bool(has("Loyalty Program", "create")),
         "gift_cards": bool(has("POS Gift Card", "write")),
         "is_manager": bool(

@@ -868,6 +868,13 @@
             </span>
           </label>
           <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_insights" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Insights page') }}</span>
+              <span class="setting-desc">{{ t('A statistics page for managers. With Lumen Reports installed it shows a full sales dashboard with filters.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_xreport" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('X-report (mid-shift read)') }}</span>
@@ -1542,6 +1549,7 @@ const generalForm = ref({
   service_charge_percent: 0,
   service_charge_account: '',
   enable_price_checker: 1,
+  enable_insights: 1,
   enable_xreport: 1,
   enable_audit_log: 1,
   enable_email_receipt: 0,
@@ -1851,6 +1859,7 @@ async function load() {
     service_charge_percent: info.service_charge_percent || 0,
     service_charge_account: info.service_charge_account || '',
     enable_price_checker: info.enable_price_checker ?? 1,
+    enable_insights: info.enable_insights ?? 1,
     enable_xreport: info.enable_xreport ?? 1,
     enable_audit_log: info.enable_audit_log ?? 1,
     enable_email_receipt: info.enable_email_receipt || 0,
@@ -2491,6 +2500,7 @@ async function saveGeneral() {
     session.settings.enable_service_charge = info.enable_service_charge || 0
     session.settings.service_charge_percent = info.service_charge_percent || 0
     session.settings.enable_price_checker = info.enable_price_checker ?? 1
+    session.settings.enable_insights = info.enable_insights ?? 1
     session.settings.enable_xreport = info.enable_xreport ?? 1
     session.settings.enable_email_receipt = info.enable_email_receipt || 0
     session.settings.enable_customer_display = info.enable_customer_display || 0

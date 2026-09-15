@@ -63,7 +63,26 @@ def ensure_setup():
     ensure_return_reasons()
     migrate_coupon_limits()
     backfill_store_credit_references()
+    default_insights_on()
     ensure_hot_indexes()
+
+
+def default_insights_on():
+    """enable_insights ships ON. A Check field's default only reaches new
+    installs, and a loaded Single zeroes missing Check fields, so an
+    upgraded site would silently read OFF. Write the ON down once, only
+    while the value has never been stored, so an admin's later OFF is
+    never overwritten."""
+    # get_single_value casts a missing Check to 0, so only the tabSingles
+    # row itself can distinguish "never stored" from "switched off".
+    stored = frappe.db.sql(
+        "select value from tabSingles where doctype=%s and field=%s",
+        ("LumenPOS Settings", "enable_insights"),
+    )
+    if not stored:
+        from lumenpos.api.insights import set_setting
+
+        set_setting("enable_insights", 1)
 
 
 def backfill_store_credit_references():

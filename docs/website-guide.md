@@ -25,9 +25,10 @@ A fast, single-screen point of sale for ERPNext / Frappe (v13 through v16). This
 15. [Multi-company and invoice modes](#multi-company-and-invoice-modes)
 16. [Permissions and the audit log](#permissions-and-the-audit-log)
 17. [Keeping a big shop fast](#keeping-a-big-shop-fast)
-18. [Language](#language)
-19. [Troubleshooting and FAQ](#troubleshooting-and-faq)
-20. [Support](#support)
+18. [Insights](#insights)
+19. [Language](#language)
+20. [Troubleshooting and FAQ](#troubleshooting-and-faq)
+21. [Support](#support)
 
 ---
 
@@ -315,6 +316,14 @@ Sensitive actions — over-limit discounts, returns, register open/close, settin
 There's also an optional **till lock**: a lock screen that engages manually or after a period of inactivity. Each cashier sets their **own PIN**, so an unlock is always attributable to a person — see [The register](#the-register).
 
 ---
+
+## Insights
+
+The **Insights** page gives managers a full sales dashboard without leaving the till: takings by day and by outlet, the payment mix, top items, busy hours and more, all filterable. LumenPOS does not build the charts itself. It shows a ready-made dashboard from the separate **Lumen Reports** app, embedded inside the POS.
+
+If Lumen Reports is not installed, the page shows how to get it. Once it is installed, one tap builds the dashboard and it appears in place, in the till's own language and theme. The page is manager-only and can be switched off in **Settings**.
+
+Requirements: **Lumen Reports 1.1.0 or newer** on **Frappe v15 or v16**. On v13 and v14 the page says the dashboard needs a newer Frappe instead of showing a broken screen. A cashier who needs to open it is told which Lumen Reports role an administrator grants. The two apps are independent, so each works on its own.
 
 ## Keeping a big shop fast
 

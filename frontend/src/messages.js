@@ -1081,9 +1081,40 @@ const permissions = {
     "مضى على هذه الفاتورة {age} يومًا (بعد فترة {n} يومًا) — أنت مخوّل بإرجاعها.",
 }
 
+// The Insights page (statistics through Lumen Reports).
+const insights = {
+  Insights: 'الإحصائيات',
+  'Insights page': 'صفحة الإحصائيات',
+  'A statistics page for managers. With Lumen Reports installed it shows a full sales dashboard with filters.':
+    'صفحة إحصائيات للمدراء. عند تركيب Lumen Reports تعرض لوحة مبيعات كاملة مع فلاتر.',
+  'Sales dashboard': 'لوحة المبيعات',
+  'Get the full picture of your sales': 'شاهد الصورة الكاملة لمبيعاتك',
+  'Install the Lumen Reports app to see a complete sales dashboard here: revenue by day and by outlet, payment mix, top items and more, with filters, all inside LumenPOS.':
+    'ركب تطبيق Lumen Reports لتشاهد هنا لوحة مبيعات كاملة: الإيراد باليوم وبالفرع، وتوزيع طرق الدفع، والأصناف الأعلى مبيعا وغيرها، مع فلاتر، كل ذلك داخل LumenPOS.',
+  'Lumen Reports is available on the Frappe Cloud Marketplace, or through hello@lumen-solutions.co.':
+    'تطبيق Lumen Reports متوفر في متجر Frappe Cloud، أو عبر hello@lumen-solutions.co.',
+  'Lumen Reports needs Frappe v15 or newer. This site runs an older version, so the dashboard is not available here.':
+    'يحتاج Lumen Reports إلى Frappe الإصدار 15 أو أحدث. هذا الموقع يعمل بإصدار أقدم، لذلك اللوحة غير متاحة هنا.',
+  'Lumen Reports is installed, but this version does not include the LumenPOS dashboard yet. Update Lumen Reports, then come back.':
+    'تطبيق Lumen Reports مركب، لكن هذه النسخة لا تتضمن لوحة LumenPOS بعد. حدث Lumen Reports ثم عد إلى هنا.',
+  'Lumen Reports is installed. One step left: create the ready-made POS sales dashboard.':
+    'تطبيق Lumen Reports مركب. بقيت خطوة واحدة: إنشاء لوحة المبيعات الجاهزة.',
+  'One permission away': 'تبقى صلاحية واحدة',
+  'The dashboard is ready. To open it, an administrator grants this user the Lumen Restricted Viewer role in Lumen Reports.':
+    'اللوحة جاهزة. لفتحها، يمنح المسؤول هذا المستخدم دور Lumen Restricted Viewer في Lumen Reports.',
+  'Lumen Reports is installed. An administrator with Lumen Builder or Lumen Manager opens this page once to create the dashboard.':
+    'تطبيق Lumen Reports مركب. يفتح مسؤول لديه دور Lumen Builder أو Lumen Manager هذه الصفحة مرة واحدة لإنشاء اللوحة.',
+  'The sales dashboard reads POS Invoice, which comes with ERPNext. Install ERPNext first.':
+    'لوحة المبيعات تقرأ فاتورة نقطة البيع التي تأتي مع ERPNext. ركب ERPNext أولا.',
+  'Create the sales dashboard': 'إنشاء لوحة المبيعات',
+  'Creating…': 'جار الإنشاء…',
+  'Open in Lumen Reports': 'فتح في Lumen Reports',
+  'Could not load the dashboard': 'تعذر تحميل اللوحة',
+}
+
 export const messages = {
   en: {},
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights },
   "{n} offline sales still need to upload — press Upload now before closing.":
     "لا تزال {n} من المبيعات دون اتصال بحاجة إلى الرفع — اضغط \"الرفع الآن\" قبل الإغلاق.",
   "{n} offline sales are still waiting to upload.": "لا تزال {n} من المبيعات دون اتصال بانتظار الرفع.",

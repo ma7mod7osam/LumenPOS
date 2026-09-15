@@ -31,6 +31,10 @@
       <svg viewBox="0 0 24 24"><path d="M3 9h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9zm3-5h12l2 5H4l2-5zm5 9h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>{{ t('Register') }}</span>
     </router-link>
+    <router-link v-if="session.permissions.insights" to="/insights" class="rail-item" active-class="active">
+      <svg viewBox="0 0 24 24"><path d="M3 3v18h18M8 17v-6m5 6V7m5 10v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>{{ t('Insights') }}</span>
+    </router-link>
     <button
       v-if="session.canApprove"
       type="button"

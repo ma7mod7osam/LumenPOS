@@ -85,7 +85,9 @@
   "receipt_address",
   "receipt_show_terms",
   "receipt_terms",
-  "receipt_custom_fields"
+  "receipt_custom_fields",
+  "insights_section",
+  "enable_insights"
  ],
  "fields": [
   {
@@ -116,7 +118,7 @@
   },
   {
    "default": "0",
-   "description": "Serial numbers must be SCANNED with a barcode scanner — manual typing is rejected at the till. Turn off if a scanner is unavailable.",
+   "description": "Serial numbers must be SCANNED with a barcode scanner \u2014 manual typing is rejected at the till. Turn off if a scanner is unavailable.",
    "fieldname": "serial_scan_only",
    "fieldtype": "Check",
    "label": "Require scanning for serial numbers (block manual typing)"
@@ -480,7 +482,7 @@
    "default": "1",
    "fieldname": "receipt_show_unit_price",
    "fieldtype": "Check",
-   "label": "Show unit price (qty × rate)"
+   "label": "Show unit price (qty \u00d7 rate)"
   },
   {
    "default": "1",
@@ -538,7 +540,7 @@
   },
   {
    "default": "Per outlet",
-   "description": "Per outlet: ONE shift per register — whoever opens it, any assigned cashier can sell on it (default; how LumenPOS has always worked). Per cashier: each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer.",
+   "description": "Per outlet: ONE shift per register \u2014 whoever opens it, any assigned cashier can sell on it (default; how LumenPOS has always worked). Per cashier: each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer.",
    "fieldname": "shift_scope",
    "fieldtype": "Select",
    "label": "A shift belongs to",
@@ -546,7 +548,7 @@
   },
   {
    "default": "0",
-   "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies — it never blocks the close.",
+   "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies \u2014 it never blocks the close.",
    "fieldname": "variance_alert_enabled",
    "fieldtype": "Check",
    "label": "Email an alert on a large closing variance"
@@ -568,7 +570,7 @@
   },
   {
    "default": "1",
-   "description": "Allow a refund to be parked on the customer's Store Credit instead of handing money back. Turn OFF if shop policy is money-back only. Note: credit the customer actually SPENT on that sale can always be returned to credit (capped at what they spent) — otherwise a credit-paid sale would have no refund method at all.",
+   "description": "Allow a refund to be parked on the customer's Store Credit instead of handing money back. Turn OFF if shop policy is money-back only. Note: credit the customer actually SPENT on that sale can always be returned to credit (capped at what they spent) \u2014 otherwise a credit-paid sale would have no refund method at all.",
    "fieldname": "allow_store_credit_refund",
    "fieldtype": "Check",
    "label": "Allow refunding to Store Credit"
@@ -590,7 +592,7 @@
    "fieldname": "overdue_alert_enabled",
    "fieldtype": "Check",
    "label": "Email an alert when a shift is left open",
-   "description": "Alert only — a till is never closed automatically, because a close without a real cash count produces figures nobody can trust."
+   "description": "Alert only \u2014 a till is never closed automatically, because a close without a real cash count produces figures nobody can trust."
   },
   {
    "depends_on": "overdue_alert_enabled",
@@ -614,12 +616,24 @@
    "fieldtype": "Int",
    "label": "Grace period (minutes)",
    "description": "How long after the scheduled end before alerting."
+  },
+  {
+   "fieldname": "insights_section",
+   "fieldtype": "Section Break",
+   "label": "Insights"
+  },
+  {
+   "default": "1",
+   "description": "A statistics page for managers. With the Lumen Reports app installed it embeds a ready-made POS sales dashboard, otherwise it suggests installing it.",
+   "fieldname": "enable_insights",
+   "fieldtype": "Check",
+   "label": "Enable Insights"
   }
  ],
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-11 00:00:00.000000",
+ "modified": "2026-09-15 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",
