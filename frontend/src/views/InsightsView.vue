@@ -108,6 +108,15 @@ const view = computed(() => {
     }
   }
   const lr = i.lr || {}
+  // Lumen Reports' own status call failed: say so, with its error as the detail.
+  if (i.lr_error) {
+    return {
+      title: t('Sales dashboard'),
+      body: t('Lumen Reports could not report its status on this site.'),
+      hint: i.lr_error,
+      refresh: true,
+    }
+  }
   const reason = lr.reason
   if (reason === 'needs_erpnext') {
     return {
@@ -141,8 +150,15 @@ const view = computed(() => {
       refresh: true,
     }
   }
-  // reason null but not viewable, or an unexpected shape: offer a refresh.
-  return { title: t('Sales dashboard'), body: t('Loading…'), refresh: true }
+  // A reason this page does not know (a newer Lumen Reports may add one), or no
+  // reason and still no access. Never a silent "Loading…": say it plainly and show
+  // Lumen Reports' own message when it sends one.
+  return {
+    title: t('Sales dashboard'),
+    body: t('Lumen Reports cannot show the dashboard on this site right now.'),
+    hint: lr.message || null,
+    refresh: true,
+  }
 })
 
 async function load() {

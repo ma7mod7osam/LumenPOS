@@ -1093,6 +1093,10 @@ const insights = {
     'ركب تطبيق Lumen Reports لتشاهد هنا لوحة مبيعات كاملة: الإيراد باليوم وبالفرع، وتوزيع طرق الدفع، والأصناف الأعلى مبيعا وغيرها، مع فلاتر، كل ذلك داخل LumenPOS.',
   'Lumen Reports is available on the Frappe Cloud Marketplace, or through hello@lumen-solutions.co.':
     'تطبيق Lumen Reports متوفر في متجر Frappe Cloud، أو عبر hello@lumen-solutions.co.',
+  'Lumen Reports could not report its status on this site.':
+    'تعذر على Lumen Reports الإفادة بحالته على هذا الموقع.',
+  'Lumen Reports cannot show the dashboard on this site right now.':
+    'لا يستطيع Lumen Reports عرض اللوحة على هذا الموقع حاليا.',
   'Lumen Reports needs Frappe v{version} or newer. This site runs an older version, so the dashboard is not available here.':
     'يحتاج Lumen Reports إلى Frappe الإصدار {version} أو أحدث. هذا الموقع يعمل بإصدار أقدم، لذلك اللوحة غير متاحة هنا.',
   'Lumen Reports is installed, but this version does not include the LumenPOS dashboard yet. Update Lumen Reports, then come back.':
