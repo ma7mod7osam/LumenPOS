@@ -12,7 +12,7 @@ calls those two functions by dotted path at runtime and embeds the dashboard.
 When the app is absent, the page suggests installing it.
 
 Every combination degrades to a clear message rather than an error: Frappe older
-than Lumen Reports supports (it needs v15, LumenPOS runs back to v13), the app
+than Lumen Reports supports (it needs v14, LumenPOS runs back to v13), the app
 not installed, an installed release too old to carry the contract, or one of
 Lumen Reports' own refusals (needs a role, not permitted, subscription lapsed),
 which come back as a status and a message that this page shows as they are.
@@ -30,7 +30,11 @@ from frappe.utils import cint
 # The Lumen Reports contract. If a future release of theirs moves the module,
 # this one line changes.
 INTEGRATION_MODULE = "lumen_reports.integrations.lumenpos"
-MIN_FRAPPE_MAJOR = 15  # Lumen Reports supports Frappe v15 and v16
+# The oldest Frappe Lumen Reports runs on (1.2.0 declares frappe >=14,<17). It
+# only decides what to tell a site that does NOT have Lumen Reports, so a v13
+# site is not sent off to install something that cannot run there. Once the app
+# is installed, its own get_status is the authority and no floor applies.
+MIN_FRAPPE_MAJOR = 14
 
 
 def set_setting(field, value):
@@ -90,6 +94,14 @@ def _installed():
     return "lumen_reports" in frappe.get_installed_apps()
 
 
+def _compatible():
+    """Can this site show the dashboard at all? A site that already has Lumen
+    Reports needs no version check from LumenPOS: which Frappe it supports is
+    Lumen Reports' own call, and its get_status answers for it (a failure there
+    comes back as lr_error, never a crash). The floor only applies without it."""
+    return _installed() or _frappe_major() >= MIN_FRAPPE_MAJOR
+
+
 def _api(name):
     """Resolve one function of the Lumen Reports contract, or None when the
     installed release does not carry it yet (or the app is absent). Resolving
@@ -115,7 +127,7 @@ def status():
     under `lr`."""
     _require_access()
     out = {
-        "compatible": _frappe_major() >= MIN_FRAPPE_MAJOR,
+        "compatible": _compatible(),
         "min_frappe": MIN_FRAPPE_MAJOR,
         "installed": _installed(),
         "integration_ready": False,
@@ -140,7 +152,7 @@ def ensure_dashboard(lang=None):
     idempotent and never overwrites a dashboard that already exists, so this is
     safe to call repeatedly. Returns the fresh status()."""
     _require_access()
-    if _frappe_major() < MIN_FRAPPE_MAJOR:
+    if not _compatible():
         frappe.throw(_("Lumen Reports needs Frappe v{0} or newer").format(MIN_FRAPPE_MAJOR))
     if not _installed():
         frappe.throw(_("Lumen Reports is not installed on this site"))
@@ -152,7 +164,14 @@ def ensure_dashboard(lang=None):
                 "dashboard yet. Update Lumen Reports, then try again."
             )
         )
-    result = ensure(lang=lang or _lang()) or {}
+    try:
+        result = ensure(lang=lang or _lang()) or {}
+    except Exception as exc:
+        # A crash inside Lumen Reports must not reach the manager as a raw server
+        # error. status() treats get_status the same way. The request still fails,
+        # so Frappe rolls back whatever the half-finished setup wrote.
+        frappe.clear_last_message()
+        frappe.throw(_("Lumen Reports could not set up the dashboard on this site: {0}").format(str(exc)))
     # Success is status == "ready". Their refusal payload also carries a slug
     # (both share the same links block), so keying on slug would read a refusal
     # as success. Surface the refusal's own message instead.

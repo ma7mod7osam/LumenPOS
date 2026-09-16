@@ -323,7 +323,7 @@ The **Insights** page gives managers a full sales dashboard without leaving the 
 
 If Lumen Reports is not installed, the page shows how to get it. Once it is installed, one tap builds the dashboard and it appears in place, in the till's own language and theme. The page is manager-only and can be switched off in **Settings**.
 
-Requirements: **Lumen Reports 1.1.0 or newer** on **Frappe v15 or v16**. On v13 and v14 the page says the dashboard needs a newer Frappe instead of showing a broken screen. A cashier who needs to open it is told which Lumen Reports role an administrator grants. The two apps are independent, so each works on its own.
+Requirements: **Lumen Reports 1.1.0 or newer** on **Frappe v15 or v16**, or **Lumen Reports 1.2.0 or newer** on **Frappe v14**. On v13 the page says the dashboard needs a newer Frappe instead of showing a broken screen. A cashier who needs to open it is told which Lumen Reports role an administrator grants. The two apps are independent, so each works on its own.
 
 ## Keeping a big shop fast
 

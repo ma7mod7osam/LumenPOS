@@ -84,7 +84,8 @@ const view = computed(() => {
     return {
       title: t('Sales dashboard'),
       body: t(
-        'Lumen Reports needs Frappe v15 or newer. This site runs an older version, so the dashboard is not available here.',
+        'Lumen Reports needs Frappe v{version} or newer. This site runs an older version, so the dashboard is not available here.',
+        { version: i.min_frappe || 14 },
       ),
     }
   }
