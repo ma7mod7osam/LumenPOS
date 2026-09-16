@@ -14,6 +14,7 @@ from frappe.utils.password import get_decrypted_password
 from lumenpos import __version__
 from lumenpos import erpnext_compat
 from lumenpos.api import insights
+from lumenpos import cashback_rules
 
 def _can_manage():
     """Can the user change LumenPOS-wide settings (the General tab)?"""
@@ -97,6 +98,7 @@ def get_settings():
         "service_charge_account": doc.get("service_charge_account") or "",
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
         "enable_insights": 1 if insights.enabled() else 0,
+        "enable_cashback": 1 if cashback_rules.enabled() else 0,
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
         "enable_audit_log": 1 if doc.get("enable_audit_log") else 0,
         "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
@@ -212,6 +214,7 @@ def save_settings(payload):
     doc.service_charge_account = payload.get("service_charge_account") or None
     doc.enable_price_checker = 1 if payload.get("enable_price_checker") else 0
     doc.enable_insights = 1 if payload.get("enable_insights") else 0
+    doc.enable_cashback = 1 if payload.get("enable_cashback") else 0
     doc.enable_xreport = 1 if payload.get("enable_xreport") else 0
     doc.enable_audit_log = 1 if payload.get("enable_audit_log") else 0
     doc.enable_email_receipt = 1 if payload.get("enable_email_receipt") else 0
@@ -774,6 +777,127 @@ def _resolve_link(doctype, value):
 def delete_promotion(name):
     _require("POS Promotion", "delete")
     frappe.delete_doc("POS Promotion", name)
+
+
+# ---------------------------------------------------------------------------
+# Cashback rules CRUD (same simplified shape as the promotions editor)
+# ---------------------------------------------------------------------------
+
+CASHBACK_FIELDS = [
+    "title", "status", "description", "priority", "stackable",
+    "amount_type", "amount_value", "max_cashback", "min_spend",
+    "validity_days", "activation_delay_days",
+    "start_date", "end_date", "start_time", "end_time",
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+    "customer_eligibility", "apply_on_all", "requires_coupon", "coupon_code",
+]
+
+
+@frappe.whitelist()
+def list_cashback_rules():
+    today = getdate(nowdate())
+    rows = frappe.get_all(
+        "POS Cashback Rule",
+        fields=["name", "title", "status", "amount_type", "amount_value",
+                "start_date", "end_date", "requires_coupon", "coupon_code"],
+        order_by="modified desc",
+        limit_page_length=200,
+    )
+    for row in rows:
+        row["expired"] = bool(row.end_date and getdate(row.end_date) < today)
+    return rows
+
+
+@frappe.whitelist()
+def get_cashback_rule(name):
+    doc = frappe.get_doc("POS Cashback Rule", name)
+    doc.check_permission("read")
+    data = {f: doc.get(f) for f in CASHBACK_FIELDS}
+    data["name"] = doc.name
+    data["pos_profiles"] = [r.pos_profile for r in (doc.pos_profiles or [])]
+    data["customer_groups"] = [r.customer_group for r in (doc.customer_groups or [])]
+    data["items"] = [
+        {
+            "applies_to": r.applies_to,
+            "item_code": r.item_code,
+            "item_group": r.item_group,
+            "brand": r.brand,
+            "tag": r.get("tag"),
+            "exclude": r.get("exclude") or 0,
+        }
+        for r in (doc.items or [])
+    ]
+    return data
+
+
+@frappe.whitelist()
+def save_cashback_rule(payload):
+    if isinstance(payload, str):
+        payload = json.loads(payload)
+
+    if payload.get("name"):
+        _require("POS Cashback Rule", "write")
+        doc = frappe.get_doc("POS Cashback Rule", payload["name"])
+    else:
+        _require("POS Cashback Rule", "create")
+        doc = erpnext_compat.new_doc("POS Cashback Rule")
+
+    # Empty date/time inputs arrive as "" — store None, never 00:00:00
+    # (a 00:00-00:00 window would silently disable the rule)
+    for field in ("start_date", "end_date", "start_time", "end_time"):
+        if field in payload and not payload[field]:
+            payload[field] = None
+
+    for field in CASHBACK_FIELDS:
+        if field in payload:
+            doc.set(field, payload[field])
+
+    doc.pos_profiles = []
+    for profile in payload.get("pos_profiles") or []:
+        doc.append("pos_profiles", {"pos_profile": profile})
+    doc.customer_groups = []
+    for group in payload.get("customer_groups") or []:
+        doc.append("customer_groups", {"customer_group": _resolve_link("Customer Group", group)})
+    doc.items = []
+    for row in payload.get("items") or []:
+        applies_to = row.get("applies_to") or "Item"
+        value = (
+            row.get("item_code")
+            or row.get("item_group")
+            or row.get("brand")
+            or row.get("tag")
+        )
+        resolved = _resolve_link(applies_to if applies_to != "Item" else "Item", value)
+        doc.append(
+            "items",
+            {
+                "applies_to": applies_to,
+                "item_code": resolved if applies_to == "Item" else None,
+                "item_group": resolved if applies_to == "Item Group" else None,
+                "brand": resolved if applies_to == "Brand" else None,
+                "tag": resolved if applies_to == "Tag" else None,
+                "exclude": 1 if row.get("exclude") else 0,
+            },
+        )
+
+    doc.save()
+    # Frappe REFILLS an empty Time column with the current time on save (same
+    # trap as promotions) -- keep the record honest so a rule with no happy hour
+    # does not show a window the user never set.
+    blanks = {
+        field: None
+        for field in ("start_time", "end_time")
+        if not payload.get(field) and doc.get(field)
+    }
+    if blanks:
+        frappe.db.set_value("POS Cashback Rule", doc.name, blanks, update_modified=False)
+    return doc.name
+
+
+@frappe.whitelist()
+def delete_cashback_rule(name):
+    _require("POS Cashback Rule", "delete")
+    frappe.delete_doc("POS Cashback Rule", name)
 
 
 @frappe.whitelist()

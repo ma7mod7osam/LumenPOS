@@ -41,6 +41,7 @@ export const useSessionStore = defineStore('session', {
     printerConfigured: false,
     printFormat: null,
     storeCreditMode: 'Store Credit',
+    cashbackMode: 'Cashback',
     giftCardMode: 'Gift Card',
     salesPersons: [],
     allowNegativeStock: false,
@@ -208,6 +209,7 @@ export const useSessionStore = defineStore('session', {
       this.printerConfigured = data.printer_configured || false
       this.printFormat = data.print_format || null
       this.storeCreditMode = data.store_credit_mode || 'Store Credit'
+      this.cashbackMode = data.cashback_mode || 'Cashback'
       this.giftCardMode = data.gift_card_mode || 'Gift Card'
       this.salesPersons = data.sales_persons || []
       this.allowNegativeStock = Boolean(data.allow_negative_stock)

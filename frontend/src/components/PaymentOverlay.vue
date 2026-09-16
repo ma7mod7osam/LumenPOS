@@ -17,7 +17,7 @@
         </div>
       </div>
 
-      <div v-if="wallet && (wallet.loyalty_points > 0 || wallet.store_credit > 0)" class="wallet card">
+      <div v-if="wallet && (wallet.loyalty_points > 0 || wallet.store_credit > 0 || wallet.cashback > 0)" class="wallet card">
         <div v-if="wallet.loyalty_points > 0" class="wallet-row">
           <span><Icon name="star" /> {{ t('{points} loyalty points (worth {value})', { points: wallet.loyalty_points, value: money(wallet.loyalty_points * wallet.conversion_factor) }) }}</span>
           <span class="redeem">
@@ -28,6 +28,10 @@
         <div v-if="wallet.store_credit > 0" class="wallet-row">
           <span>{{ t('Store credit available:') }} <strong>{{ money(wallet.store_credit) }}</strong></span>
           <button class="btn btn-outline" @click="addStoreCredit">{{ t('Use store credit') }}</button>
+        </div>
+        <div v-if="wallet.cashback > 0" class="wallet-row">
+          <span>{{ t('Cashback available:') }} <strong>{{ money(wallet.cashback) }}</strong></span>
+          <button class="btn btn-outline" @click="addCashback">{{ t('Use cashback') }}</button>
         </div>
       </div>
 
@@ -111,6 +115,10 @@
         </div>
       </div>
 
+      <p v-if="cashbackEarn > 0" class="cashback-earn">
+        <Icon name="gift" /> {{ t('This sale earns {amount} cashback', { amount: money(cashbackEarn) }) }}
+      </p>
+
       <button
         class="btn btn-primary btn-lg complete"
         :disabled="!canComplete || cart.submitting"
@@ -149,6 +157,7 @@ const giftCardInfo = ref(null)
 const giftCardChecking = ref(false)
 
 const wallet = computed(() => (session.offline ? null : cart.wallet))
+const cashbackEarn = ref(0)
 
 // Amount to collect. Authoritative from the SERVER (same math as submit), so the
 // till charges exactly what the posted invoice shows — no phantom rounding
@@ -184,6 +193,7 @@ const visibleModes = computed(() =>
   session.paymentModes.filter(
     (m) =>
       m.mode_of_payment !== session.storeCreditMode &&
+      m.mode_of_payment !== session.cashbackMode &&
       m.mode_of_payment !== session.giftCardMode
   )
 )
@@ -226,12 +236,14 @@ onMounted(async () => {
   amountInput.value?.select()
   // Pull the authoritative payable from the server (same math as submit). If it
   // differs from the client total by a rounding halfcent, snap the suggested
-  // amount to it — but only while nothing has been entered yet.
-  const payable = await cart.quoteTotal()
-  if (payable != null) {
-    serverTotal.value = payable
-    if (!payments.value.length) amount.value = round2(Math.max(payable, 0))
+  // amount to it — but only while nothing has been entered yet. The same quote
+  // carries the cashback this sale will earn.
+  const q = await cart.quote()
+  if (q && typeof q.payable === 'number') {
+    serverTotal.value = q.payable
+    if (!payments.value.length) amount.value = round2(Math.max(q.payable, 0))
   }
+  cashbackEarn.value = q && typeof q.cashback_earn === 'number' ? q.cashback_earn : 0
 })
 
 const blockedModes = ref({})
@@ -291,6 +303,17 @@ function addStoreCredit() {
   const capped = round2(Math.min(available, Math.max(remaining.value, 0)))
   if (capped <= 0) return
   payments.value.push({ mode_of_payment: session.storeCreditMode, amount: capped })
+  amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
+}
+
+function addCashback() {
+  const used = payments.value
+    .filter((p) => p.mode_of_payment === session.cashbackMode)
+    .reduce((sum, p) => sum + p.amount, 0)
+  const available = round2((wallet.value?.cashback || 0) - used)
+  const capped = round2(Math.min(available, Math.max(remaining.value, 0)))
+  if (capped <= 0) return
+  payments.value.push({ mode_of_payment: session.cashbackMode, amount: capped })
   amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
 }
 
@@ -423,6 +446,19 @@ function round2(n) {
   border-bottom: 1px solid var(--border);
 }
 .wallet-row:last-child { border-bottom: none; }
+.cashback-earn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(20, 99, 255, 0.1);
+  color: var(--brand-dark);
+  font-weight: 700;
+  font-size: 14px;
+}
 .redeem { display: flex; align-items: center; gap: 8px; }
 .redeem input { width: 90px; text-align: center; padding: 7px 8px; }
 .tender { display: flex; flex-direction: column; gap: 10px; }

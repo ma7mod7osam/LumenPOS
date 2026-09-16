@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.44.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.45.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1–17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -149,6 +149,12 @@ quick-cash buttons, and a tile per payment method.
 - **Split payments**: add any combination; each shows in the list with ✕.
 - **Cash** may over-tender → change due is shown and recorded.
 - **Store Credit** tile appears when the customer has balance.
+- **Cashback**: when a named customer has a cashback balance, a **Cashback
+  available** row shows it with a **Use cashback** button (spends soonest-to-expire
+  first). On a qualifying sale the screen also shows **This sale earns … cashback**
+  before you take payment. Cashback is per customer, so pick the customer to earn or
+  spend; set the rules in **Settings → Cashback** and switch the feature on/off in
+  **Settings → General**.
 - **🎁 Gift Card**: scan/type the card → **Check** shows the live balance →
   **Apply**. Multiple cards per sale supported.
 - **Loyalty points**: when the customer has points, a redeem box shows their
@@ -525,6 +531,7 @@ this also makes everyday search instant. If the connection drops:
 | Tab | Contents |
 |---|---|
 | **Promotions** | List + Vend-style editor for all types, include/exclude rows, coupons, the dry-run **Test** panel. |
+| **Cashback** | List + editor for cashback rules: percentage or fixed give-back, cap, minimum spend, expiry and activation-delay days, include/exclude products, schedule (dates/times/days), outlets, customer group, optional coupon, stackable. |
 | **Bundles** | Fixed-price bundles: components, price, outlets. |
 | **Price Books** | Items with special prices for a period (validity + priority + outlets/customer groups); add items or **Excel/CSV import**. No ERPNext price list created — the master is never changed. |
 | **Loyalty & Gift Cards** | Create/view loyalty programs; search/disable gift cards. |
@@ -631,6 +638,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.45.0 | **Cashback: a customizable wallet customers earn on sales and spend later.** You set the rules in Settings, Cashback: give back a percentage of the sale or a fixed amount, cap it, require a minimum spend, choose which products count (include or exclude by item, group, brand or tag), pick outlets and a customer group, run it on set dates, times and weekdays, and optionally behind a coupon. Earned cashback carries its own validity (expires after N days, with an optional delay before it can be used), and rules can stack or compete like promotions. At the till the payment screen shows what a sale will earn, the customer's available cashback appears as its own **Use cashback** tender, and paying with cashback never earns fresh cashback on the part it paid for. Balances post to a real liability account so the books stay correct, a return gives back the unspent part, and a nightly job writes off what expires. Off by default is a switch away in Settings, General; earning is skipped entirely when the feature is off. |
 | 0.44.0 | **A new Insights page: full sales statistics inside the till.** LumenPOS does not draw its own charts. Instead the Insights page shows a ready-made sales dashboard from the separate **Lumen Reports** app, embedded right inside the POS: takings by day and by outlet, the payment mix, top items, busy hours and more, all with filters. If Lumen Reports is not installed, the page explains how to get it. If it is installed, one tap builds the dashboard and it appears in place, in the same language and theme as the till. The page is for managers, and there is a switch to turn it off in Settings. It needs **Lumen Reports 1.1.0 or newer** on **Frappe v15 or v16**: on v13 and v14 the page says so plainly rather than showing a broken screen, and a cashier who needs access is told exactly which role an administrator grants. The two apps stay at arm's length and neither depends on the other, so each still works installed on its own. |
 | 0.43.1 | **Public contact unified to hello@lumen-solutions.co.** `app_email`, the `pyproject.toml` author, the compatibility error message and the website guide now use **hello@lumen-solutions.co**, matching LumenPDF Studio and Lumen Reports. No functional change. |
 | 0.43.0 | **Relicensed to the GNU Affero General Public License v3.0, and a trademark policy added.** LumenPOS moved from GPL-3.0-or-later (since 0.39.0) to AGPL-3.0-only. The GPL only requires publishing source when the software is distributed. Since LumenPOS is the kind of software people run as a service for others, a modified copy could be offered to shops without its changes ever being shared, because running a service is not distribution. The AGPL closes that: anyone who runs a modified LumenPOS for other people over a network must offer them its complete source. Earlier releases keep their own terms: everything up to 0.38.0 stays MIT, and 0.39.0 to 0.42.1 stay GPL-3.0-or-later, permanently, for anyone who already has a copy under those terms. See NOTICE for the full history. A new TRADEMARKS.md sets out that the LumenPOS name and logo are trademarks separate from the code licence, so a fork must use a different name, and every source file now carries a short header stating the licence and the trademark. AGPL-3.0 is on the Frappe Cloud Marketplace's accepted licence list, and it combines cleanly with ERPNext's GPLv3 (both licences say so, in their own section 13). **Two issues an automated code review found in the demo builder are fixed.** It used to change how every document on the site saves, for the length of a run, then change it back afterwards, so it could backdate a demo's invoices to the days they belong to. That technique is risky in a way that has nothing to do with what it was used for: if the run ever crashed before the "change it back" step, every save on the site would stay altered until the next restart. It now uses Frappe's own, much narrower mechanism for the same job, which only ever touches the handful of document types a demo run creates, and cannot leak into a crash. Separately, several places in the demo builder and in the v13/v14 store-credit fix (0.41.0) saved to the database more often than they needed to, because the functions they called already save that state on their own. Those extra saves are removed. The ones that genuinely protect a multi-hour run against a late failure are kept and explained in place. No visible change for anyone running the app. |
