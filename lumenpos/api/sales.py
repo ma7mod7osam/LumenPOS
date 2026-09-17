@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, now_datetime, nowdate
 
-from lumenpos import coupons, gift_cards, store_credit
+from lumenpos import cashback, cashback_rules, coupons, gift_cards, store_credit
 from lumenpos.price_books import effective_prices, resolve_price_list, standard_prices
 from lumenpos.promotions.engine import evaluate
 from lumenpos.promotions.loader import get_active_promotions
@@ -334,6 +334,7 @@ def quote_sale(payload):
         "rounded_total": flt(invoice.rounded_total, prec),
         "net_total": flt(invoice.net_total, prec),
         "total_taxes": flt(invoice.total_taxes_and_charges, prec),
+        "cashback_earn": flt(_cashback_estimate(invoice, profile, payload), prec),
     }
 
 
@@ -386,9 +387,11 @@ def submit_sale(payload):
         gift_cards.check_redeem(card["card_no"], card["amount"])
 
     store_credit_used = 0.0
+    cashback_used = 0.0
     gift_card_total = 0.0
     gc_account = None
     sc_account = None
+    cb_account = None
     paid_total = 0.0
     for payment in payload.get("payments", []):
         amount = flt(payment.get("amount"))
@@ -402,6 +405,14 @@ def submit_sale(payload):
                 )
             sc_account = store_credit.ensure_mode_of_payment(profile.company)
             store_credit_used += amount
+        if payment["mode_of_payment"] == cashback.MODE_OF_PAYMENT:
+            balance = cashback.get_balance(customer)
+            if cashback_used + amount > balance + 0.005:
+                frappe.throw(
+                    _("Cashback balance is {0}, cannot redeem {1}").format(balance, amount)
+                )
+            cb_account = cashback.ensure_mode_of_payment(profile.company)
+            cashback_used += amount
         if payment["mode_of_payment"] == gift_cards.mode_of_payment():
             gc_account = gift_cards.ensure_setup(profile.company)
             gift_card_total += amount
@@ -432,6 +443,8 @@ def submit_sale(payload):
         pin_accounts[gift_cards.mode_of_payment()] = gc_account
     if sc_account:
         pin_accounts[store_credit.MODE_OF_PAYMENT] = sc_account
+    if cb_account:
+        pin_accounts[cashback.MODE_OF_PAYMENT] = cb_account
     if pin_accounts:
         for row in invoice.payments:
             if row.mode_of_payment in pin_accounts:
@@ -455,6 +468,10 @@ def submit_sale(payload):
         )
     for card in redeem_cards:
         gift_cards.redeem(card["card_no"], card["amount"], invoice.name)
+    if cashback_used:
+        cashback.redeem(customer, cashback_used, invoice.name, profile.company, invoice.doctype)
+    # Cashback EARNED on this sale (credited to the customer, spendable later).
+    _cashback_earn(invoice, profile, payload, cashback_used)
     # Spend any single-use bulk coupons that were entered on this sale.
     coupons.consume(payload.get("coupon_codes") or [], invoice.name)
     # Consume the over-limit discount approval (single-use) the sale was built with.
@@ -1235,6 +1252,86 @@ def _assert_points_payable(invoice):
             "adds up before it posts."
         ).format(profile)
     )
+
+
+def _cashback_earn(invoice, profile, payload, cashback_used):
+    """Credit the customer any cashback this sale earns, spendable later. A named
+    customer only (a walk-in default cannot earn), and only while the feature is
+    on. Never raises: a cashback hiccup must not fail a completed sale."""
+    if not cashback_rules.enabled():
+        return
+    customer = payload.get("customer")
+    if not customer:
+        return
+    try:
+        rules = cashback_rules.get_active_rules(profile.name, include_coupon=True)
+        if not rules:
+            return
+        cart = _cashback_cart(invoice, customer, payload)
+        plan = cashback_rules.evaluate_earn(cart, rules, now_datetime(), cashback_used)
+        for entry in plan["breakdown"]:
+            cashback.earn(
+                customer,
+                entry["amount"],
+                entry["rule"],
+                invoice.name,
+                profile.company,
+                entry["validity_days"],
+                entry["activation_delay_days"],
+                invoice.doctype,
+            )
+    except Exception:
+        frappe.log_error(
+            title="LumenPOS: cashback earn failed", message=frappe.get_traceback()
+        )
+
+
+def _cashback_cart(invoice, customer, payload):
+    """A cart shaped for the cashback engine, from the invoice rows so the
+    amounts are final (net of every discount), enriched with the item group,
+    brand and tags the targeting reads."""
+    codes = list({row.item_code for row in invoice.items})
+    attrs = {
+        d.name: d
+        for d in frappe.get_all(
+            "Item",
+            filters={"name": ["in", codes]},
+            fields=["name", "item_group", "brand", "_user_tags"],
+        )
+    }
+    items = []
+    for row in invoice.items:
+        detail = attrs.get(row.item_code)
+        items.append(
+            {
+                "item_code": row.item_code,
+                "item_group": detail.item_group if detail else None,
+                "brand": detail.brand if detail else None,
+                "tags": _split_tags(detail.get("_user_tags")) if detail else [],
+                "amount": flt(row.amount),
+            }
+        )
+    return {
+        "items": items,
+        "pos_profile": invoice.pos_profile,
+        "customer_group": frappe.db.get_value("Customer", customer, "customer_group"),
+        "coupon_codes": [str(c).strip().upper() for c in (payload.get("coupon_codes") or [])],
+    }
+
+
+def _cashback_estimate(invoice, profile, payload):
+    """The cashback this cart would earn, for the till to show before payment.
+    Gross (no cashback tender netted off yet), and only for a named customer."""
+    if not (cashback_rules.enabled() and payload.get("customer")):
+        return 0.0
+    try:
+        rules = cashback_rules.get_active_rules(profile.name, include_coupon=True)
+        if not rules:
+            return 0.0
+        cart = _cashback_cart(invoice, payload["customer"], payload)
+        return cashback_rules.evaluate_earn(cart, rules, now_datetime(), 0.0)["total"]
+    except Exception:
+        return 0.0
 
 
 def _apply_loyalty_redemption(invoice, customer, company, payload):
@@ -2176,6 +2273,9 @@ def create_return(
             original.company,
             return_doc.doctype,
         )
+    # A return gives back the unspent cashback the original sale earned. The
+    # part the customer already spent is not clawed back.
+    cashback.reverse_for_sale(original.doctype, original.name)
     # Consume the single-use late-return approval the credit note was built with.
     if return_request and return_approver:
         from lumenpos.api import approval_requests

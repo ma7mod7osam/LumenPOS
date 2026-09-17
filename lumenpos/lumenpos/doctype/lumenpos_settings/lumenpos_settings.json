@@ -87,7 +87,9 @@
   "receipt_terms",
   "receipt_custom_fields",
   "insights_section",
-  "enable_insights"
+  "enable_insights",
+  "cashback_section",
+  "enable_cashback"
  ],
  "fields": [
   {
@@ -628,12 +630,24 @@
    "fieldname": "enable_insights",
    "fieldtype": "Check",
    "label": "Enable Insights"
+  },
+  {
+   "fieldname": "cashback_section",
+   "fieldtype": "Section Break",
+   "label": "Cashback"
+  },
+  {
+   "default": "1",
+   "description": "Give customers cashback on qualifying sales, configured in POS Cashback Rule. Turning this off stops earning and hides the page.",
+   "fieldname": "enable_cashback",
+   "fieldtype": "Check",
+   "label": "Enable Cashback"
   }
  ],
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-15 00:00:00.000000",
+ "modified": "2026-09-16 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

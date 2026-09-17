@@ -7,6 +7,12 @@ from frappe.utils import flt
 from lumenpos.store_credit import get_balance
 
 
+def _cashback_balance(customer):
+    from lumenpos import cashback
+
+    return cashback.get_balance(customer)
+
+
 @frappe.whitelist()
 def get_wallet(customer, company):
     """Loyalty points + store credit balance for the cart sidebar and the
@@ -17,6 +23,7 @@ def get_wallet(customer, company):
         "loyalty_points": 0,
         "conversion_factor": 0,
         "store_credit": get_balance(customer),
+        "cashback": _cashback_balance(customer),
     }
     try:
         from lumenpos.erpnext_compat import loyalty_details

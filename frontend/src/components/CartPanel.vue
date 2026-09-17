@@ -12,6 +12,7 @@
           <template v-if="cart.wallet">
             <span v-if="cart.wallet.loyalty_points > 0"> · <Icon name="star" /> {{ cart.wallet.loyalty_points }} {{ t('pts') }}</span>
             <span v-if="cart.wallet.store_credit > 0"> · {{ money(cart.wallet.store_credit) }} {{ t('credit') }}</span>
+            <span v-if="cart.wallet.cashback > 0"> · {{ money(cart.wallet.cashback) }} {{ t('cashback') }}</span>
           </template>
         </div>
       </div>

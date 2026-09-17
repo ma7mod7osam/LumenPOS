@@ -355,6 +355,257 @@
       </div>
     </section>
 
+    <!-- ============ CASHBACK ============ -->
+    <section v-if="activeTab === 'Cashback'" class="tab-body">
+      <!-- LIST -->
+      <div v-if="!editingCashback" class="list-view">
+        <div class="list-head">
+          <input v-model="cashbackSearch" class="list-search" :placeholder="t('Search cashback rules…')" />
+          <button v-if="perms.cashback?.create" class="btn btn-primary" @click="newCashbackRule">{{ t('+ New Cashback Rule') }}</button>
+        </div>
+        <p class="muted hint-row">
+          {{ t('A cashback rule gives the customer back part of a qualifying sale as cashback, which they spend later with the Cashback payment method. Balance is per customer, so pick a customer on the sale to earn or spend.') }}
+        </p>
+        <div v-if="!cashbackRules.length" class="muted empty">{{ t('No cashback rules yet') }}</div>
+        <div v-else class="card-list">
+          <button
+            v-for="rule in filteredCashbackRules"
+            :key="rule.name"
+            class="entity-card"
+            @click="editCashbackRule(rule.name)"
+          >
+            <span class="status-dot" :class="{ on: rule.status === 'Active' }" />
+            <div class="entity-main">
+              <div class="entity-title">{{ rule.title }}</div>
+              <div class="muted small entity-sub">
+                {{ rule.amount_type === 'Fixed' ? money(rule.amount_value) : rule.amount_value + '%' }}
+                <span v-if="rule.start_date || rule.end_date"> · {{ rule.start_date || '…' }} → {{ rule.end_date || '…' }}</span>
+              </div>
+            </div>
+            <span v-if="rule.requires_coupon" class="entity-meta"><Icon name="ticket" /> {{ rule.coupon_code }}</span>
+            <span v-if="rule.expired" class="status-pill expired">{{ t('Expired') }}</span>
+            <span class="status-pill" :class="{ on: rule.status === 'Active' }">{{ t(rule.status) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- EDITOR -->
+      <div v-else class="editor">
+        <!-- Basics -->
+        <div class="sec-card">
+          <div class="sec-title"><Icon name="bulb" /> {{ t('Basics') }}</div>
+          <div class="field-grid">
+            <label class="field span-2">
+              <span>{{ t('Name *') }}</span>
+              <input v-model="cashbackForm.title" :placeholder="t('e.g. 5% back on everything')" />
+            </label>
+            <label class="field">
+              <span>{{ t('Priority') }}</span>
+              <input type="number" v-model.number="cashbackForm.priority" />
+            </label>
+          </div>
+          <label class="field span-2" style="display:block; margin-top: 12px">
+            <span>{{ t('Description (optional)') }}</span>
+            <input v-model="cashbackForm.description" :placeholder="t('Shown to managers only')" />
+          </label>
+          <div class="toggle-row">
+            <label class="inline-check">
+              <input type="checkbox" v-model="cashbackForm.status" true-value="Active" false-value="Inactive" />
+              {{ t('Active') }}
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" v-model="cashbackForm.stackable" :true-value="1" :false-value="0" />
+              {{ t('Can combine with other cashback rules') }}
+            </label>
+          </div>
+        </div>
+
+        <!-- The reward -->
+        <div class="sec-card">
+          <div class="sec-title"><Icon name="gift" /> {{ t('Cashback amount') }}</div>
+          <div class="seg-field">
+            <span class="seg-label">{{ t('Give back') }}</span>
+            <div class="segmented">
+              <button
+                class="seg-btn"
+                :class="{ on: cashbackForm.amount_type === 'Percentage' }"
+                @click="cashbackForm.amount_type = 'Percentage'"
+              >
+                {{ t('Percentage of the sale') }}
+              </button>
+              <button
+                class="seg-btn"
+                :class="{ on: cashbackForm.amount_type === 'Fixed' }"
+                @click="cashbackForm.amount_type = 'Fixed'"
+              >
+                {{ t('Fixed amount') }}
+              </button>
+            </div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>{{ cashbackForm.amount_type === 'Fixed' ? t('Amount to give back') : t('Percentage (%)') }}</span>
+              <input type="number" min="0" step="0.01" v-model.number="cashbackForm.amount_value" />
+            </label>
+            <label class="field" v-if="cashbackForm.amount_type !== 'Fixed'">
+              <span>{{ t('Maximum cashback per sale (0 = no cap)') }}</span>
+              <input type="number" min="0" step="0.01" v-model.number="cashbackForm.max_cashback" />
+            </label>
+            <label class="field">
+              <span>{{ t('Minimum spend to qualify (0 = none)') }}</span>
+              <input type="number" min="0" step="0.01" v-model.number="cashbackForm.min_spend" />
+            </label>
+          </div>
+          <p class="muted small" style="margin: 10px 0 0">
+            {{ cashbackForm.amount_type === 'Fixed'
+              ? t('The customer gets this fixed amount back when the qualifying items reach the minimum spend.')
+              : t('The customer gets this percentage of the qualifying items back as cashback.') }}
+          </p>
+        </div>
+
+        <!-- Validity -->
+        <div class="sec-card">
+          <div class="sec-title"><Icon name="store" /> {{ t('Validity of earned cashback') }}</div>
+          <div class="field-grid">
+            <label class="field">
+              <span>{{ t('Expires after (days, 0 = never)') }}</span>
+              <input type="number" min="0" v-model.number="cashbackForm.validity_days" />
+            </label>
+            <label class="field">
+              <span>{{ t('Usable after (days, 0 = right away)') }}</span>
+              <input type="number" min="0" v-model.number="cashbackForm.activation_delay_days" />
+            </label>
+          </div>
+          <p class="muted small" style="margin: 10px 0 0">
+            {{ t('Each earning keeps its own window. A delay lets you hold the cashback for a few days before the customer can spend it.') }}
+          </p>
+        </div>
+
+        <!-- Products -->
+        <div class="sec-card">
+          <div class="sec-title">
+            <span><Icon name="store" /> {{ t('Products') }}</span>
+            <label class="inline-check">
+              <input type="checkbox" v-model="cashbackForm.apply_on_all" :true-value="1" :false-value="0" />
+              {{ t('Apply on all products') }}
+            </label>
+          </div>
+          <p v-if="cashbackForm.apply_on_all" class="muted small" style="margin: 0 0 10px">
+            {{ t('All products are included — add rows below to') }} <b>{{ t('exclude') }}</b> {{ t('items, groups or brands.') }}
+          </p>
+          <div v-if="cashbackForm.items && cashbackForm.items.length" class="prod-head">
+            <span class="ph-mode">{{ t('Include') }} / {{ t('Exclude') }}</span>
+            <span class="ph-type">{{ t('Type') }}</span>
+            <span class="ph-pick">{{ t('Item') }}</span>
+          </div>
+          <div v-for="(row, i) in cashbackForm.items" :key="i" class="item-row">
+            <select v-model="row.exclude" class="mode-select" :class="{ excluding: row.exclude }">
+              <option :value="0">{{ t('Include') }}</option>
+              <option :value="1">{{ t('Exclude') }}</option>
+            </select>
+            <select v-model="row.applies_to" style="width: 110px" @change="row.value = ''; row.label = ''">
+              <option value="Item">{{ t('Item') }}</option><option value="Item Group">{{ t('Item Group') }}</option><option value="Brand">{{ t('Brand') }}</option><option value="Tag">{{ t('Tag') }}</option>
+            </select>
+            <LinkPicker
+              :doctype="row.applies_to"
+              v-model="row.value"
+              :label="row.label"
+              :placeholder="row.applies_to === 'Item' ? t('Search by name, code or barcode…') : t('Search and pick from the list…')"
+              @picked="(option) => (row.label = option?.item_name || option?.name || '')"
+            />
+            <button class="btn-ghost" @click="cashbackForm.items.splice(i, 1)"><Icon name="close" /></button>
+          </div>
+          <button
+            class="btn btn-outline add-row"
+            @click="cashbackForm.items.push({ applies_to: 'Item', value: '', label: '', exclude: cashbackForm.apply_on_all ? 1 : 0 })"
+          >
+            {{ t('+ Add product row') }}
+          </button>
+          <p v-if="hasInvalidCashbackRows" class="row-warning">
+            {{ t('⚠ Pick every product from the dropdown — rows without a valid selection can\'t be saved.') }}
+          </p>
+        </div>
+
+        <!-- When & where -->
+        <div class="sec-card">
+          <div class="sec-title"><Icon name="store" /> {{ t('When & where') }}</div>
+          <div class="field-grid">
+            <label class="field">
+              <span>{{ t('Start date (optional — empty = always)') }}</span>
+              <input type="date" v-model="cashbackForm.start_date" />
+            </label>
+            <label class="field">
+              <span>{{ t('End date (optional)') }}</span>
+              <input type="date" v-model="cashbackForm.end_date" />
+            </label>
+            <label class="field">
+              <span>{{ t('Daily from (optional — empty = all day)') }}</span>
+              <input type="time" v-model="cashbackForm.start_time" />
+            </label>
+            <label class="field">
+              <span>{{ t('Daily until (optional)') }}</span>
+              <input type="time" v-model="cashbackForm.end_time" />
+            </label>
+          </div>
+          <div class="day-row">
+            <button
+              v-for="day in DAYS"
+              :key="day"
+              class="day-chip"
+              :class="{ on: cashbackForm[day] }"
+              @click="cashbackForm[day] = cashbackForm[day] ? 0 : 1"
+            >
+              {{ day.slice(0, 3) }}
+            </button>
+          </div>
+          <div class="sub-label">{{ t('Outlets & customers') }}</div>
+          <div class="outlet-row">
+            <label v-for="profile in session.availableProfiles" :key="profile" class="inline-check">
+              <input type="checkbox" :value="profile" v-model="cashbackForm.pos_profiles" />
+              {{ profile }}
+            </label>
+            <span class="muted small">{{ t('(none ticked = all outlets)') }}</span>
+          </div>
+          <div class="item-row">
+            <LinkPicker
+              doctype="Customer Group"
+              v-model="groupPick"
+              :placeholder="t('Limit to customer group… (empty = everyone)')"
+              @picked="(option) => addGroup(cashbackForm, option)"
+            />
+            <span v-for="(group, i) in cashbackForm.customer_groups" :key="group" class="chip-sm">
+              {{ group }} <button class="btn-ghost" @click="cashbackForm.customer_groups.splice(i, 1)"><Icon name="close" /></button>
+            </span>
+          </div>
+        </div>
+
+        <!-- Coupons -->
+        <div class="sec-card">
+          <div class="sec-title">
+            <span><Icon name="ticket" /> {{ t('Coupons') }}</span>
+            <label class="inline-check">
+              <input type="checkbox" v-model="cashbackForm.requires_coupon" :true-value="1" :false-value="0" />
+              {{ t('Requires coupon code') }}
+            </label>
+          </div>
+          <label v-if="cashbackForm.requires_coupon" class="field" style="max-width: 360px">
+            <span>{{ t('Coupon code') }}</span>
+            <input v-model="cashbackForm.coupon_code" :placeholder="t('e.g. WELCOME')" />
+          </label>
+        </div>
+
+        <!-- Sticky footer -->
+        <div class="editor-footer">
+          <button v-if="cashbackForm.name && perms.cashback?.delete" class="btn btn-outline danger" @click="deleteCashbackRule">{{ t('Delete') }}</button>
+          <span style="flex: 1" />
+          <button class="btn btn-outline" @click="editingCashback = false">{{ t('Cancel') }}</button>
+          <button class="btn btn-primary" :disabled="saving" @click="saveCashbackRule">
+            {{ saving ? t('Saving…') : t('Save Cashback Rule') }}
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ BUNDLES ============ -->
     <section v-if="activeTab === 'Bundles'" class="tab-body">
       <!-- LIST -->
@@ -872,6 +1123,13 @@
             <span class="setting-text">
               <span class="setting-title">{{ t('Insights page') }}</span>
               <span class="setting-desc">{{ t('A statistics page for managers. With Lumen Reports installed it shows a full sales dashboard with filters.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_cashback" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Cashback') }}</span>
+              <span class="setting-desc">{{ t('Customers earn cashback on qualifying sales (set the rules in the Cashback tab) and spend it as a payment method later.') }}</span>
             </span>
           </label>
           <label class="setting-row">
@@ -1452,12 +1710,13 @@ const session = useSessionStore()
 const catalog = useCatalogStore()
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-const ALL_TABS = ['Promotions', 'Bundles', 'Price Books', 'Loyalty & Gift Cards', 'General', 'Audit Log', 'Status']
+const ALL_TABS = ['Promotions', 'Cashback', 'Bundles', 'Price Books', 'Loyalty & Gift Cards', 'General', 'Audit Log', 'Status']
 const perms = computed(() => session.permissions || {})
 
 function tabAllowed(tab) {
   const p = perms.value
   if (tab === 'Promotions') return p.promotions?.read
+  if (tab === 'Cashback') return p.cashback?.read
   if (tab === 'Bundles') return p.bundles?.read
   if (tab === 'Price Books') return p.price_books?.read
   if (tab === 'Loyalty & Gift Cards') return p.loyalty || p.gift_cards
@@ -1505,6 +1764,11 @@ const testBasket = ref([{ item_code: '', label: '', qty: 1 }])
 const testResult = ref(null)
 const testing = ref(false)
 
+const cashbackRules = ref([])
+const editingCashback = ref(false)
+const cashbackForm = ref({})
+const cashbackSearch = ref('')
+
 const priceBooks = ref([])
 const editingBook = ref(false)
 const bookForm = ref({})
@@ -1550,6 +1814,7 @@ const generalForm = ref({
   service_charge_account: '',
   enable_price_checker: 1,
   enable_insights: 1,
+  enable_cashback: 1,
   enable_xreport: 1,
   enable_audit_log: 1,
   enable_email_receipt: 0,
@@ -1805,6 +2070,9 @@ const payModeOptions = computed(() => {
 const hasInvalidRows = computed(() =>
   (promoForm.value.items || []).some((row) => !row.value)
 )
+const hasInvalidCashbackRows = computed(() =>
+  (cashbackForm.value.items || []).some((row) => !row.value)
+)
 
 const modeHint = computed(() => {
   const m = generalForm.value.discount_approval_mode
@@ -1860,6 +2128,7 @@ async function load() {
     service_charge_account: info.service_charge_account || '',
     enable_price_checker: info.enable_price_checker ?? 1,
     enable_insights: info.enable_insights ?? 1,
+    enable_cashback: info.enable_cashback ?? 1,
     enable_xreport: info.enable_xreport ?? 1,
     enable_audit_log: info.enable_audit_log ?? 1,
     enable_email_receipt: info.enable_email_receipt || 0,
@@ -1914,6 +2183,9 @@ async function load() {
     selectedCompany.value = info.companies[0]
   }
   promotions.value = await call('lumenpos.api.settings.list_promotions')
+  if (perms.value.cashback?.read) {
+    cashbackRules.value = await call('lumenpos.api.settings.list_cashback_rules').catch(() => [])
+  }
   priceBooks.value = await call('lumenpos.api.settings.list_price_books')
   bundles.value = await call('lumenpos.api.settings.list_bundles')
   loyaltyPrograms.value = await call('lumenpos.api.settings.list_loyalty_programs').catch(() => [])
@@ -2279,6 +2551,76 @@ async function deletePromotion() {
   }
 }
 
+// ---- cashback rules ----
+function newCashbackRule() {
+  cashbackForm.value = {
+    title: '', status: 'Active', description: '',
+    amount_type: 'Percentage', amount_value: 5, max_cashback: 0, min_spend: 0,
+    validity_days: 90, activation_delay_days: 0,
+    start_date: null, end_date: null, start_time: null, end_time: null,
+    monday: 1, tuesday: 1, wednesday: 1, thursday: 1, friday: 1, saturday: 1, sunday: 1,
+    stackable: 0, priority: 1, requires_coupon: 0, coupon_code: '',
+    customer_eligibility: 'All Customers', apply_on_all: 1,
+    pos_profiles: [], customer_groups: [], items: [],
+  }
+  editingCashback.value = true
+}
+
+async function editCashbackRule(name) {
+  const data = await call('lumenpos.api.settings.get_cashback_rule', { name })
+  data.items = (data.items || []).map((row) => ({
+    applies_to: row.applies_to || 'Item',
+    value: row.item_code || row.item_group || row.brand || row.tag || '',
+    label: row.item_code || row.item_group || row.brand || row.tag || '',
+    exclude: row.exclude || 0,
+  }))
+  cashbackForm.value = data
+  editingCashback.value = true
+}
+
+async function saveCashbackRule() {
+  if (hasInvalidCashbackRows.value) {
+    session.notify(t('Pick every product row from the dropdown list first'), true)
+    return
+  }
+  saving.value = true
+  try {
+    const payload = JSON.parse(JSON.stringify(cashbackForm.value))
+    payload.customer_eligibility = payload.customer_groups.length
+      ? 'Selected Customer Groups'
+      : 'All Customers'
+    payload.items = payload.items
+      .filter((row) => row.value)
+      .map((row) => ({
+        applies_to: row.applies_to,
+        item_code: row.applies_to === 'Item' ? row.value : null,
+        item_group: row.applies_to === 'Item Group' ? row.value : null,
+        brand: row.applies_to === 'Brand' ? row.value : null,
+        tag: row.applies_to === 'Tag' ? row.value : null,
+        exclude: row.exclude ? 1 : 0,
+      }))
+    await call('lumenpos.api.settings.save_cashback_rule', { payload })
+    session.notify(t('Cashback rule saved'))
+    editingCashback.value = false
+    cashbackRules.value = await call('lumenpos.api.settings.list_cashback_rules')
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deleteCashbackRule() {
+  if (!confirm(t('Delete cashback rule "{title}"?', { title: cashbackForm.value.title }))) return
+  try {
+    await call('lumenpos.api.settings.delete_cashback_rule', { name: cashbackForm.value.name })
+    editingCashback.value = false
+    cashbackRules.value = await call('lumenpos.api.settings.list_cashback_rules')
+  } catch (e) {
+    session.notify(e.message, true)
+  }
+}
+
 // ---- price books ----
 const bookItemPick = ref('')
 const bookFileInput = ref(null)
@@ -2501,6 +2843,7 @@ async function saveGeneral() {
     session.settings.service_charge_percent = info.service_charge_percent || 0
     session.settings.enable_price_checker = info.enable_price_checker ?? 1
     session.settings.enable_insights = info.enable_insights ?? 1
+    session.settings.enable_cashback = info.enable_cashback ?? 1
     session.settings.enable_xreport = info.enable_xreport ?? 1
     session.settings.enable_email_receipt = info.enable_email_receipt || 0
     session.settings.enable_customer_display = info.enable_customer_display || 0
@@ -2538,6 +2881,11 @@ const filteredPromotions = computed(() => {
   const q = promoSearch.value.trim().toLowerCase()
   if (!q) return promotions.value
   return promotions.value.filter((p) => (p.title || '').toLowerCase().includes(q))
+})
+const filteredCashbackRules = computed(() => {
+  const q = cashbackSearch.value.trim().toLowerCase()
+  if (!q) return cashbackRules.value
+  return cashbackRules.value.filter((r) => (r.title || '').toLowerCase().includes(q))
 })
 const filteredBundles = computed(() => {
   const q = bundleSearch.value.trim().toLowerCase()

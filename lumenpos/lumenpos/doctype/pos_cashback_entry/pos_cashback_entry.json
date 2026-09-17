@@ -1,0 +1,150 @@
+{
+ "actions": [],
+ "autoname": "format:CBK-{#####}",
+ "creation": "2026-09-16 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "naming_rule": "Expression",
+ "track_changes": 1,
+ "field_order": [
+  "customer",
+  "entry_type",
+  "amount",
+  "remaining",
+  "col_l1",
+  "cashback_rule",
+  "valid_from",
+  "expiry_date",
+  "section_ref",
+  "company",
+  "reference_doctype",
+  "reference_invoice",
+  "col_l2",
+  "posting_datetime"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "entry_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Entry Type",
+   "options": "Earn\nRedeem\nExpire\nReverse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1,
+   "description": "Always positive. Earn adds, the rest remove."
+  },
+  {
+   "fieldname": "remaining",
+   "fieldtype": "Currency",
+   "label": "Remaining",
+   "description": "For an Earn row: the unspent, unexpired part still available."
+  },
+  {
+   "fieldname": "col_l1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cashback_rule",
+   "fieldtype": "Link",
+   "label": "Cashback Rule",
+   "options": "POS Cashback Rule"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Datetime",
+   "label": "Usable From"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Datetime",
+   "in_standard_filter": 1,
+   "label": "Expires On"
+  },
+  {
+   "fieldname": "section_ref",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Type",
+   "options": "DocType",
+   "default": "POS Invoice"
+  },
+  {
+   "fieldname": "reference_invoice",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Reference Invoice",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "col_l2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_datetime",
+   "fieldtype": "Datetime",
+   "label": "Posted At"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-16 00:00:00",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Cashback Entry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "delete": 1,
+   "role": "LumenPOS Manager"
+  },
+  {
+   "read": 1,
+   "role": "LumenPOS Cashier"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

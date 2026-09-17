@@ -523,13 +523,17 @@ export const useCartStore = defineStore('cart', {
     // as submit — so the till charges exactly what the posted invoice shows (no
     // phantom rounding "change"). Returns null offline / on error so the caller
     // falls back to the client-side cart total.
-    async quoteTotal() {
+    async quote() {
       try {
-        const res = await call('lumenpos.api.sales.quote_sale', { payload: this._basePayload() })
-        return res && typeof res.payable === 'number' ? res.payable : null
+        return await call('lumenpos.api.sales.quote_sale', { payload: this._basePayload() })
       } catch {
         return null
       }
+    },
+
+    async quoteTotal() {
+      const res = await this.quote()
+      return res && typeof res.payable === 'number' ? res.payable : null
     },
 
     async submit(payments, redeemLoyaltyPoints = 0, giftCards = []) {
@@ -572,6 +576,9 @@ export const useCartStore = defineStore('cart', {
       }
       if (payments.some((p) => p.mode_of_payment === session.storeCreditMode)) {
         throw new Error('Store credit needs a connection — remove it and retry')
+      }
+      if (payments.some((p) => p.mode_of_payment === session.cashbackMode)) {
+        throw new Error('Cashback needs a connection — remove it and retry')
       }
       session.markOffline()
       // Idempotency key so a retried sync (lost ACK) can't post a duplicate.

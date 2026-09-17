@@ -1,6 +1,6 @@
 # LumenPOS — Complete User Guide
 
-*Applies to LumenPOS v0.44.3. This document is updated with every feature change.*
+*Applies to LumenPOS v0.45.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1–17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -149,6 +149,12 @@ quick-cash buttons, and a tile per payment method.
 - **Split payments**: add any combination; each shows in the list with ✕.
 - **Cash** may over-tender → change due is shown and recorded.
 - **Store Credit** tile appears when the customer has balance.
+- **Cashback**: when a named customer has a cashback balance, a **Cashback
+  available** row shows it with a **Use cashback** button (spends soonest-to-expire
+  first). On a qualifying sale the screen also shows **This sale earns … cashback**
+  before you take payment. Cashback is per customer, so pick the customer to earn or
+  spend; set the rules in **Settings → Cashback** and switch the feature on/off in
+  **Settings → General**.
 - **🎁 Gift Card**: scan/type the card → **Check** shows the live balance →
   **Apply**. Multiple cards per sale supported.
 - **Loyalty points**: when the customer has points, a redeem box shows their
@@ -525,6 +531,7 @@ this also makes everyday search instant. If the connection drops:
 | Tab | Contents |
 |---|---|
 | **Promotions** | List + Vend-style editor for all types, include/exclude rows, coupons, the dry-run **Test** panel. |
+| **Cashback** | List + editor for cashback rules: percentage or fixed give-back, cap, minimum spend, expiry and activation-delay days, include/exclude products, schedule (dates/times/days), outlets, customer group, optional coupon, stackable. |
 | **Bundles** | Fixed-price bundles: components, price, outlets. |
 | **Price Books** | Items with special prices for a period (validity + priority + outlets/customer groups); add items or **Excel/CSV import**. No ERPNext price list created — the master is never changed. |
 | **Loyalty & Gift Cards** | Create/view loyalty programs; search/disable gift cards. |
@@ -631,6 +638,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.45.0 | **Cashback: a customizable wallet customers earn on sales and spend later.** You set the rules in Settings, Cashback: give back a percentage of the sale or a fixed amount, cap it, require a minimum spend, choose which products count (include or exclude by item, group, brand or tag), pick outlets and a customer group, run it on set dates, times and weekdays, and optionally behind a coupon. Earned cashback carries its own validity (expires after N days, with an optional delay before it can be used), and rules can stack or compete like promotions. At the till the payment screen shows what a sale will earn, the customer's available cashback appears as its own **Use cashback** tender, and paying with cashback never earns fresh cashback on the part it paid for. Balances post to a real liability account so the books stay correct, a return gives back the unspent part, and a nightly job writes off what expires. Off by default is a switch away in Settings, General; earning is skipped entirely when the feature is off. |
 | 0.44.3 | **The Insights dashboard now uses the full width of the screen.** The page was squeezed into a narrow column of about 350 pixels with the rest of the screen empty, so the dashboard switched to its phone layout and stacked every chart in one column. It now fills the content area, and on a normal screen the charts sit side by side as designed. Checked on lumenv14: the dashboard frame went from 310 to 1,138 pixels wide and the four summary cards now share one row. |
 | 0.44.2 | **Insights never sits on "Loading…" when something is wrong.** If Lumen Reports could not report its status, or reported a state this page does not recognise, the Insights page used to show "Loading…" with a Refresh button indefinitely. It now says plainly that Lumen Reports cannot show the dashboard right now, and shows Lumen Reports' own explanation or error underneath when there is one. |
 | 0.44.1 | **Insights now works on Frappe v14.** Lumen Reports 1.2.0 added support for Frappe v14, but the Insights page still turned away anything older than v15 with its own message, so a v14 site with Lumen Reports installed never reached the dashboard. The page now trusts Lumen Reports whenever it is installed, and only a site without it is told the minimum Frappe version, which is now v14. On v13 the page still explains that the dashboard needs a newer Frappe. The number in that message now comes from the server, so it cannot fall out of date again. And if Lumen Reports itself fails while creating the dashboard, the manager now sees a plain message saying so, with nothing half-created left behind, instead of a server error. Tested on a real Frappe 14.101.1 and ERPNext 14.92.14 site with Lumen Reports 1.2.0: the dashboard, all ten charts, the filters, and a manager's access with and without a Lumen role. |

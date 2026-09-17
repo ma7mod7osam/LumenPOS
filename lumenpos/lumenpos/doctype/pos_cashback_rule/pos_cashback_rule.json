@@ -1,0 +1,330 @@
+{
+ "actions": [],
+ "autoname": "format:CBR-{####}",
+ "creation": "2026-09-16 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "naming_rule": "Expression",
+ "track_changes": 1,
+ "field_order": [
+  "title",
+  "status",
+  "description",
+  "col_head",
+  "priority",
+  "stackable",
+  "reward_section",
+  "amount_type",
+  "amount_value",
+  "max_cashback",
+  "col_reward",
+  "min_spend",
+  "validity_section",
+  "validity_days",
+  "col_validity",
+  "activation_delay_days",
+  "schedule_section",
+  "start_date",
+  "end_date",
+  "col_schedule",
+  "start_time",
+  "end_time",
+  "days_section",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+  "eligibility_section",
+  "pos_profiles",
+  "col_elig",
+  "customer_eligibility",
+  "customer_groups",
+  "coupon_section",
+  "requires_coupon",
+  "coupon_code",
+  "products_section",
+  "apply_on_all",
+  "items"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Active\nInactive",
+   "default": "Active",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "col_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "label": "Priority",
+   "description": "Higher wins when two non-combinable rules both match"
+  },
+  {
+   "fieldname": "stackable",
+   "fieldtype": "Check",
+   "label": "Can combine with other cashback rules"
+  },
+  {
+   "fieldname": "reward_section",
+   "fieldtype": "Section Break",
+   "label": "Reward"
+  },
+  {
+   "fieldname": "amount_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Cashback Type",
+   "options": "Percentage\nFixed",
+   "default": "Percentage",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Value",
+   "description": "A percentage of the qualifying items, or a fixed amount"
+  },
+  {
+   "fieldname": "max_cashback",
+   "fieldtype": "Currency",
+   "label": "Maximum Cashback",
+   "description": "Cap on the cashback from one sale (0 = no cap). Applies to a percentage."
+  },
+  {
+   "fieldname": "col_reward",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "min_spend",
+   "fieldtype": "Currency",
+   "label": "Minimum Spend",
+   "description": "The qualifying items must total at least this to earn cashback"
+  },
+  {
+   "fieldname": "validity_section",
+   "fieldtype": "Section Break",
+   "label": "Validity"
+  },
+  {
+   "fieldname": "validity_days",
+   "fieldtype": "Int",
+   "label": "Valid For (days)",
+   "default": "90",
+   "description": "Earned cashback expires this many days after it becomes usable (0 = never expires)"
+  },
+  {
+   "fieldname": "col_validity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "activation_delay_days",
+   "fieldtype": "Int",
+   "label": "Usable After (days)",
+   "default": "0",
+   "description": "0 = usable immediately. Otherwise it becomes spendable this many days after the sale."
+  },
+  {
+   "fieldname": "schedule_section",
+   "fieldtype": "Section Break",
+   "label": "Schedule"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "col_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time",
+   "description": "Optional daily window. Wraps midnight if start is after end."
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time"
+  },
+  {
+   "fieldname": "days_section",
+   "fieldtype": "Section Break",
+   "label": "Days of Week"
+  },
+  {
+   "fieldname": "monday",
+   "fieldtype": "Check",
+   "label": "Monday",
+   "default": "1"
+  },
+  {
+   "fieldname": "tuesday",
+   "fieldtype": "Check",
+   "label": "Tuesday",
+   "default": "1"
+  },
+  {
+   "fieldname": "wednesday",
+   "fieldtype": "Check",
+   "label": "Wednesday",
+   "default": "1"
+  },
+  {
+   "fieldname": "thursday",
+   "fieldtype": "Check",
+   "label": "Thursday",
+   "default": "1"
+  },
+  {
+   "fieldname": "friday",
+   "fieldtype": "Check",
+   "label": "Friday",
+   "default": "1"
+  },
+  {
+   "fieldname": "saturday",
+   "fieldtype": "Check",
+   "label": "Saturday",
+   "default": "1"
+  },
+  {
+   "fieldname": "sunday",
+   "fieldtype": "Check",
+   "label": "Sunday",
+   "default": "1"
+  },
+  {
+   "fieldname": "eligibility_section",
+   "fieldtype": "Section Break",
+   "label": "Eligibility"
+  },
+  {
+   "fieldname": "pos_profiles",
+   "fieldtype": "Table",
+   "label": "Outlets",
+   "options": "POS Cashback Rule Profile",
+   "description": "Leave empty to apply at every outlet"
+  },
+  {
+   "fieldname": "col_elig",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_eligibility",
+   "fieldtype": "Select",
+   "label": "Customers",
+   "options": "All Customers\nSelected Customer Groups",
+   "default": "All Customers"
+  },
+  {
+   "fieldname": "customer_groups",
+   "fieldtype": "Table",
+   "label": "Customer Groups",
+   "options": "POS Cashback Rule Customer Group",
+   "depends_on": "eval:doc.customer_eligibility=='Selected Customer Groups'"
+  },
+  {
+   "fieldname": "coupon_section",
+   "fieldtype": "Section Break",
+   "label": "Coupon"
+  },
+  {
+   "fieldname": "requires_coupon",
+   "fieldtype": "Check",
+   "label": "Requires Coupon Code"
+  },
+  {
+   "fieldname": "coupon_code",
+   "fieldtype": "Data",
+   "label": "Coupon Code",
+   "depends_on": "requires_coupon"
+  },
+  {
+   "fieldname": "products_section",
+   "fieldtype": "Section Break",
+   "label": "Products"
+  },
+  {
+   "fieldname": "apply_on_all",
+   "fieldtype": "Check",
+   "label": "Apply on all products",
+   "default": "1"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Products",
+   "options": "POS Cashback Rule Item",
+   "depends_on": "eval:!doc.apply_on_all"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-16 00:00:00",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Cashback Rule",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "delete": 1,
+   "role": "LumenPOS Manager"
+  },
+  {
+   "read": 1,
+   "role": "LumenPOS Cashier"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

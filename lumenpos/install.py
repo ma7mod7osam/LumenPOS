@@ -64,6 +64,7 @@ def ensure_setup():
     migrate_coupon_limits()
     backfill_store_credit_references()
     default_insights_on()
+    default_cashback_on()
     ensure_hot_indexes()
 
 
@@ -83,6 +84,20 @@ def default_insights_on():
         from lumenpos.api.insights import set_setting
 
         set_setting("enable_insights", 1)
+
+
+def default_cashback_on():
+    """enable_cashback ships ON (inert until a rule exists). A loaded Single
+    zeroes a missing Check, so only the tabSingles row can tell "never
+    stored" from "switched off". Write the ON down once."""
+    from lumenpos.api.insights import set_setting
+
+    stored = frappe.db.sql(
+        "select value from tabSingles where doctype=%s and field=%s",
+        ("LumenPOS Settings", "enable_cashback"),
+    )
+    if not stored:
+        set_setting("enable_cashback", 1)
 
 
 def backfill_store_credit_references():

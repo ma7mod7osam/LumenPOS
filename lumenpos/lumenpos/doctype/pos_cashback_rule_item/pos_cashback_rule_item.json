@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "creation": "2026-09-16 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "istable": 1,
+ "field_order": [
+  "applies_to",
+  "item_code",
+  "item_group",
+  "brand",
+  "tag",
+  "exclude"
+ ],
+ "fields": [
+  {
+   "fieldname": "applies_to",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Applies To",
+   "options": "Item\nItem Group\nBrand\nTag",
+   "default": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "depends_on": "eval:doc.applies_to=='Item'"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Group",
+   "options": "Item Group",
+   "depends_on": "eval:doc.applies_to=='Item Group'"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Brand",
+   "options": "Brand",
+   "depends_on": "eval:doc.applies_to=='Brand'"
+  },
+  {
+   "fieldname": "tag",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tag",
+   "depends_on": "eval:doc.applies_to=='Tag'"
+  },
+  {
+   "fieldname": "exclude",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Exclude",
+   "description": "Exclude these items instead of including them"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-16 00:00:00",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Cashback Rule Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
