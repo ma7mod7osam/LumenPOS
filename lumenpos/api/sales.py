@@ -469,7 +469,10 @@ def submit_sale(payload):
     for card in redeem_cards:
         gift_cards.redeem(card["card_no"], card["amount"], invoice.name)
     if cashback_used:
-        cashback.redeem(customer, cashback_used, invoice.name, profile.company, invoice.doctype)
+        cashback.redeem(
+            customer, cashback_used, invoice.name, profile.company, invoice.doctype,
+            pos_profile=profile.name,
+        )
     # Cashback EARNED on this sale (credited to the customer, spendable later).
     _cashback_earn(invoice, profile, payload, cashback_used)
     # Spend any single-use bulk coupons that were entered on this sale.
@@ -1279,6 +1282,7 @@ def _cashback_earn(invoice, profile, payload, cashback_used):
                 entry["validity_days"],
                 entry["activation_delay_days"],
                 invoice.doctype,
+                pos_profile=profile.name,
             )
     except Exception:
         frappe.log_error(

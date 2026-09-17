@@ -18,10 +18,13 @@
   "expiry_date",
   "section_ref",
   "company",
+  "pos_profile",
+  "cost_center",
   "reference_doctype",
   "reference_invoice",
   "col_l2",
-  "posting_datetime"
+  "posting_datetime",
+  "journal_entry"
  ],
  "fields": [
   {
@@ -88,6 +91,22 @@
    "options": "Company"
   },
   {
+   "description": "The outlet the cashback was earned at. Expire and Reverse rows keep the outlet of the Earn row they come from.",
+   "fieldname": "pos_profile",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "POS Profile",
+   "options": "POS Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center",
+   "read_only": 1
+  },
+  {
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "label": "Reference Type",
@@ -109,11 +128,20 @@
    "fieldname": "posting_datetime",
    "fieldtype": "Datetime",
    "label": "Posted At"
+  },
+  {
+   "description": "The daily summary Journal Entry that booked this row to the accounts. Empty until it is posted. Redeem rows stay empty: the sale's payment books them.",
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-16 00:00:00",
+ "modified": "2026-09-17 12:00:00",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Cashback Entry",

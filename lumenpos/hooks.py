@@ -30,10 +30,12 @@ scheduler_events = {
         "0 * * * *": [
             "lumenpos.api.register.notify_overdue_sessions",
         ],
-        # Expire cashback whose validity window has passed (writes an
-        # Expire ledger row for the unspent remainder). Daily is plenty.
+        # Cashback, once a day and in this order: write off what expired, then
+        # book the days that have ended to the accounts (one summary Journal
+        # Entry per company, day and outlet cost center). One job so the two
+        # steps can never run out of order.
         "30 0 * * *": [
-            "lumenpos.cashback.expire_due",
+            "lumenpos.cashback.nightly",
         ],
     },
 }

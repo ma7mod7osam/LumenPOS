@@ -147,7 +147,7 @@
             </label>
           </div>
           <p v-if="promoForm.apply_on_all" class="muted small" style="margin: 0 0 10px">
-            {{ t('All products are included — add rows below to') }} <b>{{ t('exclude') }}</b> {{ t('items, groups or brands.') }}
+            {{ t('All products are included. Add rows below to') }} <b>{{ t('exclude') }}</b> {{ t('items, groups or brands.') }}
           </p>
           <div v-if="promoForm.items && promoForm.items.length" class="prod-head">
             <span class="ph-mode">{{ t('Include') }} / {{ t('Exclude') }}</span>
@@ -189,7 +189,7 @@
             {{ t('+ Add product row') }}
           </button>
           <p v-if="hasInvalidRows" class="row-warning">
-            {{ t('⚠ Pick every product from the dropdown — rows without a valid selection can\'t be saved.') }}
+            {{ t('⚠ Pick every product from the dropdown. Rows without a valid selection can\'t be saved.') }}
           </p>
         </div>
 
@@ -198,7 +198,7 @@
           <div class="sec-title"><Icon name="store" /> {{ t('When & where') }}</div>
           <div class="field-grid">
             <label class="field">
-              <span>{{ t('Start date (optional — empty = always)') }}</span>
+              <span>{{ t('Start date (optional, empty means always)') }}</span>
               <input type="date" v-model="promoForm.start_date" />
             </label>
             <label class="field">
@@ -206,7 +206,7 @@
               <input type="date" v-model="promoForm.end_date" />
             </label>
             <label class="field">
-              <span>{{ t('Daily from (optional — empty = all day)') }}</span>
+              <span>{{ t('Daily from (optional, empty means all day)') }}</span>
               <input type="time" v-model="promoForm.start_time" />
             </label>
             <label class="field">
@@ -366,6 +366,61 @@
         <p class="muted hint-row">
           {{ t('A cashback rule gives the customer back part of a qualifying sale as cashback, which they spend later with the Cashback payment method. Balance is per customer, so pick a customer on the sale to earn or spend.') }}
         </p>
+
+        <!-- Accounting: where cashback is booked and what is waiting -->
+        <div class="sec-card cb-accounting">
+          <div class="sec-title">
+            <span><Icon name="bank" /> {{ t('Accounting') }}</span>
+            <button
+              v-if="perms.settings && cashbackAccounting.some((c) => c.pending_count)"
+              class="btn btn-outline"
+              :disabled="cashbackBooking"
+              @click="bookCashbackNow"
+            >
+              {{ cashbackBooking ? t('Booking…') : t('Book to accounts now') }}
+            </button>
+          </div>
+          <p class="muted small" style="margin: 0 0 10px">
+            {{ t('Cashback is booked to the accounts once a day, as one summary entry per company and outlet. Earned cashback goes to the expense and liability accounts, and expired or returned cashback is taken back out of them. Cashback a customer spends is booked by the sale itself. Choose the accounts in General, Company accounts.') }}
+          </p>
+          <div v-if="cashbackBookMsg" :class="cashbackBookFailed ? 'gate-bad' : 'gate-ok'" style="margin-bottom: 8px">{{ cashbackBookMsg }}</div>
+          <div v-if="!cashbackAccounting.length" class="muted small">{{ t('No cashback activity yet.') }}</div>
+          <div v-for="row in cashbackAccounting" :key="row.company" class="cb-company">
+            <div class="row-title">{{ row.company }}</div>
+            <div class="cb-grid">
+              <span class="muted">{{ t('Liability account') }}</span>
+              <span>
+                <span class="mono">{{ row.liability_account }}</span>
+                <span v-if="row.liability_state" class="muted small" :title="row.liability_problem || ''">
+                  · {{ cashbackAccountState(row.liability_state) }}
+                </span>
+              </span>
+              <span class="muted">{{ t('Expense account') }}</span>
+              <span>
+                <span class="mono">{{ row.expense_account }}</span>
+                <span v-if="row.expense_state" class="muted small" :title="row.expense_problem || ''">
+                  · {{ cashbackAccountState(row.expense_state) }}
+                </span>
+              </span>
+              <span class="muted">{{ t('Waiting to be booked') }}</span>
+              <span v-if="row.pending_count">
+                {{ t('{n} entries since {date}: earned {earned}, expired or returned {back}', { n: row.pending_count, date: row.pending_since, earned: money(row.pending_earned), back: money(row.pending_given_back) }) }}
+              </span>
+              <span v-else>{{ t('Nothing waiting') }}</span>
+              <span class="muted">{{ t('Customers hold') }}</span>
+              <span>{{ money(row.outstanding) }}</span>
+              <span class="muted">{{ t('Liability account balance') }}</span>
+              <span>
+                {{ row.liability_balance === null ? t('No entries yet') : money(row.liability_balance) }}
+                <span v-if="row.last_journal_entry" class="muted small"> · {{ t('last entry {name}', { name: row.last_journal_entry }) }}</span>
+              </span>
+            </div>
+          </div>
+          <p v-if="cashbackAccounting.length" class="muted small" style="margin: 10px 0 0">
+            {{ t('The liability balance equals what customers hold once everything is booked and the shifts are closed.') }}
+          </p>
+        </div>
+
         <div v-if="!cashbackRules.length" class="muted empty">{{ t('No cashback rules yet') }}</div>
         <div v-else class="card-list">
           <button
@@ -491,7 +546,7 @@
             </label>
           </div>
           <p v-if="cashbackForm.apply_on_all" class="muted small" style="margin: 0 0 10px">
-            {{ t('All products are included — add rows below to') }} <b>{{ t('exclude') }}</b> {{ t('items, groups or brands.') }}
+            {{ t('All products are included. Add rows below to') }} <b>{{ t('exclude') }}</b> {{ t('items, groups or brands.') }}
           </p>
           <div v-if="cashbackForm.items && cashbackForm.items.length" class="prod-head">
             <span class="ph-mode">{{ t('Include') }} / {{ t('Exclude') }}</span>
@@ -522,7 +577,7 @@
             {{ t('+ Add product row') }}
           </button>
           <p v-if="hasInvalidCashbackRows" class="row-warning">
-            {{ t('⚠ Pick every product from the dropdown — rows without a valid selection can\'t be saved.') }}
+            {{ t('⚠ Pick every product from the dropdown. Rows without a valid selection can\'t be saved.') }}
           </p>
         </div>
 
@@ -531,7 +586,7 @@
           <div class="sec-title"><Icon name="store" /> {{ t('When & where') }}</div>
           <div class="field-grid">
             <label class="field">
-              <span>{{ t('Start date (optional — empty = always)') }}</span>
+              <span>{{ t('Start date (optional, empty means always)') }}</span>
               <input type="date" v-model="cashbackForm.start_date" />
             </label>
             <label class="field">
@@ -539,7 +594,7 @@
               <input type="date" v-model="cashbackForm.end_date" />
             </label>
             <label class="field">
-              <span>{{ t('Daily from (optional — empty = all day)') }}</span>
+              <span>{{ t('Daily from (optional, empty means all day)') }}</span>
               <input type="time" v-model="cashbackForm.start_time" />
             </label>
             <label class="field">
@@ -1350,7 +1405,7 @@
       <div class="sec-card">
         <div class="sec-title"><Icon name="bank" /> {{ t('Company accounts') }}</div>
         <p class="muted hint-row" style="padding: 0 0 10px">
-          {{ t('Each company posts gift cards and the service charge to its OWN accounts. Pick a company, then choose its accounts — the lists show only that company\'s chart of accounts. Leave blank to auto-create / use a default.') }}
+          {{ t('Each company posts gift cards, the service charge and cashback to its own accounts. Pick a company, then choose its accounts. The lists show only that company\'s chart of accounts. Leave a field empty to use the default account, created automatically.') }}
         </p>
         <div class="field-grid">
           <label class="field">
@@ -1380,6 +1435,28 @@
               v-model="companyRow.service_charge_account"
               :placeholder="t('Income account…')"
             />
+          </label>
+          <label class="field">
+            <span>{{ t('Cashback liability account') }}</span>
+            <LinkPicker
+              :key="'cbl-' + selectedCompany"
+              doctype="Account"
+              :filters="{ company: selectedCompany, root_type: 'Liability' }"
+              v-model="companyRow.cashback_liability_account"
+              :placeholder="t('Liability account, created automatically if empty')"
+            />
+            <span class="muted small">{{ t('What the company owes customers in unspent cashback.') }}</span>
+          </label>
+          <label class="field">
+            <span>{{ t('Cashback expense account') }}</span>
+            <LinkPicker
+              :key="'cbe-' + selectedCompany"
+              doctype="Account"
+              :filters="{ company: selectedCompany, root_type: 'Expense' }"
+              v-model="companyRow.cashback_expense_account"
+              :placeholder="t('Expense account, created automatically if empty')"
+            />
+            <span class="muted small">{{ t('The cost of the cashback program.') }}</span>
           </label>
         </div>
       </div>
@@ -1768,6 +1845,10 @@ const cashbackRules = ref([])
 const editingCashback = ref(false)
 const cashbackForm = ref({})
 const cashbackSearch = ref('')
+const cashbackAccounting = ref([])
+const cashbackBooking = ref(false)
+const cashbackBookMsg = ref('')
+const cashbackBookFailed = ref(false)
 
 const priceBooks = ref([])
 const editingBook = ref(false)
@@ -1861,6 +1942,8 @@ const companyRow = computed(
     generalForm.value.company_settings.find((r) => r.company === selectedCompany.value) || {
       gift_card_account: '',
       service_charge_account: '',
+      cashback_liability_account: '',
+      cashback_expense_account: '',
     }
 )
 
@@ -2176,6 +2259,8 @@ async function load() {
         company: c,
         gift_card_account: '',
         service_charge_account: '',
+        cashback_liability_account: '',
+        cashback_expense_account: '',
       })
     }
   }
@@ -2185,6 +2270,7 @@ async function load() {
   promotions.value = await call('lumenpos.api.settings.list_promotions')
   if (perms.value.cashback?.read) {
     cashbackRules.value = await call('lumenpos.api.settings.list_cashback_rules').catch(() => [])
+    loadCashbackAccounting()
   }
   priceBooks.value = await call('lumenpos.api.settings.list_price_books')
   bundles.value = await call('lumenpos.api.settings.list_bundles')
@@ -2548,6 +2634,38 @@ async function deletePromotion() {
     session.refreshPromotions()
   } catch (e) {
     session.notify(e.message, true)
+  }
+}
+
+// ---- cashback accounting ----
+async function loadCashbackAccounting() {
+  cashbackAccounting.value = await call('lumenpos.api.settings.cashback_accounting_status').catch(() => [])
+}
+
+// The server sends a state code, not text, so the note follows the POS language.
+function cashbackAccountState(state) {
+  if (state === 'not_created_yet') return t('created on first use')
+  if (state === 'chosen_unusable') return t('the chosen account cannot be used, so this one is used instead')
+  return ''
+}
+
+async function bookCashbackNow() {
+  cashbackBooking.value = true
+  cashbackBookMsg.value = ''
+  cashbackBookFailed.value = false
+  try {
+    const res = await call('lumenpos.api.settings.post_cashback_to_gl')
+    cashbackAccounting.value = res.status || []
+    const posted = (res.posted || []).length
+    const failed = (res.failed || []).length
+    cashbackBookFailed.value = failed > 0
+    cashbackBookMsg.value = failed
+      ? t('Booked {posted} journal entries. {failed} could not be booked, see the Error Log.', { posted, failed })
+      : t('Booked {posted} journal entries.', { posted })
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    cashbackBooking.value = false
   }
 }
 
@@ -3395,4 +3513,17 @@ button.sec-title.collapsible + * { margin-top: 14px; }
   color: var(--text-muted);
 }
 .stat-value { font-size: 16px; font-weight: 500; margin-top: 3px; }
+.cb-accounting { margin-bottom: 14px; }
+.cb-company { padding: 10px 0; }
+.cb-company + .cb-company { border-top: 1px solid var(--border-subtle); }
+.cb-grid {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) 1fr;
+  gap: 6px 16px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+@media (max-width: 560px) {
+  .cb-grid { grid-template-columns: 1fr; gap: 2px; }
+}
 </style>

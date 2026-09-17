@@ -140,6 +140,8 @@ def get_settings():
                 "company": r.company,
                 "gift_card_account": r.gift_card_account or "",
                 "service_charge_account": r.service_charge_account or "",
+                "cashback_liability_account": r.get("cashback_liability_account") or "",
+                "cashback_expense_account": r.get("cashback_expense_account") or "",
             }
             for r in (doc.get("company_settings") or [])
         ],
@@ -256,10 +258,29 @@ def save_settings(payload):
         comp = (row.get("company") or "").strip()
         gc = row.get("gift_card_account") or None
         sc = row.get("service_charge_account") or None
-        if comp and (gc or sc):
+        cb_liability = row.get("cashback_liability_account") or None
+        cb_expense = row.get("cashback_expense_account") or None
+        if comp:
+            # A wrong cashback account would put the program's cost or what
+            # customers are owed in the wrong place, so refuse it at save time
+            # with the reason rather than quietly using another account later.
+            from lumenpos.cashback import account_problem
+
+            problem = account_problem(cb_liability, comp, "liability") or account_problem(
+                cb_expense, comp, "expense"
+            )
+            if problem:
+                frappe.throw(problem)
+        if comp and (gc or sc or cb_liability or cb_expense):
             doc.append(
                 "company_settings",
-                {"company": comp, "gift_card_account": gc, "service_charge_account": sc},
+                {
+                    "company": comp,
+                    "gift_card_account": gc,
+                    "service_charge_account": sc,
+                    "cashback_liability_account": cb_liability,
+                    "cashback_expense_account": cb_expense,
+                },
             )
     doc.gift_card_mode_of_payment = payload.get("gift_card_mode_of_payment") or None
     doc.gift_card_account = payload.get("gift_card_account") or None
@@ -898,6 +919,29 @@ def save_cashback_rule(payload):
 def delete_cashback_rule(name):
     _require("POS Cashback Rule", "delete")
     frappe.delete_doc("POS Cashback Rule", name)
+
+
+@frappe.whitelist()
+def cashback_accounting_status():
+    """Per company: the cashback accounts in use, what is waiting to be booked,
+    what customers hold and the liability account's balance."""
+    _require("POS Cashback Rule", "read")
+    from lumenpos import cashback
+
+    return cashback.accounting_status()
+
+
+@frappe.whitelist(methods=["POST"])
+def post_cashback_to_gl():
+    """Book every cashback earning, expiry and return up to now, instead of
+    waiting for the nightly job. Settings managers only, because it writes
+    Journal Entries."""
+    _require_manager()
+    from lumenpos import cashback
+
+    result = cashback.post_to_gl(include_today=True)
+    result["status"] = cashback.accounting_status()
+    return result
 
 
 @frappe.whitelist()
@@ -1715,7 +1759,7 @@ def disable_gift_card(card_no):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def link_options(doctype, search="", company=None):
+def link_options(doctype, search="", company=None, root_type=None):
     allowed = {
         "Item": ["name", "item_name"],
         "Item Group": ["name"],
@@ -1747,6 +1791,11 @@ def link_options(doctype, search="", company=None):
         filters["is_group"] = 0
         if company:
             filters["company"] = company
+        # A picker that only makes sense for one kind of account (the cashback
+        # liability and expense accounts) narrows the list to it. Saving still
+        # validates, this only keeps the wrong accounts out of the list.
+        if root_type in ("Asset", "Liability", "Equity", "Income", "Expense"):
+            filters["root_type"] = root_type
     if doctype == "Mode of Payment":
         filters["enabled"] = 1
     if doctype == "Role":

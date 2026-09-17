@@ -7,7 +7,9 @@
  "field_order": [
   "company",
   "gift_card_account",
-  "service_charge_account"
+  "service_charge_account",
+  "cashback_liability_account",
+  "cashback_expense_account"
  ],
  "fields": [
   {
@@ -31,12 +33,26 @@
    "in_list_view": 1,
    "label": "Service Charge Account",
    "options": "Account"
+  },
+  {
+   "description": "What the company owes customers in unspent cashback. Earned cashback is credited here and spent cashback is debited. Leave empty to create \"Cashback\" under Current Liabilities.",
+   "fieldname": "cashback_liability_account",
+   "fieldtype": "Link",
+   "label": "Cashback Liability Account",
+   "options": "Account"
+  },
+  {
+   "description": "The cost of the cashback program. Earned cashback is debited here, and expired or returned cashback is credited back. Leave empty to create \"Cashback Expense\" under Indirect Expenses.",
+   "fieldname": "cashback_expense_account",
+   "fieldtype": "Link",
+   "label": "Cashback Expense Account",
+   "options": "Account"
   }
  ],
  "istable": 1,
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-06-30 00:00:00.000000",
+ "modified": "2026-09-17 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Company Setting",
