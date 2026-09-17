@@ -190,6 +190,10 @@ onMounted(load)
 
 <style scoped>
 .insights {
+  /* .content is a flex row: without flex 1 this page shrank to its content, and an
+     iframe's default 300px width made the dashboard fall into its phone layout */
+  flex: 1;
+  min-width: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
