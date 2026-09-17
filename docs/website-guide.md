@@ -319,11 +319,11 @@ There's also an optional **till lock**: a lock screen that engages manually or a
 
 ## Insights
 
-The **Insights** page gives managers a full sales dashboard without leaving the till: takings by day and by outlet, the payment mix, top items, busy hours and more, all filterable. LumenPOS does not build the charts itself. It shows a ready-made dashboard from the separate **Lumen Reports** app, embedded inside the POS.
+The **Insights** page gives managers a full sales dashboard without leaving the till. At the top sit net sales, the number of invoices, the average basket and returns. Below them are sales by day, sales by outlet, the payment mix, top items, sales by cashier and the busiest hours of the week. Filter everything by date range, outlet, customer, payment method or item, and open the same dashboard full screen in Lumen Reports with one click.
 
-If Lumen Reports is not installed, the page shows how to get it. Once it is installed, one tap builds the dashboard and it appears in place, in the till's own language and theme. The page is manager-only and can be switched off in **Settings**.
+LumenPOS does not draw the charts itself. The dashboard comes from the separate **Lumen Reports** app and is embedded inside the POS, in the till's own language and theme. If Lumen Reports is not installed, the page explains how to get it. Once it is installed, one tap builds the dashboard. The page is for managers only and can be switched off in **Settings**.
 
-Requirements: **Lumen Reports 1.1.0 or newer** on **Frappe v15 or v16**, or **Lumen Reports 1.2.0 or newer** on **Frappe v14**. On v13 the page says the dashboard needs a newer Frappe instead of showing a broken screen. A cashier who needs to open it is told which Lumen Reports role an administrator grants. The two apps are independent, so each works on its own.
+Requirements: **Frappe v14, v15 or v16** with **Lumen Reports** installed (**1.2.2 or newer** on v14, **1.1.0 or newer** on v15 and v16). On v13 the page says the dashboard needs a newer Frappe instead of showing a broken screen. A manager who has no Lumen Reports role yet is told which role an administrator grants. The two apps are independent, so each still works on its own.
 
 ## Keeping a big shop fast
 
