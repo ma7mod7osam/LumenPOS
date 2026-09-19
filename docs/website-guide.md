@@ -19,16 +19,17 @@ A fast, single-screen point of sale for ERPNext / Frappe (v13 through v16). This
 9. [The register (opening and closing the till)](#the-register)
 10. [Returns and refunds](#returns-and-refunds)
 11. [Gift cards, store credit and loyalty](#gift-cards-store-credit-and-loyalty)
-12. [Receipts and printing](#receipts-and-printing)
-13. [Working offline](#working-offline)
-14. [Serial numbers](#serial-numbers)
-15. [Multi-company and invoice modes](#multi-company-and-invoice-modes)
-16. [Permissions and the audit log](#permissions-and-the-audit-log)
-17. [Keeping a big shop fast](#keeping-a-big-shop-fast)
-18. [Insights](#insights)
-19. [Language](#language)
-20. [Troubleshooting and FAQ](#troubleshooting-and-faq)
-21. [Support](#support)
+12. [Cashback](#cashback)
+13. [Receipts and printing](#receipts-and-printing)
+14. [Working offline](#working-offline)
+15. [Serial numbers](#serial-numbers)
+16. [Multi-company and invoice modes](#multi-company-and-invoice-modes)
+17. [Permissions and the audit log](#permissions-and-the-audit-log)
+18. [Keeping a big shop fast](#keeping-a-big-shop-fast)
+19. [Insights](#insights)
+20. [Language](#language)
+21. [Troubleshooting and FAQ](#troubleshooting-and-faq)
+22. [Support](#support)
 
 ---
 
@@ -36,7 +37,7 @@ A fast, single-screen point of sale for ERPNext / Frappe (v13 through v16). This
 
 LumenPOS is a retail till that runs on top of ERPNext. It gives your cashiers a quick, modern selling screen — search or scan, tap to add, take payment, print — while every sale posts as a normal ERPNext invoice with the right stock and accounting behind it. Nothing is kept in a side system: your inventory, customers, and books stay in ERPNext.
 
-It's designed for real counters, so it also handles the things a shop needs day to day: its own promotions, gift cards, store credit, loyalty points, returns, cash-drawer reconciliation, and selling while the internet is down.
+It's designed for real counters, so it also handles the things a shop needs day to day: its own promotions, cashback, gift cards, store credit, loyalty points, returns, cash-drawer reconciliation, and selling while the internet is down.
 
 ---
 
@@ -154,10 +155,10 @@ LumenPOS has its own promotions engine, so you don't have to wrangle ERPNext Pri
 
 On the payment screen:
 
-- Choose a tender — **Cash**, card (Mada, Credit Card), **Gift Card**, or **Store Credit**.
+- Choose a tender: **Cash**, card (Mada, Credit Card), **Gift Card**, **Store Credit** or **Cashback**.
 - **Split payments** across several methods; quick-cash buttons speed up cash entry.
 - **Change due** is shown for cash over-tender.
-- Redeem **loyalty points** or **store credit** if the customer has a balance.
+- Redeem **loyalty points**, **store credit** or **cashback** if the customer has a balance.
 
 Press **Complete Sale** to post the invoice. If the sale can't post for any reason, nothing is half-saved — your cart and entered payments stay on screen so you can fix the issue and try again.
 
@@ -232,6 +233,23 @@ Who may process a return — and who may approve one past the return window — 
 
 ---
 
+## Cashback
+
+Reward customers with cashback they spend on a later visit. Each customer has their own cashback balance, and you decide how it is earned under **Settings → Cashback**:
+
+- **How much:** a percentage of the sale or a fixed amount, with an optional cap per sale.
+- **When it applies:** a minimum spend, the products that count (by item, item group, brand or tag, included or excluded), chosen outlets, a customer group, set dates, days of the week and hours, and optionally a coupon code.
+- **How long it lasts:** earned cashback can expire after a set number of days, and can be held for a few days before the customer can spend it.
+- **Several rules:** rules can combine or compete, the same way promotions do.
+
+At the till, the payment screen shows the cashback the sale will earn, and the customer's available balance can be spent with **Use cashback**. Paying with cashback never earns new cashback on the part it paid for. A refund takes back the cashback that sale earned and the customer has not spent yet, and cashback that reaches its expiry date is removed automatically.
+
+**Accounting.** Cashback is booked properly in ERPNext. Each company chooses a cashback liability account and a cashback expense account under **Settings → General → Company accounts**, and both are created automatically if you leave them empty. Earned cashback is booked as an expense against the liability, spent cashback leaves the liability through the sale's own payment, and expired or refunded cashback is reversed. LumenPOS books all of this as one summary Journal Entry per company, day and outlet, not one per sale: every night, or straight away with **Book to accounts now** in the Cashback tab. Once everything is booked and the shifts are closed, the liability account equals what your customers hold.
+
+Cashback is on by default but earns nothing until you create a rule, and it can be switched off in **Settings**.
+
+---
+
 ## Receipts and printing
 
 You have three ways to print, and LumenPOS picks the best available automatically:
@@ -272,7 +290,7 @@ LumenPOS is built to keep selling through a network outage.
 **Good to know:**
 
 - **Keep the tab open during an outage.** The app is served by your ERPNext site, so refreshing or navigating away while fully offline can't reload it. Any queued sales are still safe. (Full offline reload is on the roadmap.)
-- A few things need a connection and can't be queued: serialised items, delivery-app sales, gift-card and loyalty redemption, and store-credit payments.
+- A few things need a connection and can't be queued: serialised items, delivery-app sales, gift-card and loyalty redemption, and store-credit and cashback payments.
 - Named customers with a customer-group price book keep their shelf price offline; the correct price is re-resolved when the sale syncs.
 
 ---
