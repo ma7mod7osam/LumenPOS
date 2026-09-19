@@ -3,6 +3,7 @@
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.utils import cint
 
 # Roles LumenPOS ships so admins have ready-made handles to assign in the Role
 # Permissions Manager. Cashiers sell + run the register; managers also edit the
@@ -57,6 +58,9 @@ def ensure_setup():
     sure the LumenPOS roles, their core permissions, and custom fields exist."""
     ensure_roles()
     grant_core_permissions()
+    # Before make_custom_fields: it re-syncs the invoice tables, and that sync is
+    # what used to drop these indexes.
+    ensure_index_fields()
     make_custom_fields()
     drop_deprecated_custom_fields()
     migrate_price_books()
@@ -155,6 +159,8 @@ HOT_INDEXES = [
     # Every sale checks "did this idempotency key already post?" before
     # inserting. Unindexed, that is a FULL SCAN of the invoice table on EVERY
     # sale — imperceptible at demo size, seconds per sale at a million rows.
+    # The custom field is unique, so on a healthy site Frappe's own UNIQUE index
+    # already serves this and nothing is built here.
     ("lumenpos_idem_idx", "POS Invoice", ["lumenpos_idempotency_key"]),
     ("lumenpos_idem_idx", "Sales Invoice", ["lumenpos_idempotency_key"]),
     # Shift queries: every X-report, close and Z-report filters by session.
@@ -172,26 +178,76 @@ HOT_INDEXES = [
 ]
 
 
-def _index_exists(doctype, index_name):
-    """Is this index present? Asked via information_schema so the table name is a
-    BOUND PARAMETER, not an interpolated identifier.
+# Columns above that Frappe would otherwise un-index. Frappe's schema sync drops
+# any non-unique index whose first column is not marked as a search_index field,
+# and it re-syncs these tables on every migrate (create_custom_fields calls
+# frappe.db.updatedb). Marking the field tells Frappe the column is indexed, so
+# it keeps the index instead of dropping it and LumenPOS rebuilding it. This is
+# what frappe.db.add_index does on v14+, done here for v13 as well, and for the
+# core fields it cannot reach. Not listed here, on purpose:
+#   lumenpos_idempotency_key - the custom field is unique, so Frappe already
+#     keeps a UNIQUE index on it, and marking it too would add a second one.
+#   POS Invoice Item.item_code - ERPNext already ships it as a search_index
+#     field, which is what keeps the composite index above.
+INDEX_FIELDS = [
+    ("POS Invoice", "customer_name"),
+    ("Sales Invoice", "customer_name"),
+    ("Loyalty Point Entry", "invoice"),
+]
 
-    A "SHOW INDEX FROM tab<doctype>" cannot bind its table name, which meant an
-    f-string inside a frappe.db.sql call — the exact shape of a SQL-injection
-    finding, and one a reader has to reason about rather than simply trust.
-    This form has nothing interpolated, so there is nothing to suppress."""
-    return bool(
-        frappe.db.sql(
-            """
-            select 1 from information_schema.statistics
-            where table_schema = database()
-              and table_name = %s
-              and index_name = %s
-            limit 1
-            """,
-            (f"tab{doctype}", index_name),
-        )
+
+def _leading_index(doctype, columns):
+    """The name of an index on this table whose first columns are exactly
+    `columns`, in order, or None. Matched by columns, not by name, so an index
+    Frappe made itself (`<fieldname>_index`, or the UNIQUE one behind a unique
+    field) counts and is never duplicated.
+
+    Asked via information_schema so the table name is a BOUND PARAMETER, not an
+    interpolated identifier. A "SHOW INDEX FROM tab<doctype>" cannot bind its
+    table name, which would mean an f-string inside a frappe.db.sql call, the
+    exact shape of a SQL-injection finding."""
+    rows = frappe.db.sql(
+        """
+        select index_name, column_name, seq_in_index
+        from information_schema.statistics
+        where table_schema = database() and table_name = %s
+        order by index_name, seq_in_index
+        """,
+        (f"tab{doctype}",),
     )
+    wanted = [c.lower() for c in columns]
+    found = {}
+    for index_name, column_name, _seq in rows:
+        found.setdefault(index_name, []).append((column_name or "").lower())
+    for index_name, index_columns in found.items():
+        if index_columns[: len(wanted)] == wanted:
+            return index_name
+    return None
+
+
+def ensure_index_fields():
+    """Mark the indexed core columns as search_index fields (see INDEX_FIELDS),
+    so Frappe's own schema sync keeps their index instead of dropping it on
+    every migrate. Idempotent, and skipped where the field is already marked."""
+    from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+
+    for doctype, fieldname in INDEX_FIELDS:
+        try:
+            if not frappe.db.table_exists(doctype) or not frappe.db.has_column(doctype, fieldname):
+                continue
+            field = frappe.get_meta(doctype).get_field(fieldname)
+            if not field or cint(field.search_index):
+                continue
+            make_property_setter(
+                doctype, fieldname, "search_index", 1, "Check",
+                for_doctype=False, validate_fields_for_doctype=False,
+            )
+            frappe.clear_cache(doctype=doctype)
+        except Exception:
+            frappe.log_error(
+                title="LumenPOS index field marking failed",
+                message=f"{doctype}.{fieldname}: {frappe.get_traceback()}",
+            )
 
 
 def index_health():
@@ -208,7 +264,11 @@ def index_health():
             ):
                 row["state"] = "n-a"
             else:
-                row["state"] = "built" if _index_exists(doctype, index_name) else "missing"
+                built_as = _leading_index(doctype, columns)
+                row["state"] = "built" if built_as else "missing"
+                if built_as and built_as != index_name:
+                    # Frappe's own index on the same columns does the same job.
+                    row["built_as"] = built_as
         except Exception:
             row["state"] = "unknown"
         out.append(row)
@@ -216,10 +276,14 @@ def index_health():
 
 
 def ensure_hot_indexes():
-    """Create LumenPOS's performance indexes if missing. Idempotent and
+    """Create any performance index the columns above still lack. Idempotent and
     best-effort: a failure is logged, never fatal to a migrate (building an
     index on a huge, busy table can be refused the lock — deploy in a quiet
-    window and re-run the migrate)."""
+    window and re-run the migrate).
+
+    With ensure_index_fields() in place, Frappe keeps these indexes itself, so
+    this is normally a no-op check. It still runs on every migrate as the safety
+    net for a site where an index is genuinely missing."""
     for index_name, doctype, columns in HOT_INDEXES:
         try:
             table = f"tab{doctype}"
@@ -227,19 +291,17 @@ def ensure_hot_indexes():
                 continue
             if not all(frappe.db.has_column(doctype, c) for c in columns):
                 continue
-            if _index_exists(doctype, index_name):
+            if _leading_index(doctype, columns):
                 continue
             cols = ", ".join(f"`{c}`" for c in columns)
-            # Frappe's own table sync (create_custom_fields -> updatedb, on every
-            # migrate) drops these indexes, because their columns are not
-            # search_index fields, so this rebuild runs on every migrate.
             # ALTER TABLE commits implicitly, and Frappe refuses one while the
             # transaction holds writes ("This statement can cause implicit
             # commit", on v13, v14 and v15). ensure_setup() usually writes
-            # before this, so the rebuild used to fail. Commit those writes
+            # before this, so the build used to fail. Commit those writes
             # first, exactly as frappe.db.add_index does before its own ALTER
             # (add_index itself is not used because on v14+ it also adds a
-            # search_index Property Setter to the core field).
+            # search_index Property Setter to the core field, which
+            # ensure_index_fields does deliberately and on every version).
             frappe.db.commit()  # nosemgrep
             frappe.db.sql(f"ALTER TABLE `{table}` ADD INDEX `{index_name}` ({cols})")  # nosemgrep
         except Exception:
@@ -373,6 +435,10 @@ def make_custom_fields():
             options="POS Register Session",
             insert_after="lumenpos_section",
             read_only=1,
+            # Every X-report, close and Z-report filters by session. Marked as an
+            # indexed field so Frappe builds and keeps that index itself (see
+            # ensure_index_fields for the core fields it cannot reach).
+            search_index=1,
         ),
         dict(
             fieldname="lumenpos_promotions",
