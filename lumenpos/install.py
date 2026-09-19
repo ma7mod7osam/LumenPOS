@@ -230,6 +230,17 @@ def ensure_hot_indexes():
             if _index_exists(doctype, index_name):
                 continue
             cols = ", ".join(f"`{c}`" for c in columns)
+            # Frappe's own table sync (create_custom_fields -> updatedb, on every
+            # migrate) drops these indexes, because their columns are not
+            # search_index fields, so this rebuild runs on every migrate.
+            # ALTER TABLE commits implicitly, and Frappe refuses one while the
+            # transaction holds writes ("This statement can cause implicit
+            # commit", on v13, v14 and v15). ensure_setup() usually writes
+            # before this, so the rebuild used to fail. Commit those writes
+            # first, exactly as frappe.db.add_index does before its own ALTER
+            # (add_index itself is not used because on v14+ it also adds a
+            # search_index Property Setter to the core field).
+            frappe.db.commit()  # nosemgrep
             frappe.db.sql(f"ALTER TABLE `{table}` ADD INDEX `{index_name}` ({cols})")  # nosemgrep
         except Exception:
             frappe.log_error(

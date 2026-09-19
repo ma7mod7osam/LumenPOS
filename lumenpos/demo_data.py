@@ -3,7 +3,8 @@
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 """Build a realistic LumenPOS demo site: masters, settings, and a month of trade.
 
-Trigger it from a browser, signed in as a System Manager:
+Trigger it from a browser, signed in as Administrator (on Frappe Cloud, use
+Login as Administrator on the site's dashboard):
 
     frappe.call({method: "lumenpos.demo_data.build_demo_data"})
 
@@ -1008,6 +1009,14 @@ def _gift_cards(profile, walk_in):
 # Entry point
 # ---------------------------------------------------------------------------
 def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
+    # The run creates masters, stock and submitted documents that a System
+    # Manager may lack roles for, so it has to run as Administrator. It used to
+    # switch to Administrator itself. It now requires it instead: bench execute
+    # already runs as Administrator, and build_demo_data only queues it for
+    # Administrator, whose user the background job keeps.
+    if frappe.session.user != "Administrator":
+        raise frappe.PermissionError("The demo builder runs as Administrator only.")
+
     posted = frappe.db.count("POS Invoice", {"docstatus": 1})
     if posted > RECENT_SALES_GUARD and not force:
         raise RuntimeError(
@@ -1016,7 +1025,6 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
             "you really mean to add demo data on top." % posted
         )
 
-    frappe.set_user("Administrator")
     # Run the queued work inline. Consolidation is enqueued when a shift closes,
     # and a demo has to end with its shifts actually consolidated whether or not
     # this site has a worker free.
@@ -1141,7 +1149,7 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
 
 @frappe.whitelist()
 def build_demo_data(invoice_target=INVOICE_TARGET, days=DAYS, force=0):
-    """Queue the demo build. System Manager only.
+    """Queue the demo build. Administrator only.
 
     Deliberately a background job: a thousand sales take far longer than a web
     request is allowed to live. Watch it by counting POS Invoices, or read the
@@ -1151,7 +1159,8 @@ def build_demo_data(invoice_target=INVOICE_TARGET, days=DAYS, force=0):
     filled with believable trade in one call, and it refuses to run on a site
     that already looks like a real shop.
     """
-    frappe.only_for("System Manager")
+    if frappe.session.user != "Administrator":
+        frappe.throw(frappe._("Sign in as Administrator to build demo data."), frappe.PermissionError)
     invoice_target = int(invoice_target)
     days = int(days)
     force = bool(int(force))
