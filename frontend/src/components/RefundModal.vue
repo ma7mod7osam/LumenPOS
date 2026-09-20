@@ -12,13 +12,19 @@
       <div class="modal-body">
         <div v-if="loading" class="muted empty">{{ t('Loading…') }}</div>
         <template v-else>
+          <!-- Products the shop never takes back. No request clears these. -->
+          <div v-if="blockedOutright.length" class="approval-box rejected">
+            <div class="ap-warn">
+              {{ t('These items are never taken back: {items}', { items: blockedNames }) }}
+            </div>
+          </div>
           <div v-if="overWindow && canExceed" class="approval-box authorized">
             <div class="ap-ok">
               <Icon name="check" />
               {{ t('This sale is {age} days old (past the {n}-day window) — you are authorized to return it.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
             </div>
           </div>
-          <div v-else-if="overWindow" class="approval-box" :class="reqPhase">
+          <div v-else-if="overWindow || restrictedNeedingApproval.length" class="approval-box" :class="reqPhase">
             <template v-if="returnRequest">
               <div class="ap-ok"><Icon name="check" /> {{ t('Return approved') }}<span v-if="approverName"> · {{ approverName }}</span></div>
             </template>
@@ -32,7 +38,10 @@
               <button class="btn btn-outline btn-sm" @click="resetReturnReq">{{ t('Try again') }}</button>
             </template>
             <template v-else>
-              <div class="ap-warn">
+              <div v-if="restrictedNeedingApproval.length" class="ap-warn">
+                {{ t('These items come back only with approval: {items}', { items: restrictedNames }) }}
+              </div>
+              <div v-else class="ap-warn">
                 {{ t('This sale is {age} days old. Returns are limited to {n} days — a manager must approve this return.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
               </div>
               <button class="btn btn-primary btn-sm" :disabled="reqBusy" @click="sendReturnRequest">
@@ -49,6 +58,12 @@
               <div class="return-name">
                 {{ row.item_name }}
                 <span v-if="row.return_group" class="set-badge">{{ t('Set — return together') }}</span>
+                <span v-if="restrictions[row.item_code]" class="no-return-badge">
+                  {{ restrictions[row.item_code].needs_approval ? t('Needs approval') : t('Not returnable') }}
+                </span>
+              </div>
+              <div v-if="restrictions[row.item_code]" class="muted small no-return-why">
+                {{ restrictions[row.item_code].note || restrictions[row.item_code].title }}
               </div>
               <div class="muted small">
                 {{ t('Sold {qty} × {rate} · {returnable} returnable', { qty: row.qty, rate: money(row.rate), returnable: row.returnable_qty }) }}
@@ -211,6 +226,8 @@ function addSplit() {
   })
 }
 const allowedModes = ref(null) // null = no restriction; else array from the server
+// item_code -> {title, note, needs_approval} from POS Return Restriction
+const restrictions = ref({})
 const reason = ref(null)
 const otherReason = ref('')
 
@@ -254,16 +271,41 @@ const refundTotal = computed(() =>
 // exceed the window (the "exceed return window" role, or a manager).
 const overWindow = computed(() => returnWindow.value && !returnWindow.value.within)
 const canExceed = computed(() => session.permissions?.can_exceed_return_window === true)
-const needsApproval = computed(
-  () => overWindow.value && !returnRequest.value && !canExceed.value
+
+// What the shop refuses to take back, for the lines actually being returned.
+// Rules marked "an approved request can still return it" clear with the SAME
+// Return request as an over-window return; the others never clear.
+const pickedRestricted = computed(() =>
+  returnable.value
+    .filter((row) => (quantities.value[row.item_code] || 0) > 0 && restrictions.value[row.item_code])
+    .map((row) => ({ ...restrictions.value[row.item_code], item_name: row.item_name }))
 )
+const blockedOutright = computed(() => pickedRestricted.value.filter((r) => !r.needs_approval))
+const restrictedNeedingApproval = computed(() => pickedRestricted.value.filter((r) => r.needs_approval))
+const blockedNames = computed(() => blockedOutright.value.map(describeRestriction).join(', '))
+const restrictedNames = computed(() =>
+  restrictedNeedingApproval.value.map(describeRestriction).join(', ')
+)
+function describeRestriction(r) {
+  return r.note ? `${r.item_name} (${r.note})` : r.item_name
+}
+
+const needsApproval = computed(() => {
+  if (blockedOutright.value.length) return true
+  if (restrictedNeedingApproval.value.length && !returnRequest.value) return true
+  return overWindow.value && !returnRequest.value && !canExceed.value
+})
 
 onMounted(async () => {
   try {
-    const data = await call('lumenpos.api.sales.get_returnable', { invoice: props.invoice })
+    const data = await call('lumenpos.api.sales.get_returnable', {
+      invoice: props.invoice,
+      pos_profile: session.posProfile,
+    })
     returnable.value = (data.items || []).filter((row) => row.returnable_qty > 0)
     allowedModes.value = data.allowed_refund_modes || null
     returnWindow.value = data.return_window || null
+    restrictions.value = data.restrictions || {}
     customer.value = data.customer || null
     customerName.value = data.customer_name || null
     for (const row of returnable.value) quantities.value[row.item_code] = 0
@@ -479,6 +521,22 @@ async function submit() {
   background: rgba(20, 99, 255, 0.12);
   color: var(--brand-dark);
   white-space: nowrap;
+}
+/* A line the shop restricts: amber when an approver can still let it through,
+   red when it never comes back. */
+.no-return-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  margin-inline-start: 6px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.16);
+  color: #9a6a0a;
+  white-space: nowrap;
+}
+.no-return-why {
+  margin-top: 2px;
+  color: #9a6a0a;
 }
 .small { font-size: 12px; }
 .stepper { display: flex; gap: 4px; }

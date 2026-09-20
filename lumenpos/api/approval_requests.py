@@ -61,6 +61,20 @@ def _require_approver():
         )
 
 
+def _has_restricted_items(return_invoice, pos_profile=None):
+    """Does this sale hold a product the shop refuses to take back? Then a
+    return approval request is legitimate even inside the return window."""
+    from lumenpos import return_restrictions
+    from lumenpos.api.sales import _restriction_items_for_codes
+
+    doctype = "Sales Invoice" if frappe.db.exists("Sales Invoice", return_invoice) else INVOICE_DOCTYPE
+    # Read the lines off the document. Querying the child table directly needs a
+    # `parent` argument that only v15 accepts.
+    doc = frappe.get_doc(doctype, return_invoice)
+    codes = [row.item_code for row in (doc.get("items") or []) if row.item_code]
+    return bool(return_restrictions.blocked_items(_restriction_items_for_codes(codes), pos_profile))
+
+
 @frappe.whitelist()
 def create_request(
     request_type,
@@ -97,10 +111,15 @@ def create_request(
                 _("This discount is within the {0}% limit — no approval needed.").format(limit)
             )
     else:  # Return
-        if not settings.get("restrict_returns_to_window"):
-            frappe.throw(_("Return approval isn't required — returns are open."))
         if not return_invoice:
             frappe.throw(_("Select the invoice to return."))
+        # A return needs approval for either reason: the sale is past the return
+        # window, or the basket holds a product the shop restricts (POS Return
+        # Restriction). With neither in play there is nothing to approve.
+        if not settings.get("restrict_returns_to_window") and not _has_restricted_items(
+            return_invoice, pos_profile
+        ):
+            frappe.throw(_("Return approval isn't required, returns are open."))
         # The sale may be a POS Invoice or a Sales Invoice (per the profile's
         # mode), so resolve the doctype instead of assuming POS Invoice — else
         # the return-window age check silently no-ops in Sales-Invoice mode.

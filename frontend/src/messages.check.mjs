@@ -1185,71 +1185,9 @@ const insights = {
   'Could not load the dashboard': 'تعذر تحميل اللوحة',
 }
 
-// The General tab, split into groups, and the return restrictions inside it.
-const generalLayout = {
-  // Group names in the General tab
-  "Register and shifts": "الصندوق والورديات",
-  "Payments and delivery": "الدفع وتطبيقات التوصيل",
-  "Returns and refunds": "الاسترجاع ورد المبلغ",
-  "Accounts and gift cards": "الحسابات وبطاقات الهدايا",
-  "Approvals and access": "الاعتمادات والصلاحيات",
-  // "Returns" is goods coming back, "Refunds" is the money going out. Keep the
-  // two Arabic terms distinct, they used to be almost the same word.
-  "Refunds": "رد المبلغ",
-  // What each group is for
-  "Sales that arrive from a delivery app, and the rules each payment method follows at the till.":
-    "الفواتير القادمة من تطبيقات التوصيل، والقواعد التي تتبعها كل طريقة دفع في نقطة البيع.",
-  "How a shift opens and closes, the alerts it sends, and what the till keeps for selling without a connection.":
-    "كيف تفتح الوردية وتغلق، والتنبيهات التي ترسلها، وما تحتفظ به نقطة البيع للبيع دون اتصال.",
-  "Turn parts of the till on or off for everybody, and choose the one-tap favourites.":
-    "تفعيل أجزاء من نقطة البيع أو إيقافها للجميع، واختيار الأصناف المفضلة بنقرة واحدة.",
-  "What the receipt shows and how it prints, shared or per outlet.":
-    "ما يظهر في الإيصال وطريقة طباعته، بشكل موحد أو لكل فرع.",
-  "Where each company posts gift cards, the service charge and cashback.":
-    "أين تسجل كل شركة بطاقات الهدايا ورسوم الخدمة والكاش باك.",
-  "How gift cards are numbered and how long they stay valid.":
-    "كيف ترقم بطاقات الهدايا ومدة صلاحيتها.",
-  "What a cashier may discount alone, and who clears the rest.":
-    "ما يستطيع الكاشير خصمه بنفسه، ومن يعتمد الباقي.",
-  "Which roles may change a price, take a return, and approve one.":
-    "أي الأدوار تستطيع تعديل السعر وقبول الاسترجاع واعتماده.",
-  "The record of sensitive actions, and how long it is kept.":
-    "سجل العمليات الحساسة ومدة حفظه.",
-  "How the money goes back to the customer.": "كيف يعود المبلغ إلى العميل.",
-  "How long a customer has to bring something back, and the reasons the cashier picks from.":
-    "المدة المتاحة للعميل لإرجاع المنتج، والأسباب التي يختار منها الكاشير.",
-  // Return restrictions
-  "What cannot be returned": "ما لا يقبل الاسترجاع",
-  "Refuse a return by item, item group (and everything under it), brand or tag. Either the item never comes back, or it comes back only when an approver allows it. Saved on its own, not with the button below.":
-    "امنع استرجاع صنف أو مجموعة أصناف (وكل ما تحتها) أو علامة تجارية أو وسم. إما ألا يقبل الصنف نهائيا، أو يقبل فقط بموافقة معتمد. يحفظ هذا القسم وحده، لا بالزر في الأسفل.",
-  "Nothing is restricted. Every product can be returned.": "لا توجد قيود. كل المنتجات قابلة للاسترجاع.",
-  "+ Add return restriction": "+ إضافة قيد استرجاع",
-  "Name this rule": "اسم القاعدة",
-  "For example: no returns on underwear": "مثال: لا استرجاع للملابس الداخلية",
-  "An approved request can still return it": "يمكن استرجاعه بطلب معتمد",
-  "On: the cashier sends a return approval request and the approver decides. Off: nobody can return it.":
-    "عند التفعيل يرسل الكاشير طلب اعتماد ويقرر المعتمد. وعند الإيقاف لا يستطيع أحد استرجاعه.",
-  "Rule is on": "القاعدة مفعلة",
-  "Reason shown at the till (optional)": "السبب الظاهر في نقطة البيع (اختياري)",
-  "For example: hygiene items cannot be returned once opened":
-    "مثال: منتجات النظافة لا تسترجع بعد فتحها",
-  "Save restriction": "حفظ القيد",
-  "Name the rule and pick what it applies to": "اكتب اسم القاعدة واختر ما تنطبق عليه",
-  "Return restriction saved": "تم حفظ قيد الاسترجاع",
-  "Delete the restriction \"{title}\"?": "حذف القيد \"{title}\"؟",
-  "every outlet": "كل الفروع",
-  "Needs approval": "يحتاج اعتمادا",
-  "Never returnable": "لا يقبل الاسترجاع نهائيا",
-  "Not returnable": "غير قابل للاسترجاع",
-  "Off": "موقوف",
-  // The refund screen
-  "These items are never taken back: {items}": "هذه الأصناف لا تسترجع نهائيا: {items}",
-  "These items come back only with approval: {items}": "هذه الأصناف تسترجع باعتماد فقط: {items}",
-}
-
 export const messages = {
   en: {},
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights },
   "{n} offline sales still need to upload — press Upload now before closing.":
     "لا تزال {n} من المبيعات دون اتصال بحاجة إلى الرفع — اضغط \"الرفع الآن\" قبل الإغلاق.",
   "{n} offline sales are still waiting to upload.": "لا تزال {n} من المبيعات دون اتصال بانتظار الرفع.",

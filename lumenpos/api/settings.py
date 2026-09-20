@@ -921,6 +921,73 @@ def delete_cashback_rule(name):
     frappe.delete_doc("POS Cashback Rule", name)
 
 
+# ---------------------------------------------------------------------------
+# Return restrictions (POS Return Restriction) — what the shop will not take back
+# ---------------------------------------------------------------------------
+
+RETURN_RESTRICTION_FIELDS = [
+    "title", "enabled", "applies_to", "item_code", "item_group", "brand", "tag",
+    "allow_with_approval", "note",
+]
+
+
+@frappe.whitelist()
+def list_return_restrictions():
+    """Every rule with its target and outlets, for the Returns settings card."""
+    _require("POS Return Restriction", "read")
+    rows = []
+    for name in frappe.get_all(
+        "POS Return Restriction", order_by="modified desc", limit_page_length=200, pluck="name"
+    ):
+        doc = frappe.get_doc("POS Return Restriction", name)
+        row = {field: doc.get(field) for field in RETURN_RESTRICTION_FIELDS}
+        row["name"] = doc.name
+        row["pos_profiles"] = [r.pos_profile for r in (doc.pos_profiles or [])]
+        rows.append(row)
+    return rows
+
+
+@frappe.whitelist()
+def save_return_restriction(payload):
+    if isinstance(payload, str):
+        payload = json.loads(payload)
+
+    if payload.get("name"):
+        _require("POS Return Restriction", "write")
+        doc = frappe.get_doc("POS Return Restriction", payload["name"])
+    else:
+        _require("POS Return Restriction", "create")
+        doc = erpnext_compat.new_doc("POS Return Restriction")
+
+    applies_to = payload.get("applies_to") or "Item Group"
+    doc.title = (payload.get("title") or "").strip()
+    doc.enabled = 1 if payload.get("enabled", 1) else 0
+    doc.applies_to = applies_to
+    doc.allow_with_approval = 1 if payload.get("allow_with_approval", 1) else 0
+    doc.note = (payload.get("note") or "").strip() or None
+    # Only the field the rule actually targets is kept, so switching the target
+    # in the screen never leaves a stale link behind.
+    doc.item_code = _resolve_link("Item", payload.get("item_code")) if applies_to == "Item" else None
+    doc.item_group = (
+        _resolve_link("Item Group", payload.get("item_group")) if applies_to == "Item Group" else None
+    )
+    doc.brand = _resolve_link("Brand", payload.get("brand")) if applies_to == "Brand" else None
+    doc.tag = (payload.get("tag") or "").strip() or None if applies_to == "Tag" else None
+
+    doc.pos_profiles = []
+    for profile in payload.get("pos_profiles") or []:
+        doc.append("pos_profiles", {"pos_profile": profile})
+
+    doc.save()
+    return doc.name
+
+
+@frappe.whitelist()
+def delete_return_restriction(name):
+    _require("POS Return Restriction", "delete")
+    frappe.delete_doc("POS Return Restriction", name)
+
+
 @frappe.whitelist()
 def cashback_accounting_status():
     """Per company: the cashback accounts in use, what is waiting to be booked,

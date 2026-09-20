@@ -45,8 +45,10 @@ def active_rules(pos_profile=None):
     return rules
 
 
-def _item_matches(rule, item):
-    """`item` = {item_code, item_group, brand, tags:[...]}"""
+def item_matches(rule, item):
+    """Does this cart line match the rule's target? `item` = {item_code,
+    item_group, brand, tags:[...]}. Shared with return_restrictions so both
+    features read "Item Group" as "and everything under it"."""
     applies = rule.applies_to or "Item Group"
     if applies == "Item":
         return rule.item_code and item.get("item_code") == rule.item_code
@@ -72,7 +74,7 @@ def blocked_modes(items, pos_profile=None):
         if not rule.mode_of_payment:
             continue
         for item in items:
-            if _item_matches(rule, item):
+            if item_matches(rule, item):
                 out[rule.mode_of_payment] = rule.title or rule.name
                 break
     return out

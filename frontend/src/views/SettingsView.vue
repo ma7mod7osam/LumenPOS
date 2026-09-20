@@ -993,8 +993,9 @@
       </div>
 
       <!-- Gift cards -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'money'">
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
+        <p class="sec-note">{{ t('How gift cards are numbered and how long they stay valid.') }}</p>
         <p class="muted hint-row" style="padding: 0">
           {{ t('Sell cards from the gift-card button on the sell screen (money goes to the Gift Cards liability account — no tax until the card is spent). Redeem them as a payment method. Default expiry:') }}
           <b>{{ settingsInfo.gift_card_expiry_days ? t('{days} days', { days: settingsInfo.gift_card_expiry_days }) : t('never') }}</b>
@@ -1021,9 +1022,24 @@
 
     <!-- ============ CHANNELS & GENERAL ============ -->
     <section v-if="activeTab === 'General'" class="tab-body">
+      <!-- General holds every shop-wide setting, so it is split into groups the
+           same way the tabs on the left split the rest. One group shows at a
+           time; the Save button at the bottom saves them all. -->
+      <div class="gen-nav">
+        <button
+          v-for="group in generalSections"
+          :key="group.key"
+          class="gen-nav-btn"
+          :class="{ active: generalSection === group.key }"
+          @click="generalSection = group.key"
+        >
+          <Icon :name="group.icon" /> {{ t(group.label) }}
+        </button>
+      </div>
       <!-- Delivery apps -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'payments'">
         <div class="sec-title"><Icon name="bike" /> {{ t('Delivery apps') }}</div>
+        <p class="sec-note">{{ t('Sales that arrive from a delivery app, and the rules each payment method follows at the till.') }}</p>
         <p class="muted hint-row" style="padding: 0">
           {{ t('Sales can be tagged with the delivery app they came through. Each app can require an order ID and use its own price list — give an app its own list and tap') }} <b>{{ t('Edit prices') }}</b> {{ t('to set prices for that app only (e.g. Jahez prices). An app\'s price list overrides every price book.') }}
         </p>
@@ -1079,8 +1095,9 @@
       </div>
 
       <!-- Register & Offline -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'register'">
         <div class="sec-title"><Icon name="store" /> {{ t('Register & Offline') }}</div>
+        <p class="sec-note">{{ t('How a shift opens and closes, the alerts it sends, and what the till keeps for selling without a connection.') }}</p>
         <div class="setting-list">
           <label class="field span-2" style="display:block; margin-bottom: 10px">
             <span class="setting-title">{{ t('A shift belongs to') }}</span>
@@ -1153,8 +1170,9 @@
       </div>
 
       <!-- Features -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'features'">
         <div class="sec-title"><Icon name="bulb" /> {{ t('Features') }}</div>
+        <p class="sec-note">{{ t('Turn parts of the till on or off for everybody, and choose the one-tap favourites.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 6px">
           {{ t('Turn till features on or off. Each control is independent.') }}
         </p>
@@ -1272,8 +1290,9 @@
       </div>
 
       <!-- Receipt -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'receipt'">
         <div class="sec-title"><Icon name="image" /> {{ t('Receipt') }}</div>
+        <p class="sec-note">{{ t('What the receipt shows and how it prints, shared or per outlet.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 10px">
           {{ t('Design the receipt shown on screen and printed from the browser.') }}
         </p>
@@ -1402,8 +1421,9 @@
       </div>
 
       <!-- Company accounts (multi-company) -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'money'">
         <div class="sec-title"><Icon name="bank" /> {{ t('Company accounts') }}</div>
+        <p class="sec-note">{{ t('Where each company posts gift cards, the service charge and cashback.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 10px">
           {{ t('Each company posts gift cards, the service charge and cashback to its own accounts. Pick a company, then choose its accounts. The lists show only that company\'s chart of accounts. Leave a field empty to use the default account, created automatically.') }}
         </p>
@@ -1484,8 +1504,9 @@
       </div>
 
       <!-- Refunds -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'returns'">
         <div class="sec-title"><Icon name="exchange" /> {{ t('Refunds') }}</div>
+        <p class="sec-note">{{ t('How the money goes back to the customer.') }}</p>
         <div class="setting-list">
           <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.restrict_refund_to_paid_mode" :true-value="1" :false-value="0" />
@@ -1529,8 +1550,9 @@
       </div>
 
       <!-- Returns -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'returns'">
         <div class="sec-title"><Icon name="refresh" /> {{ t('Returns') }}</div>
+        <p class="sec-note">{{ t('How long a customer has to bring something back, and the reasons the cashier picks from.') }}</p>
         <div class="setting-list">
           <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.restrict_returns_to_window" :true-value="1" :false-value="0" />
@@ -1561,9 +1583,93 @@
         </button>
       </div>
 
+      <!-- What cannot be returned -->
+      <div class="sec-card" v-show="generalSection === 'returns'">
+        <div class="sec-title"><Icon name="shield" /> {{ t('What cannot be returned') }}</div>
+        <p class="sec-note">
+          {{ t('Refuse a return by item, item group (and everything under it), brand or tag. Either the item never comes back, or it comes back only when an approver allows it. Saved on its own, not with the button below.') }}
+        </p>
+        <div v-if="!returnRestrictions.length" class="muted small" style="padding-bottom: 8px">
+          {{ t('Nothing is restricted. Every product can be returned.') }}
+        </div>
+        <div v-for="rule in returnRestrictions" :key="rule.name" class="restriction-row">
+          <div class="restriction-main">
+            <div class="restriction-title">
+              {{ rule.title }}
+              <span class="restriction-badge" :class="{ hard: !rule.allow_with_approval }">
+                {{ rule.allow_with_approval ? t('Needs approval') : t('Never returnable') }}
+              </span>
+              <span v-if="!rule.enabled" class="restriction-badge off">{{ t('Off') }}</span>
+            </div>
+            <div class="muted small">{{ restrictionSummary(rule) }}</div>
+          </div>
+          <button class="btn-ghost" @click="editReturnRestriction(rule)">{{ t('Edit') }}</button>
+          <button class="btn-ghost danger" :title="t('Delete')" @click="deleteReturnRestriction(rule)"><Icon name="close" /></button>
+        </div>
+        <button v-if="!restrictionForm" class="btn btn-outline add-row" @click="newReturnRestriction">
+          {{ t('+ Add return restriction') }}
+        </button>
+
+        <div v-if="restrictionForm" class="restriction-editor">
+          <label class="field" style="max-width: 320px">
+            <span>{{ t('Name this rule') }}</span>
+            <input v-model="restrictionForm.title" :placeholder="t('For example: no returns on underwear')" />
+          </label>
+          <div class="item-row">
+            <select v-model="restrictionForm.applies_to" style="width: 130px" @change="restrictionForm.value = ''; restrictionForm.label = ''">
+              <option value="Item">{{ t('Item') }}</option>
+              <option value="Item Group">{{ t('Item Group') }}</option>
+              <option value="Brand">{{ t('Brand') }}</option>
+              <option value="Tag">{{ t('Tag') }}</option>
+            </select>
+            <LinkPicker
+              :doctype="restrictionForm.applies_to"
+              v-model="restrictionForm.value"
+              :label="restrictionForm.label"
+              :placeholder="restrictionForm.applies_to === 'Item' ? t('Search by name, code or barcode…') : t('Search and pick from the list…')"
+              @picked="(option) => (restrictionForm.label = option?.item_name || option?.name || '')"
+            />
+          </div>
+          <div class="setting-list">
+            <label class="setting-row">
+              <input type="checkbox" class="setting-toggle" v-model="restrictionForm.allow_with_approval" :true-value="1" :false-value="0" />
+              <span class="setting-text">
+                <span class="setting-title">{{ t('An approved request can still return it') }}</span>
+                <span class="setting-desc">{{ t('On: the cashier sends a return approval request and the approver decides. Off: nobody can return it.') }}</span>
+              </span>
+            </label>
+            <label class="setting-row">
+              <input type="checkbox" class="setting-toggle" v-model="restrictionForm.enabled" :true-value="1" :false-value="0" />
+              <span class="setting-text">
+                <span class="setting-title">{{ t('Rule is on') }}</span>
+              </span>
+            </label>
+          </div>
+          <label class="field" style="max-width: 460px">
+            <span>{{ t('Reason shown at the till (optional)') }}</span>
+            <input v-model="restrictionForm.note" :placeholder="t('For example: hygiene items cannot be returned once opened')" />
+          </label>
+          <div class="sub-label">{{ t('Outlets') }}</div>
+          <div class="outlet-row">
+            <label v-for="profile in session.availableProfiles" :key="profile" class="inline-check">
+              <input type="checkbox" :value="profile" v-model="restrictionForm.pos_profiles" />
+              {{ profile }}
+            </label>
+            <span class="muted small">{{ t('(none ticked = all outlets)') }}</span>
+          </div>
+          <div class="item-row" style="margin-top: 12px">
+            <button class="btn btn-primary" :disabled="restrictionBusy" @click="saveReturnRestriction">
+              {{ restrictionBusy ? t('Saving…') : t('Save restriction') }}
+            </button>
+            <button class="btn btn-outline" @click="restrictionForm = null">{{ t('Cancel') }}</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Discount approval -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'approvals'">
         <div class="sec-title"><Icon name="shield" /> {{ t('Discount approval') }}</div>
+        <p class="sec-note">{{ t('What a cashier may discount alone, and who clears the rest.') }}</p>
         <div class="field-grid">
           <label class="field">
             <span>{{ t('Discount limit % (0 = no limit)') }}</span>
@@ -1626,8 +1732,9 @@
       </div>
 
       <!-- Permissions -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'approvals'">
         <div class="sec-title"><Icon name="shield" /> {{ t('Permissions') }}</div>
+        <p class="sec-note">{{ t('Which roles may change a price, take a return, and approve one.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 6px">
           {{ t('Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.') }}
         </p>
@@ -1662,8 +1769,9 @@
 
     <!-- ============ AUDIT LOG ============ -->
     <section v-if="activeTab === 'Audit Log'" class="tab-body">
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'approvals'">
         <div class="sec-title"><Icon name="shield" /> {{ t('Audit log') }}</div>
+        <p class="sec-note">{{ t('The record of sensitive actions, and how long it is kept.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 10px">
           {{ t('Sensitive till actions — over-limit discounts, returns, register open/close, emailed receipts and settings changes. Turn it on/off in') }}
           <b>{{ t('General → Features') }}</b>.
@@ -1933,6 +2041,104 @@ const generalForm = ref({
   approvers: [],
 })
 const logoError = ref(false)
+
+// ---- General is split into groups, like the tabs on the left ----
+const generalSections = [
+  { key: 'features', label: 'Features', icon: 'bulb' },
+  { key: 'register', label: 'Register and shifts', icon: 'store' },
+  { key: 'payments', label: 'Payments and delivery', icon: 'card' },
+  { key: 'returns', label: 'Returns and refunds', icon: 'refresh' },
+  { key: 'receipt', label: 'Receipt', icon: 'image' },
+  { key: 'money', label: 'Accounts and gift cards', icon: 'bank' },
+  { key: 'approvals', label: 'Approvals and access', icon: 'shield' },
+]
+const generalSection = ref('features')
+
+// ---- return restrictions (POS Return Restriction) ----
+// Saved one at a time through their own endpoints, not with the General form.
+const returnRestrictions = ref([])
+const restrictionForm = ref(null)
+const restrictionBusy = ref(false)
+
+async function loadReturnRestrictions() {
+  returnRestrictions.value = await call('lumenpos.api.settings.list_return_restrictions').catch(() => [])
+}
+
+function restrictionSummary(rule) {
+  const target = rule.item_code || rule.item_group || rule.brand || rule.tag || '—'
+  const where = (rule.pos_profiles || []).length
+    ? (rule.pos_profiles || []).join(', ')
+    : t('every outlet')
+  const scope = t(rule.applies_to || 'Item Group')
+  return rule.note
+    ? `${scope}: ${target} · ${where} · ${rule.note}`
+    : `${scope}: ${target} · ${where}`
+}
+
+function newReturnRestriction() {
+  restrictionForm.value = {
+    name: null, title: '', enabled: 1, applies_to: 'Item Group', value: '', label: '',
+    allow_with_approval: 1, note: '', pos_profiles: [],
+  }
+}
+
+function editReturnRestriction(rule) {
+  restrictionForm.value = {
+    name: rule.name,
+    title: rule.title || '',
+    enabled: rule.enabled ? 1 : 0,
+    applies_to: rule.applies_to || 'Item Group',
+    value: rule.item_code || rule.item_group || rule.brand || rule.tag || '',
+    label: '',
+    allow_with_approval: rule.allow_with_approval ? 1 : 0,
+    note: rule.note || '',
+    pos_profiles: [...(rule.pos_profiles || [])],
+  }
+}
+
+async function saveReturnRestriction() {
+  const form = restrictionForm.value
+  if (!form.title.trim() || !form.value) {
+    session.notify(t('Name the rule and pick what it applies to'), true)
+    return
+  }
+  restrictionBusy.value = true
+  try {
+    await call('lumenpos.api.settings.save_return_restriction', {
+      payload: JSON.stringify({
+        name: form.name,
+        title: form.title.trim(),
+        enabled: form.enabled,
+        applies_to: form.applies_to,
+        item_code: form.applies_to === 'Item' ? form.value : null,
+        item_group: form.applies_to === 'Item Group' ? form.value : null,
+        brand: form.applies_to === 'Brand' ? form.value : null,
+        tag: form.applies_to === 'Tag' ? form.value : null,
+        allow_with_approval: form.allow_with_approval,
+        note: form.note,
+        pos_profiles: form.pos_profiles,
+      }),
+    })
+    restrictionForm.value = null
+    await loadReturnRestrictions()
+    session.notify(t('Return restriction saved'))
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    restrictionBusy.value = false
+  }
+}
+
+async function deleteReturnRestriction(rule) {
+  if (!confirm(t('Delete the restriction "{title}"?', { title: rule.title }))) return
+  try {
+    await call('lumenpos.api.settings.delete_return_restriction', { name: rule.name })
+    if (restrictionForm.value && restrictionForm.value.name === rule.name) restrictionForm.value = null
+    await loadReturnRestrictions()
+  } catch (e) {
+    session.notify(e.message, true)
+  }
+}
 
 // ---- per-company accounts ----
 const selectedCompany = ref(session.company || '')
@@ -2276,6 +2482,7 @@ async function load() {
   bundles.value = await call('lumenpos.api.settings.list_bundles')
   loyaltyPrograms.value = await call('lumenpos.api.settings.list_loyalty_programs').catch(() => [])
   loadGiftCards()
+  if (perms.value.settings) loadReturnRestrictions()
 }
 
 // ---- loyalty & gift cards ----
@@ -3150,6 +3357,69 @@ const filteredBooks = computed(() => {
 .tab.active { background: var(--brand); color: #fff; }
 
 .tab-body { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---- General, split into groups ---- */
+.gen-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px;
+}
+.gen-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.gen-nav-btn:hover { color: var(--text); }
+.gen-nav-btn.active { background: var(--brand); color: #fff; }
+.gen-nav-btn.active .icon { color: #fff; }
+/* One line under a card title saying what the card is for. */
+.sec-note {
+  margin: -8px 0 14px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  max-width: 70ch;
+}
+
+/* ---- Return restrictions ---- */
+.restriction-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.restriction-main { flex: 1; min-width: 0; }
+.restriction-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.restriction-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.16);
+  color: #9a6a0a;
+  white-space: nowrap;
+}
+.restriction-badge.hard { background: rgba(214, 48, 49, 0.14); color: #a02525; }
+.restriction-badge.off { background: var(--bg); color: var(--text-muted); }
+.restriction-editor {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
 
 /* ---- List (master) view ---- */
 .list-view { display: flex; flex-direction: column; gap: 0; }

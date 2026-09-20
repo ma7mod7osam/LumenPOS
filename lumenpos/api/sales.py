@@ -1120,7 +1120,12 @@ def _reconcile_payment(invoice, profile):
 def _restriction_items(doc):
     """Cart lines as {item_code, item_group, brand, tags} for payment-restriction
     matching. Read from the built invoice so it reflects exactly what will post."""
-    codes = list({r.item_code for r in (doc.items or []) if r.item_code})
+    return _restriction_items_for_codes([r.item_code for r in (doc.items or []) if r.item_code])
+
+
+def _restriction_items_for_codes(item_codes):
+    """The same shape from bare item codes, for the return path."""
+    codes = list({code for code in (item_codes or []) if code})
     if not codes:
         return []
     rows = frappe.get_all(
@@ -1848,8 +1853,10 @@ def search_sales(filters=None):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def get_returnable(invoice):
-    """Per-line quantity still eligible for return (original minus prior returns)."""
+def get_returnable(invoice, pos_profile=None):
+    """Per-line quantity still eligible for return (original minus prior returns),
+    plus the shop's return restrictions for those products so the refund screen
+    can say what it cannot take back, and why."""
     doctype = _doctype_of(invoice)
     doc = frappe.get_doc(doctype, invoice)
     doc.check_permission("read")
@@ -1902,12 +1909,18 @@ def get_returnable(invoice):
                 "return_group": row.get("lumenpos_return_group"),
             }
         )
+    from lumenpos import return_restrictions
+
     return {
         "items": items,
         "customer": doc.customer,
         "customer_name": doc.customer_name,
         "allowed_refund_modes": _allowed_refund_modes(doc),
         "return_window": _return_window(doc),
+        "restrictions": return_restrictions.blocked_items(
+            _restriction_items_for_codes([row["item_code"] for row in items]),
+            pos_profile or doc.get("pos_profile"),
+        ),
     }
 
 
@@ -2120,6 +2133,23 @@ def create_return(
         from lumenpos.api import approval_requests
 
         return_approver = approval_requests.validate_return(return_request, invoice)
+
+    # Products the shop refuses to take back (POS Return Restriction). A rule
+    # marked "an approved request can still return it" is cleared by the SAME
+    # Return request as an over-window return, so validate that request once.
+    from lumenpos import return_restrictions
+
+    restricted_lines = _restriction_items_for_codes(list(items))
+    outlet = pos_profile or original.get("pos_profile")
+    if return_restrictions.blocked_items(restricted_lines, outlet):
+        if return_request and return_approver is None:
+            from lumenpos.api import approval_requests
+
+            return_approver = approval_requests.validate_return(return_request, invoice)
+        return_restrictions.assert_returnable(
+            restricted_lines, outlet, approved=bool(return_approver)
+        )
+
     # A consolidated original (its shift was closed, so it was merged into a
     # Sales Invoice) is STILL returnable from the till: we create the credit
     # note as a POS Invoice return against the original POS Invoice, tied to the
