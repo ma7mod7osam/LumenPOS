@@ -21,9 +21,12 @@ function isActive(promo, now, cart) {
   if (promo.start_time && promo.end_time) {
     const start = normTime(promo.start_time)
     const end = normTime(promo.end_time)
-    // Equal times (e.g. both 00:00:00 from an empty form field) mean
-    // "no daily window" — the promotion runs all day.
-    if (start !== end) {
+    // A window under a minute is not a window. Frappe fills an empty Time field
+    // with the moment of the save, so a record saved anywhere but LumenPOS's
+    // own screen comes back with a start and an end milliseconds apart, which
+    // would switch the promotion off for the rest of the day. The till picks
+    // whole minutes, so no real window is lost. Equal times are the same case.
+    if (windowSeconds(start, end) >= 60) {
       const t = localTime(now)
       if (start <= end) {
         if (!(start <= t && t <= end)) return false
@@ -65,6 +68,18 @@ function normTime(v) {
   const parts = String(v).split('.')[0].split(':')
   const nums = [0, 0, 0].map((_, i) => parseInt(parts[i], 10) || 0)
   return nums.map((n) => String(n).padStart(2, '0')).join(':')
+}
+
+// How long a daily window lasts, in seconds, wrapping midnight. Kept in step
+// with window_seconds() in lumenpos/promotions/engine.py.
+function windowSeconds(start, end) {
+  const secs = (v) => {
+    const [h, m, s] = String(v)
+      .split(':')
+      .map((n) => parseInt(n, 10) || 0)
+    return h * 3600 + m * 60 + s
+  }
+  return (((secs(end) - secs(start)) % 86400) + 86400) % 86400
 }
 
 function lineMatches(line, rows, role = null) {

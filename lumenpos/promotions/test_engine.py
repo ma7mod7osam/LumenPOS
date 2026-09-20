@@ -419,6 +419,32 @@ class TestOptionalSchedule(unittest.TestCase):
         r = evaluate(cart(line("A", 10)), [p], NOW)  # NOW is 14:00
         self.assertAlmostEqual(r["total_savings"], 1.0)
 
+    def test_window_shorter_than_a_minute_is_no_window(self):
+        # Frappe fills an empty Time field with the moment of the save, and the
+        # two refills can land in different seconds. Read literally that is a
+        # one second window, which would switch the promotion off all day.
+        p = promo(
+            apply_on_all=1,
+            discount_type="Percentage",
+            discount_value=10,
+            start_time="17:15:31",
+            end_time="17:15:32",
+        )
+        r = evaluate(cart(line("A", 10)), [p], NOW)  # NOW is 14:00
+        self.assertAlmostEqual(r["total_savings"], 1.0)
+
+    def test_a_real_window_still_closes(self):
+        p = promo(
+            apply_on_all=1,
+            discount_type="Percentage",
+            discount_value=10,
+            start_time="16:00:00",
+            end_time="18:00:00",
+        )
+        self.assertEqual(evaluate(cart(line("A", 10)), [p], NOW)["applied"], [])  # NOW is 14:00
+        inside = datetime(2026, 6, 10, 17, 0, 0)
+        self.assertAlmostEqual(evaluate(cart(line("A", 10)), [p], inside)["total_savings"], 1.0)
+
 
 class TestStacking(unittest.TestCase):
     def test_best_exclusive_wins(self):

@@ -94,6 +94,13 @@ class POSPromotion(Document):
                     _("Row {0}: set the {1} field").format(row.idx, _(row.applies_to))
                 )
 
+    def on_update(self):
+        # A promotion saved outside LumenPOS's own screen lands with a daily
+        # window nobody set. See promotions.loader.clear_accidental_window.
+        from lumenpos.promotions.loader import clear_accidental_window
+
+        clear_accidental_window(self)
+
     def on_change(self):
         # POS clients cache promotions; bump the cache so they refetch.
         frappe.cache().delete_value("lumenpos_promotions_version")

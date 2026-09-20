@@ -90,7 +90,10 @@
             <label class="field-label">{{ t('Return reason') }}</label>
             <select v-model="reason" style="width: 100%">
               <option :value="null" disabled>{{ t('Select a reason…') }}</option>
-              <option v-for="r in reasons" :key="r" :value="r">{{ r }}</option>
+              <!-- The value posted is the stored wording, so the invoice keeps one
+                   canonical reason. Only the label is translated, and a reason an
+                   admin typed falls through t() unchanged. -->
+              <option v-for="r in reasons" :key="r" :value="r">{{ t(r) }}</option>
               <option value="__other__">{{ t('Other (write a reason)…') }}</option>
             </select>
             <input

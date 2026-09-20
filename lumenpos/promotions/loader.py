@@ -20,10 +20,9 @@ def time_str(value):
       current time on insert. A promotion saved with no daily window therefore
       lands with a start and an end a few microseconds apart, which the engines
       read as a window that is open for a few microseconds a day - so the
-      promotion never applies. Truncating to whole seconds makes those two
-      values identical, and both engines already read equal times as "no daily
-      window". A real happy hour is never set to sub second precision, so
-      nothing legitimate is lost.
+      promotion never applies. Truncating to whole seconds hides that whenever
+      both refills land inside the same second, and clear_accidental_window()
+      plus the engines' one minute guard handle the case where they do not.
     * The raw value is a timedelta, and str(timedelta) drops the leading zero
       ("9:00:00"), which breaks the string comparison the engines do against
       "%H:%M:%S". Pad it here, once, for both engines.
@@ -45,6 +44,27 @@ def time_str(value):
         total = nums[0] * 3600 + nums[1] * 60 + nums[2]
     total %= 24 * 3600
     return "%02d:%02d:%02d" % (total // 3600, (total % 3600) // 60, total % 60)
+
+
+def clear_accidental_window(doc):
+    """Blank a daily window nobody set. Frappe fills an empty Time field with
+    the moment of the save, so a promotion or cashback rule saved anywhere but
+    LumenPOS's own screen (the desk form, an import, a script) lands with a
+    start and an end milliseconds apart. Read literally that is a window open
+    for a blink each day, which switches the record off. A window under a
+    minute is never typed by a person, so clear both times in the database,
+    right after the save that created them. The engines carry the same guard
+    for records saved before this existed."""
+    from lumenpos.promotions.engine import window_seconds
+
+    start_t, end_t = time_str(doc.start_time), time_str(doc.end_time)
+    if not (start_t and end_t) or window_seconds(start_t, end_t) >= 60:
+        return
+    doc.start_time = None
+    doc.end_time = None
+    frappe.db.set_value(
+        doc.doctype, doc.name, {"start_time": None, "end_time": None}, update_modified=False
+    )
 
 
 def serialize(doc):

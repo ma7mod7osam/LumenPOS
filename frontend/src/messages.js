@@ -141,8 +141,16 @@ const common = {
   'Opening float for the new shift': 'الرصيد الافتتاحي للوردية الجديدة',
 
   'Return reason': 'سبب الاسترجاع',
-  'Select a reason…': 'اختر سببًا…',
-  'Other (write a reason)…': 'أخرى (اكتب سببًا)…',
+  'Select a reason…': 'اختر سببا…',
+  'Other (write a reason)…': 'أخرى (اكتب سببا)…',
+  // The return reasons LumenPOS ships. A reason an admin types is shown as typed.
+  'Damaged product': 'منتج تالف',
+  'Manufacturing defect': 'منتج به عيب صناعة',
+  'Wrong size': 'مقاس غير مناسب',
+  'Wrong colour': 'لون مختلف عن المطلوب',
+  'Does not match the description': 'المنتج لا يطابق الوصف',
+  'Customer changed their mind': 'غير العميل رأيه',
+  'Ordered by mistake': 'خطأ في الطلب',
   'Type the reason…': 'اكتب السبب…',
   'Refund to': 'استرجاع إلى',
   'Refunding…': 'جارٍ الاسترجاع…',
@@ -436,7 +444,7 @@ const settings = {
   "+ Add refund rule": "+ إضافة قاعدة استرجاع",
   "Shown at the till when a cashier refunds an item. The till always also offers": "يظهر في نقطة البيع عندما يسترجع الكاشير صنفًا. تتيح نقطة البيع دائمًا أيضًا",
   "for a free-text reason. Warranty exchanges default to": "لسبب نصي حر. تأخذ استبدالات الضمان افتراضيًا",
-  "Reason (e.g. منتج تالف)": "السبب (مثال: منتج تالف)",
+  "Reason (for example Damaged product)": "السبب (مثال: منتج تالف)",
   "Discount limit % (0 = no limit)": "حد الخصم % (0 = بلا حد)",
   "Master passcode": "رمز المرور الرئيسي",
   "(set — leave blank to keep)": "(مضبوط — اتركه فارغًا للإبقاء عليه)",
@@ -1074,8 +1082,7 @@ const returns = {
     "مضى على هذه الفاتورة {age} يومًا. الإرجاع مسموح خلال {n} يومًا — يجب اعتماد المدير لهذا الإرجاع.",
   "Send return approval request": "إرسال طلب اعتماد الإرجاع",
   // Settings
-  "Returns": "المرتجعات",
-  "Return reasons": "أسباب الإرجاع",
+  "Returns": "الاسترجاع",
   "Limit regular returns to a time window": "تقييد الإرجاع العادي بفترة زمنية",
   "Block returns after the window below. Past it, the cashier sends a return-approval request (approved by the Approver Role set under Discount approval).":
     "منع الإرجاع بعد الفترة أدناه. بعد انقضائها يرسل الكاشير طلب اعتماد إرجاع (يعتمده صاحب «دور المعتمِد» المحدد ضمن اعتماد الخصم).",

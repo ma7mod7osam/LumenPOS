@@ -93,9 +93,13 @@ def is_active(promo, now, cart):
     start_t, end_t = promo.get("start_time"), promo.get("end_time")
     if start_t and end_t:
         start_t, end_t = _norm_time(start_t), _norm_time(end_t)
-        # Equal times (e.g. both saved as 00:00:00 by an empty form field)
-        # mean "no daily window" — the promotion runs all day.
-        if start_t != end_t:
+        # A window under a minute is not a window. Frappe fills an empty Time
+        # field with the moment of the save, so a record saved anywhere but
+        # LumenPOS's own screen (the desk form, an import, a script) comes back
+        # with a start and an end a few milliseconds apart, which would switch
+        # the promotion off for the rest of the day. The till picks whole
+        # minutes, so no real window is lost. Equal times are the same case.
+        if window_seconds(start_t, end_t) >= 60:
             t = now.strftime("%H:%M:%S")
             if start_t <= end_t:
                 if not (start_t <= t <= end_t):
@@ -119,6 +123,18 @@ def is_active(promo, now, cart):
             return False
 
     return True
+
+
+def window_seconds(start_t, end_t):
+    """How long a daily window lasts, in seconds, wrapping midnight. Both
+    arguments are normalised "HH:MM:SS" strings."""
+    def seconds(value):
+        parts = [int(p) for p in str(value).split(":")[:3]]
+        while len(parts) < 3:
+            parts.append(0)
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]
+
+    return (seconds(end_t) - seconds(start_t)) % (24 * 3600)
 
 
 def _norm_time(value):

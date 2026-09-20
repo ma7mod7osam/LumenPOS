@@ -1550,7 +1550,7 @@
           <b>{{ t('Other') }}</b> {{ t('for a free-text reason.') }}
         </p>
         <div v-for="(r, i) in generalForm.return_reasons" :key="i" class="item-row">
-          <input v-model="generalForm.return_reasons[i]" :placeholder="t('Reason (e.g. منتج تالف)')" />
+          <input v-model="generalForm.return_reasons[i]" :placeholder="t('Reason (for example Damaged product)')" />
           <button class="btn-ghost" @click="generalForm.return_reasons.splice(i, 1)"><Icon name="close" /></button>
         </div>
         <button

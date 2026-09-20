@@ -40,17 +40,33 @@ def after_install():
 
 
 # Default reasons seeded into LumenPOS Settings the first time (admins edit them
-# freely in Settings → Return Reasons). The store runs in Arabic, so these are
-# Arabic; "Other" is always offered by the till on top of this list.
+# freely in Settings → Returns). They are shipped in English and carry an Arabic
+# translation, so an Arabic till shows Arabic while the invoice keeps one
+# canonical wording whatever language the cashier works in. A reason an admin
+# types is stored and shown exactly as typed. "Other" is always offered by the
+# till on top of this list.
 DEFAULT_RETURN_REASONS = [
-    "منتج تالف",
-    "منتج به عيب صناعة",
-    "مقاس غير مناسب",
-    "لون مختلف عن المطلوب",
-    "المنتج لا يطابق الوصف",
-    "غيّر العميل رأيه",
-    "خطأ في الطلب",
+    "Damaged product",
+    "Manufacturing defect",
+    "Wrong size",
+    "Wrong colour",
+    "Does not match the description",
+    "Customer changed their mind",
+    "Ordered by mistake",
 ]
+
+# The starter list used to be Arabic. A row still holding one of those exact
+# strings was never edited, so move it to the English default it matches.
+# Anything an admin typed does not match and is left alone.
+LEGACY_RETURN_REASONS = {
+    "منتج تالف": "Damaged product",
+    "منتج به عيب صناعة": "Manufacturing defect",
+    "مقاس غير مناسب": "Wrong size",
+    "لون مختلف عن المطلوب": "Wrong colour",
+    "المنتج لا يطابق الوصف": "Does not match the description",
+    "غيّر العميل رأيه": "Customer changed their mind",
+    "خطأ في الطلب": "Ordered by mistake",
+}
 
 
 def ensure_setup():
@@ -343,12 +359,22 @@ def migrate_coupon_limits():
 
 
 def ensure_return_reasons():
-    """Seed a starter list of return reasons the first time only. Never touches
-    the list again, so admin edits (add/remove) are preserved across migrates."""
+    """Seed a starter list of return reasons the first time only, and move a
+    still untouched Arabic starter row to its English default (see
+    LEGACY_RETURN_REASONS). Admin edits are never touched."""
     if not frappe.db.exists("DocType", "POS Return Reason"):
         return
     doc = frappe.get_single("LumenPOS Settings")
-    if doc.get("return_reasons"):
+    rows = doc.get("return_reasons") or []
+    if rows:
+        changed = False
+        for row in rows:
+            english = LEGACY_RETURN_REASONS.get((row.reason or "").strip())
+            if english and english != row.reason:
+                row.reason = english
+                changed = True
+        if changed:
+            doc.save(ignore_permissions=True)
         return
     for reason in DEFAULT_RETURN_REASONS:
         doc.append("return_reasons", {"reason": reason})

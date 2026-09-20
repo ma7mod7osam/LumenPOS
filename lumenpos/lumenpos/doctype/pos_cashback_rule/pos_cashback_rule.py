@@ -5,4 +5,9 @@ from frappe.model.document import Document
 
 
 class POSCashbackRule(Document):
-    pass
+    def on_update(self):
+        # A rule saved outside LumenPOS's own screen lands with a daily window
+        # nobody set. See promotions.loader.clear_accidental_window.
+        from lumenpos.promotions.loader import clear_accidental_window
+
+        clear_accidental_window(self)
