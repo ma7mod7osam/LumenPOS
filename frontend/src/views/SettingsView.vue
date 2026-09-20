@@ -993,9 +993,8 @@
       </div>
 
       <!-- Gift cards -->
-      <div class="sec-card" v-show="generalSection === 'money'">
+      <div class="sec-card">
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
-        <p class="sec-note">{{ t('How gift cards are numbered and how long they stay valid.') }}</p>
         <p class="muted hint-row" style="padding: 0">
           {{ t('Sell cards from the gift-card button on the sell screen (money goes to the Gift Cards liability account — no tax until the card is spent). Redeem them as a payment method. Default expiry:') }}
           <b>{{ settingsInfo.gift_card_expiry_days ? t('{days} days', { days: settingsInfo.gift_card_expiry_days }) : t('never') }}</b>
@@ -1482,8 +1481,9 @@
       </div>
 
       <!-- Gift cards mapping -->
-      <div class="sec-card">
+      <div class="sec-card" v-show="generalSection === 'money'">
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
+        <p class="sec-note">{{ t('Which payment method redeems a gift card, and where its balance sits.') }}</p>
         <p class="muted hint-row" style="padding: 0">
           {{ t('The') }} <b>{{ t('mode of payment') }}</b> {{ t('redeems gift cards; the') }} <b>{{ t('liability account') }}</b> {{ t('is set per company above. Leave any field blank to auto-create the default.') }}
         </p>
@@ -1769,9 +1769,8 @@
 
     <!-- ============ AUDIT LOG ============ -->
     <section v-if="activeTab === 'Audit Log'" class="tab-body">
-      <div class="sec-card" v-show="generalSection === 'approvals'">
+      <div class="sec-card">
         <div class="sec-title"><Icon name="shield" /> {{ t('Audit log') }}</div>
-        <p class="sec-note">{{ t('The record of sensitive actions, and how long it is kept.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 10px">
           {{ t('Sensitive till actions — over-limit discounts, returns, register open/close, emailed receipts and settings changes. Turn it on/off in') }}
           <b>{{ t('General → Features') }}</b>.

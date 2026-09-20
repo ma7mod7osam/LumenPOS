@@ -1209,6 +1209,8 @@ const generalLayout = {
     "أين تسجل كل شركة بطاقات الهدايا ورسوم الخدمة والكاش باك.",
   "How gift cards are numbered and how long they stay valid.":
     "كيف ترقم بطاقات الهدايا ومدة صلاحيتها.",
+  "Which payment method redeems a gift card, and where its balance sits.":
+    "طريقة الدفع التي تستخدم بطاقة الهدايا، وأين يسجل رصيدها.",
   "What a cashier may discount alone, and who clears the rest.":
     "ما يستطيع الكاشير خصمه بنفسه، ومن يعتمد الباقي.",
   "Which roles may change a price, take a return, and approve one.":
