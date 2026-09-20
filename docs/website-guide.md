@@ -217,6 +217,8 @@ Turn on the lock screen in Settings and each cashier sets their **own PIN** (4�
 - A return **posts on the outlet handling it**, not the one that made the sale — so the money and the returned stock land where they really moved. Returns across different companies are refused.
 - The refund posts as a proper credit-note invoice, linked to the register session, so the drawer count stays correct.
 
+**Decide what you will not take back.** In **Settings → General → Returns and refunds** you can refuse a return by item, item group (and everything under it), brand or tag, at every outlet or only at some. Each rule is one of two strengths: the product comes back only when an approver allows it, or it never comes back at all. At the till the refund screen marks the line, shows the reason you wrote, and turns the button into a return approval request when one can still help. The server checks again before the credit note posts.
+
 Who may process a return — and who may approve one past the return window — is controlled in Permissions (below). An approval request shows the approver **what** is being returned or discounted, and any request left unconfirmed is voided when the shift closes.
 
 ---
