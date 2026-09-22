@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Payment restrictions — "no gift cards on Tamara", expressed against the
+"""Payment restrictions, "no gift cards on Tamara", expressed against the
 catalogue.
 
 A rule blocks ONE mode of payment when the cart contains a matching item
@@ -9,7 +9,7 @@ A rule blocks ONE mode of payment when the cart contains a matching item
 only at certain outlets.
 
 Enforced in BOTH places on purpose: the till greys the method out so the cashier
-never picks it, and the server re-checks before posting — a stale browser tab, a
+never picks it, and the server re-checks before posting, a stale browser tab, a
 queued offline sale or a direct API call must not be able to slip past a rule the
 shop set.
 """
@@ -81,7 +81,7 @@ def blocked_modes(items, pos_profile=None):
 
 
 def assert_allowed(items, payments, pos_profile=None):
-    """Server-side gate — the authoritative one. Raises if a payment uses a mode
+    """Server-side gate, the authoritative one. Raises if a payment uses a mode
     blocked for this basket."""
     from frappe.utils import flt
 

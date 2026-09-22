@@ -140,7 +140,7 @@ async function sendRequest() {
       customer: cart.customer?.name || null,
       customer_name: cart.customer?.customer_name || null,
       cart_total: cart.total,
-      // What is actually being discounted — an approver was otherwise asked to
+      // What is actually being discounted, an approver was otherwise asked to
       // approve a percentage with no idea what it applied to.
       details: cart.lines
         .map(
@@ -176,10 +176,10 @@ async function pollStatus() {
           ? res.decision_note
             ? t('Request rejected: {note}', { note: res.decision_note })
             : t('The manager rejected this discount.')
-          : t('The request expired — the register was closed.')
+          : t('The request expired, the register was closed.')
     }
   } catch {
-    /* transient — keep polling */
+    /* transient. Keep polling */
   }
 }
 

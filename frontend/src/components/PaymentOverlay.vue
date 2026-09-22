@@ -84,7 +84,7 @@
         </div>
         <div v-if="giftCardInfo" class="giftcard-info">
           <span>
-            {{ giftCardInfo.card_no }} — {{ t('balance') }} <strong>{{ money(giftCardInfo.balance) }}</strong>
+            {{ giftCardInfo.card_no }}, {{ t('balance') }} <strong>{{ money(giftCardInfo.balance) }}</strong>
             <span v-if="giftCardInfo.expiry_date" class="muted"> · {{ t('expires {date}', { date: giftCardInfo.expiry_date }) }}</span>
           </span>
           <button class="btn btn-primary" @click="applyGiftCard">
@@ -127,7 +127,7 @@
         {{ cart.submitting ? t('Processing…') : t('Complete Sale {amount}', { amount: money(total) }) }}
       </button>
       <p v-if="session.offline" class="muted offline-note">
-        {{ t('Offline — this sale will be queued and synced automatically.') }}
+        {{ t('Offline, this sale will be queued and synced automatically.') }}
       </p>
     </div>
   </div>
@@ -160,7 +160,7 @@ const wallet = computed(() => (session.offline ? null : cart.wallet))
 const cashbackEarn = ref(0)
 
 // Amount to collect. Authoritative from the SERVER (same math as submit), so the
-// till charges exactly what the posted invoice shows — no phantom rounding
+// till charges exactly what the posted invoice shows, no phantom rounding
 // "change" on VAT-inclusive promo lines. Falls back to the client cart total
 // offline or until the quote returns.
 const serverTotal = ref(null)
@@ -236,7 +236,7 @@ onMounted(async () => {
   amountInput.value?.select()
   // Pull the authoritative payable from the server (same math as submit). If it
   // differs from the client total by a rounding halfcent, snap the suggested
-  // amount to it — but only while nothing has been entered yet. The same quote
+  // amount to it, but only while nothing has been entered yet. The same quote
   // carries the cashback this sale will earn.
   const q = await cart.quote()
   if (q && typeof q.payable === 'number') {

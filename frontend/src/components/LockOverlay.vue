@@ -84,7 +84,7 @@ const error = ref('')
 const sentTo = ref('')
 const checking = ref(false)
 const input = ref(null)
-// A user with no PIN yet must create one before the till can be unlocked —
+// A user with no PIN yet must create one before the till can be unlocked, 
 // there is nothing to check against, and no shared code to fall back on.
 const mode = ref(session.pinSet === false ? 'create' : 'enter')
 

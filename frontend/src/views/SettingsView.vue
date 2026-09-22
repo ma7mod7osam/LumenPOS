@@ -266,7 +266,7 @@
             </label>
             <div class="coupon-pool">
               <div class="muted small" style="margin-bottom: 10px">
-                {{ t('The shared code above is optional and has no limit — it keeps working even after the codes below run out. The codes you generate/import here are unique and limited; when they\'re all used up, only the shared code still works (or none, if you left it empty).') }}
+                {{ t('The shared code above is optional and has no limit, it keeps working even after the codes below run out. The codes you generate/import here are unique and limited, when they\'re all used up, only the shared code still works (or none, if you left it empty).') }}
               </div>
               <template v-if="promoForm.name">
                 <div v-if="couponStats" class="coupon-stats">
@@ -328,7 +328,7 @@
               <div v-for="(row, i) in testResult.row_matches" :key="'m' + i"
                    :class="row.matches.length ? 'gate-ok' : 'gate-bad'">
                 {{ row.matches.length ? '✓' : '✗' }}
-                {{ row.role }} {{ t('row') }} “{{ row.value }}” ({{ row.applies_to }}) —
+                {{ row.role }} {{ t('row') }} “{{ row.value }}” ({{ row.applies_to }}), 
                 {{ row.matches.length ? t('matches {list}', { list: row.matches.join(', ') }) : t('matches NOTHING in the basket') }}
               </div>
               <div v-for="(warning, i) in testResult.price_warnings" :key="'w' + i" class="gate-bad">
@@ -336,7 +336,7 @@
               </div>
               <div class="test-verdict" :class="testResult.result.total_savings > 0 ? 'gate-ok' : 'gate-bad'">
                 {{ testResult.result.total_savings > 0
-                  ? t('✓ APPLIES — saves {amount}', { amount: testResult.result.total_savings })
+                  ? t('✓ APPLIES, saves {amount}', { amount: testResult.result.total_savings })
                   : t('✗ Does not apply to this basket') }}
               </div>
             </div>
@@ -712,7 +712,7 @@
         <div class="sec-card">
           <div class="sec-title"><Icon name="store" /> {{ t('Items in the bundle') }}</div>
           <p class="muted small" style="margin: 0 0 10px">
-            <b>{{ t('Allocated price') }}</b> {{ t('(optional) sets each component\'s share of the bundle price — useful to control margins per item. Fill all rows or none; they must sum exactly to the bundle price. Empty = split proportionally to regular prices.') }}
+            <b>{{ t('Allocated price') }}</b> {{ t('(optional) sets each component\'s share of the bundle price, useful to control margins per item. Fill all rows or none, they must sum exactly to the bundle price. Empty = split proportionally to regular prices.') }}
           </p>
           <div v-for="(row, i) in bundleForm.items" :key="i" class="item-row">
             <LinkPicker
@@ -741,7 +741,7 @@
             {{ t('⚠ Fill an allocated price on every row, or clear them all.') }}
           </p>
           <p v-else-if="allocationState === 'mismatch'" class="row-warning">
-            {{ t('⚠ Allocated prices sum to {sum} but the bundle price is {price} — they must match exactly.', { sum: money(allocationTotal), price: money(bundleForm.bundle_price || 0) }) }}
+            {{ t('⚠ Allocated prices sum to {sum} but the bundle price is {price}, they must match exactly.', { sum: money(allocationTotal), price: money(bundleForm.bundle_price || 0) }) }}
           </p>
           <p v-else-if="allocationState === 'ok'" class="muted small" style="color: var(--brand-dark)">
             {{ t('✓ Allocations match the bundle price.') }}
@@ -782,7 +782,7 @@
           <button v-if="perms.price_books?.create" class="btn btn-primary" @click="newBook">{{ t('+ New Price Book') }}</button>
         </div>
         <p class="muted hint-row">
-          {{ t('A price book gives a set of items a special price for a period — a discount off your normal selling price — for chosen outlets/customer groups. Highest priority wins; delivery-app prices override price books.') }}
+          {{ t('A price book gives a set of items a special price for a period, a discount off your normal selling price, for chosen outlets/customer groups. Highest priority wins, delivery-app prices override price books.') }}
         </p>
         <div v-if="!priceBooks.length" class="muted empty">{{ t('No price books yet') }}</div>
         <div v-else class="card-list">
@@ -843,7 +843,7 @@
             <span><Icon name="store" /> {{ t('Item prices') }}</span>
           </div>
           <p class="muted small" style="margin: 0 0 10px">
-            {{ t('— these items sell at the price you set while the book is active; everything else keeps its normal price') }}
+            {{ t('These items sell at the price you set while the book is active, everything else keeps its normal price') }}
           </p>
           <div class="item-row">
             <LinkPicker
@@ -918,7 +918,7 @@
             </tbody>
           </table>
           <div v-else class="muted" style="padding: 8px 0 4px">
-            {{ t('No items yet — add an item above or import an Excel/CSV file. Items not listed keep their normal selling price.') }}
+            {{ t('No items yet. Add an item above or import an Excel/CSV file. Items not listed keep their normal selling price.') }}
           </div>
         </div>
 
@@ -996,7 +996,7 @@
       <div class="sec-card">
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
         <p class="muted hint-row" style="padding: 0">
-          {{ t('Sell cards from the gift-card button on the sell screen (money goes to the Gift Cards liability account — no tax until the card is spent). Redeem them as a payment method. Default expiry:') }}
+          {{ t('Sell cards from the gift-card button on the sell screen (money goes to the Gift Cards liability account, no tax until the card is spent). Redeem them as a payment method. Default expiry:') }}
           <b>{{ settingsInfo.gift_card_expiry_days ? t('{days} days', { days: settingsInfo.gift_card_expiry_days }) : t('never') }}</b>
           {{ t('(change it in the General tab).') }}
         </p>
@@ -1040,7 +1040,7 @@
         <div class="sec-title"><Icon name="bike" /> {{ t('Delivery apps') }}</div>
         <p class="sec-note">{{ t('Sales that arrive from a delivery app, and the rules each payment method follows at the till.') }}</p>
         <p class="muted hint-row" style="padding: 0">
-          {{ t('Sales can be tagged with the delivery app they came through. Each app can require an order ID and use its own price list — give an app its own list and tap') }} <b>{{ t('Edit prices') }}</b> {{ t('to set prices for that app only (e.g. Jahez prices). An app\'s price list overrides every price book.') }}
+          {{ t('Sales can be tagged with the delivery app they came through. Each app can require an order ID and use its own price list. Give an app its own list and tap') }} <b>{{ t('Edit prices') }}</b> {{ t('to set prices for that app only (e.g. Jahez prices). An app\'s price list overrides every price book.') }}
         </p>
         <div v-for="(app, i) in generalForm.delivery_apps" :key="i" class="app-block">
           <div class="item-row">
@@ -1068,7 +1068,7 @@
             :can-manage="perms.edit_item_prices"
           />
           <div v-else-if="expandedAppIdx === i && isProtected(app.price_list)" class="dedicated-hint warn">
-            <b>{{ t('“{list}” is a base selling list', { list: app.price_list }) }}</b> {{ t('— set a dedicated list for this app (＋ new) so its prices don\'t change your normal selling prices.') }}
+            <b>{{ t('“{list}” is a base selling list', { list: app.price_list }) }}</b>. {{ t('Set a dedicated list for this app (＋ new) so its prices don\'t change your normal selling prices.') }}
           </div>
         </div>
         <div class="sub-label" style="margin-top: 18px">{{ t('Payment Methods') }}</div>
@@ -1101,8 +1101,8 @@
           <label class="field span-2" style="display:block; margin-bottom: 10px">
             <span class="setting-title">{{ t('A shift belongs to') }}</span>
             <select v-model="generalForm.shift_scope" class="cf-in" style="width: 100%; margin-top: 4px">
-              <option value="Per outlet">{{ t('The outlet — one shift per register, any cashier sells on it') }}</option>
-              <option value="Per cashier">{{ t('The cashier — each opens their own shift and sells only on it') }}</option>
+              <option value="Per outlet">{{ t('The outlet, one shift per register, any cashier sells on it') }}</option>
+              <option value="Per cashier">{{ t('The cashier, each opens their own shift and sells only on it') }}</option>
             </select>
             <span class="setting-desc">{{ t('Per cashier lets several people share one counter, each with their own drawer and Z-report.') }}</span>
           </label>
@@ -1110,14 +1110,14 @@
             <input type="checkbox" class="setting-toggle" v-model="generalForm.variance_alert_enabled" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Email an alert on a large closing variance') }}</span>
-              <span class="setting-desc">{{ t('Records and notifies — it never blocks the close.') }}</span>
+              <span class="setting-desc">{{ t('Records and notifies, it never blocks the close.') }}</span>
             </span>
           </label>
           <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.overdue_alert_enabled" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Email an alert when a shift is left open') }}</span>
-              <span class="setting-desc">{{ t('A till is never closed automatically — a close without a real cash count is worthless.') }}</span>
+              <span class="setting-desc">{{ t('A till is never closed automatically, a close without a real cash count is worthless.') }}</span>
             </span>
           </label>
           <div v-if="generalForm.overdue_alert_enabled" class="field-grid" style="margin: 6px 0 12px">
@@ -1148,7 +1148,7 @@
             <input type="checkbox" class="setting-toggle" v-model="generalForm.offline_stock_only" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Cache only in-stock items for offline use') }}</span>
-              <span class="setting-desc">{{ t('Smaller, faster cache; refresh the catalog after changing.') }}</span>
+              <span class="setting-desc">{{ t('Smaller, faster cache, refresh the catalog after changing.') }}</span>
             </span>
           </label>
           <label class="setting-row">
@@ -1162,7 +1162,7 @@
             <input type="checkbox" class="setting-toggle" v-model="generalForm.serial_scan_only" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Require scanning for serial numbers') }}</span>
-              <span class="setting-desc">{{ t('Serial numbers must be scanned with a barcode scanner — manual typing is blocked. Turn off if no scanner is available.') }}</span>
+              <span class="setting-desc">{{ t('Serial numbers must be scanned with a barcode scanner, manual typing is blocked. Turn off if no scanner is available.') }}</span>
             </span>
           </label>
         </div>
@@ -1208,7 +1208,7 @@
             <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_xreport" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('X-report (mid-shift read)') }}</span>
-              <span class="setting-desc">{{ t('Adds an X-report button on the register screen — a read-only drawer snapshot that does NOT close the shift.') }}</span>
+              <span class="setting-desc">{{ t('Adds an X-report button on the register screen, a read-only drawer snapshot that does NOT close the shift.') }}</span>
             </span>
           </label>
           <label class="setting-row">
@@ -1243,7 +1243,7 @@
             <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_till_lock" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Lock screen (PIN to unlock)') }}</span>
-              <span class="setting-desc">{{ t('Lock the till behind a PIN. A manager always unlocks; others use a manager/approver PIN — so set a Master passcode or approver PIN below first.') }}</span>
+              <span class="setting-desc">{{ t('Lock the till behind a PIN. A manager always unlocks, others use a manager/approver PIN, so set a Master passcode or approver PIN below first.') }}</span>
             </span>
           </label>
           <label class="setting-row">
@@ -1299,11 +1299,11 @@
           <Icon name="report" />
           <div>
             <b>{{ t('Your own format is active:') }} {{ session.printFormat }}</b>
-            <div class="pf-sub">{{ t('A Print Format is set on this POS Profile, so printing uses it — the design below only styles the on-screen receipt. Clear the POS Profile’s Print Format field to print with this designer instead.') }}</div>
+            <div class="pf-sub">{{ t('A Print Format is set on this POS Profile, so printing uses it, the design below only styles the on-screen receipt. Clear the POS Profile’s Print Format field to print with this designer instead.') }}</div>
           </div>
         </div>
         <p v-else class="muted hint-row" style="padding: 0 0 12px">
-          {{ t('Want your own layout? Set a Print Format on this POS Profile in ERPNext (any standard or custom Print Format for the sale document) — it then takes over printing, and this designer keeps styling the on-screen receipt.') }}
+          {{ t('Want your own layout? Set a Print Format on this POS Profile in ERPNext (any standard or custom Print Format for the sale document), it then takes over printing, and this designer keeps styling the on-screen receipt.') }}
         </p>
         <div class="rc-scope">
           <span class="rc-scope-label">{{ t('Editing receipt for') }}</span>
@@ -1316,7 +1316,7 @@
           <template v-if="receiptScope">
             <button class="btn btn-primary" @click="saveProfileReceipt">{{ t('Save for this outlet') }}</button>
             <button v-if="receiptHasOverride" class="btn btn-outline" @click="resetProfileReceipt">{{ t('Reset to default') }}</button>
-            <span class="rc-scope-hint muted small">{{ receiptHasOverride ? t('This outlet has its own receipt.') : t('Customising from the default — save to apply.') }}</span>
+            <span class="rc-scope-hint muted small">{{ receiptHasOverride ? t('This outlet has its own receipt.') : t('Customising from the default. Save to apply.') }}</span>
           </template>
           <span v-else class="rc-scope-hint muted small">{{ t('Saved with the main Save button. Pick an outlet to give it a different receipt.') }}</span>
         </div>
@@ -1378,14 +1378,14 @@
           </div>
         </div>
 
-        <!-- Dynamic custom fields — pull any field from the POS Profile or the
+        <!-- Dynamic custom fields, pull any field from the POS Profile or the
              sale invoice onto the receipt (text or an image such as a ZATCA QR). -->
         <div class="cf-section">
           <div class="sub-label">{{ t('Custom fields') }}</div>
           <p class="muted small" style="margin: 0 0 10px">
             {{ receiptScope
               ? t('Extra fields for this outlet, shown in addition to the global custom fields.')
-              : t('Add any field from the POS Profile or the sale invoice — e.g. a ZATCA QR image, a CR number, or a country-specific field. These apply to every outlet; pick an outlet above to add extras just for it.') }}
+              : t('Add any field from the POS Profile or the sale invoice, e.g. a ZATCA QR image, a CR number, or a country-specific field. These apply to every outlet, pick an outlet above to add extras just for it.') }}
           </p>
           <div v-for="(row, i) in customFields" :key="i" class="cf-row">
             <select class="cf-in" v-model="row.source" @change="onCfSource(row)">
@@ -1485,7 +1485,7 @@
         <div class="sec-title"><Icon name="gift" /> {{ t('Gift cards') }}</div>
         <p class="sec-note">{{ t('Which payment method redeems a gift card, and where its balance sits.') }}</p>
         <p class="muted hint-row" style="padding: 0">
-          {{ t('The') }} <b>{{ t('mode of payment') }}</b> {{ t('redeems gift cards; the') }} <b>{{ t('liability account') }}</b> {{ t('is set per company above. Leave any field blank to auto-create the default.') }}
+          {{ t('The') }} <b>{{ t('mode of payment') }}</b> {{ t('redeems gift cards, the') }} <b>{{ t('liability account') }}</b> {{ t('is set per company above. Leave any field blank to auto-create the default.') }}
         </p>
         <div class="field-grid">
           <label class="field">
@@ -1525,17 +1525,17 @@
         </div>
         <template v-if="generalForm.restrict_refund_to_paid_mode">
           <p class="muted hint-row" style="padding: 10px 0 0">
-            {{ t('Exceptions — “if paid with X, also allow refund as Y”. A method can always be refunded to itself, so only add the extras (e.g. paid') }} <b>{{ t('Mada') }}</b> → {{ t('also allow') }} <b>{{ t('Cash') }}</b>).
+            {{ t('Exceptions, “if paid with X, also allow refund as Y”. A method can always be refunded to itself, so only add the extras (e.g. paid') }} <b>{{ t('Mada') }}</b> → {{ t('also allow') }} <b>{{ t('Cash') }}</b>).
           </p>
           <div v-for="(rule, i) in generalForm.refund_rules" :key="i" class="rule-row">
             <span class="muted small">{{ t('If paid with') }}</span>
             <select v-model="rule.paid_mode" class="rule-select">
-              <option value="">{{ t('— method —') }}</option>
+              <option value="">{{ t('Choose a method') }}</option>
               <option v-for="m in payModeOptions" :key="m" :value="m">{{ m }}</option>
             </select>
             <span class="muted small">{{ t('also allow refund as') }}</span>
             <select v-model="rule.refund_mode" class="rule-select">
-              <option value="">{{ t('— method —') }}</option>
+              <option value="">{{ t('Choose a method') }}</option>
               <option v-for="m in payModeOptions" :key="m" :value="m">{{ m }}</option>
             </select>
             <button class="btn-ghost" @click="generalForm.refund_rules.splice(i, 1)"><Icon name="close" /></button>
@@ -1690,19 +1690,19 @@
         <template v-if="generalForm.discount_approval_mode !== 'Request only'">
           <div class="field-grid">
             <label class="field">
-              <span>{{ t('Master passcode') }} {{ settingsInfo.has_passcode ? t('(set — leave blank to keep)') : t('(optional)') }}</span>
+              <span>{{ t('Master passcode') }} {{ settingsInfo.has_passcode ? t('(set. Leave blank to keep)') : t('(optional)') }}</span>
               <input type="password" v-model="generalForm.discount_passcode" placeholder="••••" />
             </label>
           </div>
           <div class="sub-label">
-            {{ t('Approvers — each manager has their own PIN; the name is recorded on the invoice') }}
+            {{ t('Approvers, each manager has their own PIN, the name is recorded on the invoice') }}
           </div>
           <div v-for="(approver, i) in generalForm.approvers" :key="i" class="item-row">
             <input v-model="approver.approver_name" :placeholder="t('Approver name (e.g. Manager Khobar)')" />
             <input
               type="password"
               v-model="approver.passcode"
-              :placeholder="approver.has_passcode ? t('PIN set — blank keeps it') : t('PIN')"
+              :placeholder="approver.has_passcode ? t('PIN set, blank keeps it') : t('PIN')"
               style="max-width: 180px"
             />
             <button class="btn-ghost" @click="generalForm.approvers.splice(i, 1)"><Icon name="close" /></button>
@@ -1753,7 +1753,7 @@
           </label>
         </div>
         <p class="muted hint-row">
-          {{ t('Exceed return window: this role (plus managers) can return a sale past the window directly; everyone else uses the approval request flow.') }}
+          {{ t('Exceed return window: this role (plus managers) can return a sale past the window directly, everyone else uses the approval request flow.') }}
         </p>
       </div>
 
@@ -1772,7 +1772,7 @@
       <div class="sec-card">
         <div class="sec-title"><Icon name="shield" /> {{ t('Audit log') }}</div>
         <p class="muted hint-row" style="padding: 0 0 10px">
-          {{ t('Sensitive till actions — over-limit discounts, returns, register open/close, emailed receipts and settings changes. Turn it on/off in') }}
+          {{ t('Sensitive till actions, over-limit discounts, returns, register open/close, emailed receipts and settings changes. Turn it on/off in') }}
           <b>{{ t('General → Features') }}</b>.
         </p>
         <div class="audit-filters">
@@ -1799,7 +1799,7 @@
               <td class="muted small">{{ shortTime(row.creation) }}</td>
               <td><span class="audit-tag">{{ t(row.action) }}</span></td>
               <td class="small">{{ row.user }}</td>
-              <td class="right">{{ row.amount ? money(row.amount) : '—' }}</td>
+              <td class="right">{{ row.amount ? money(row.amount) : '-' }}</td>
               <td class="small">
                 {{ row.detail }}
                 <span v-if="row.reference_name" class="muted">· {{ row.reference_name }}</span>
@@ -1819,7 +1819,7 @@
     <!-- ============ STATUS ============ -->
     <section v-if="activeTab === 'Status'" class="tab-body">
       <div class="status-grid">
-        <div class="stat sec-card"><div class="stat-label">{{ t('LumenPOS version') }}</div><div class="stat-value">{{ settingsInfo.version || '—' }}</div></div>
+        <div class="stat sec-card"><div class="stat-label">{{ t('LumenPOS version') }}</div><div class="stat-value">{{ settingsInfo.version || '-' }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Outlet (POS Profile)') }}</div><div class="stat-value">{{ session.posProfile }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Default price list') }}</div><div class="stat-value">{{ session.priceList }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Connection') }}</div><div class="stat-value">{{ session.offline ? t('⚠ Offline') : t('✓ Online') }}</div></div>
@@ -1844,7 +1844,7 @@
       <div class="sec-card" style="margin-top: 16px">
         <div class="sec-title"><Icon name="bulb" /> {{ t('Performance indexes') }}</div>
         <p class="muted hint-row" style="padding: 0 0 10px">
-          {{ t('These keep sales, search and shift reports fast on a large site. A build can fail quietly if the table is busy — rebuild it here, no deploy needed.') }}
+          {{ t('These keep sales, search and shift reports fast on a large site. A build can fail quietly if the table is busy, rebuild it here, no deploy needed.') }}
         </p>
         <div v-if="!indexHealth.length" class="muted small">{{ t('Loading…') }}</div>
         <table v-else class="idx-table">
@@ -1868,7 +1868,7 @@
         </div>
       </div>
       <p class="muted hint-row">
-        {{ t('Store-level settings (price list, warehouse, payment methods, taxes, printer) live on the') }} <b>{{ t('POS Profile') }}</b> {{ t('in ERPNext — that stays the single source of truth. This page covers what Vend kept in Setup: promotions, price books, channels and discount approval.') }}
+        {{ t('Store-level settings (price list, warehouse, payment methods, taxes, printer) live on the') }} <b>{{ t('POS Profile') }}</b> {{ t('in ERPNext, that stays the single source of truth. This page covers what Vend kept in Setup: promotions, price books, channels and discount approval.') }}
       </p>
     </section>
 
@@ -1931,7 +1931,7 @@ async function rebuildIndexes() {
   rebuilding.value = true
   try {
     await call('lumenpos.api.settings.rebuild_indexes')
-    session.notify(t('Rebuilding indexes in the background — check back shortly.'))
+    session.notify(t('Rebuilding indexes in the background. Check back shortly.'))
   } catch (e) {
     session.notify(e.message, true)
   } finally {
@@ -2064,7 +2064,7 @@ async function loadReturnRestrictions() {
 }
 
 function restrictionSummary(rule) {
-  const target = rule.item_code || rule.item_group || rule.brand || rule.tag || '—'
+  const target = rule.item_code || rule.item_group || rule.brand || rule.tag || '-'
   const where = (rule.pos_profiles || []).length
     ? (rule.pos_profiles || []).join(', ')
     : t('every outlet')
@@ -2240,7 +2240,7 @@ async function resetProfileReceipt() {
   try {
     await call('lumenpos.api.settings.clear_profile_receipt', { pos_profile: profile })
     profileReceiptOverrides.value = profileReceiptOverrides.value.filter((p) => p !== profile)
-    await onReceiptScopeChange() // reload — now seeds from the global default
+    await onReceiptScopeChange() // reload, now seeds from the global default
     session.notify(t('{outlet} now uses the default receipt', { outlet: profile }))
   } catch (e) {
     session.notify(e.message, true)
@@ -2264,7 +2264,7 @@ async function loadFieldOptions(source) {
     const opts = await call('lumenpos.api.settings.receipt_field_options', { source })
     fieldOptions.value = { ...fieldOptions.value, [source]: opts }
   } catch {
-    /* ignore — the picker just stays empty */
+    /* ignore, the picker just stays empty */
   }
 }
 
@@ -2365,7 +2365,7 @@ const hasInvalidCashbackRows = computed(() =>
 const modeHint = computed(() => {
   const m = generalForm.value.discount_approval_mode
   if (m === 'Request only')
-    return t('The cashier sends a request; a role-holder approves it while the register is open. No till passcode.')
+    return t('The cashier sends a request, a role-holder approves it while the register is open. No till passcode.')
   if (m === 'Passcode or request')
     return t('The cashier can either enter the manager passcode at the till or send a request for remote approval.')
   return t('A manager enters the passcode at the till to clear an over-limit discount.')
@@ -2491,7 +2491,7 @@ async function saveLoyalty() {
     await call('lumenpos.api.settings.create_loyalty_program', {
       payload: { ...loyaltyForm.value, company: session.company },
     })
-    session.notify(t('Loyalty program created — earning starts on the next sale'))
+    session.notify(t('Loyalty program created, earning starts on the next sale'))
     creatingLoyalty.value = false
     loyaltyPrograms.value = await call('lumenpos.api.settings.list_loyalty_programs')
   } catch (e) {
@@ -2649,7 +2649,7 @@ async function loadCouponStats() {
       promotion: promoForm.value.name,
     })
   } catch {
-    /* ignore — coupon tools just won't show counts */
+    /* ignore, coupon tools just won't show counts */
   }
 }
 
@@ -2671,7 +2671,7 @@ async function generateCoupons() {
       available: res.available,
       redemptions: res.redemptions,
     }
-    couponMsg.value = t('Generated {n} codes — click "Export codes" to download them', { n: res.created })
+    couponMsg.value = t('Generated {n} codes, click "Export codes" to download them', { n: res.created })
   } catch (e) {
     session.notify(e.message, true)
   } finally {
@@ -3063,7 +3063,7 @@ function importBookItems(event) {
         added += 1
       }
       bookImportReport.value = { added, errors: res.errors || [] }
-      session.notify(t('Imported {n} item(s) — review and Save', { n: added }))
+      session.notify(t('Imported {n} item(s), review and Save', { n: added }))
     } catch (e) {
       session.notify(e.message, true)
     } finally {
@@ -3102,7 +3102,7 @@ async function newAppPriceList(app) {
       price_list_name: name.trim(),
     })
     session.notify(
-      t('Price list "{list}" created — Save Settings to link it to {app}', { list: app.price_list, app: app.app_name || t('this app') })
+      t('Price list "{list}" created. Save Settings to link it to {app}', { list: app.price_list, app: app.app_name || t('this app') })
     )
   } catch (e) {
     session.notify(e.message, true)
@@ -3194,7 +3194,7 @@ async function refreshCache() {
   session.notify(t('Cached {n} items for offline use', { n: cachedItems.value }))
 }
 
-// ---- presentational helpers (UI re-layout only — no behaviour change) ----
+// ---- presentational helpers (UI re-layout only, no behaviour change) ----
 const PROMO_TYPES = ['Simple Discount', 'Buy X Get Y', 'Spend and Save']
 const showTest = ref(false)
 const promoSearch = ref('')

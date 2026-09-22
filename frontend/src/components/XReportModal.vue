@@ -51,7 +51,7 @@
             <div class="row"><span>{{ t('Cash out') }}</span><span>-{{ money(s.cash_out) }}</span></div>
           </div>
 
-          <div class="xr-foot muted small">{{ t('Continues — not a Z-report.') }}</div>
+          <div class="xr-foot muted small">{{ t('Continues, not a Z-report.') }}</div>
         </div>
       </div>
       <div class="modal-footer">

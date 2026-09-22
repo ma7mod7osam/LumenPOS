@@ -1,7 +1,7 @@
-# LumenPOS — a professional Point of Sale for ERPNext / Frappe
+# LumenPOS: a professional Point of Sale for ERPNext / Frappe
 
 > 📘 **[Full user guide & documentation → docs/user-guide.md](docs/user-guide.md)**
-> (setup, every feature in detail, settings reference, troubleshooting, changelog —
+> (setup, every feature in detail, settings reference, troubleshooting, changelog,
 > kept up to date with every release)
 
 A Frappe app that gives ERPNext a point of sale modeled on **Vend (Lightspeed
@@ -14,7 +14,7 @@ exactly like the standard POS. v0.4 also adds: **price books** (Vend-style
 customer-group/outlet price lists), **delivery-app channels**
 (`custom_app_type` + mandatory order ID + per-app price list), an exchange
 flag, an **in-POS Settings page** (promotions, price books, channels,
-discount approval — Vend Setup style), **manager-passcode discount approval**,
+discount approval, Vend Setup style), **manager-passcode discount approval**,
 Individual/Company customer creation (tax ID + national address for
 companies), salesperson search by name or number, a **local-first catalog**
 (IndexedDB-served search, near-instant), and a **LumenPOS workspace** in the
@@ -27,17 +27,17 @@ ERPNext desk. Brand accent color: `#2E5BFF`.
   reports), and an out-of-stock guard.
 - **Promotions engine**: Simple Discount, Buy X Get Y (multi-buy, cheapest
   unit rewarded), Spend & Save, and **Bundle Price** (these N products
-  together for a fixed total — items stay separate invoice lines, the saving
-  is split cent-correctly across them) — scheduled by date range, days of
+  together for a fixed total, items stay separate invoice lines, the saving
+  is split cent-correctly across them), scheduled by date range, days of
   week and daily time windows (happy hour, wraps midnight), scoped by outlet
   and customer group, with stacking control and optional **coupon codes**
   (coupon-locked promotions never reach the browser until the right code is
   entered). Evaluated instantly client-side, re-evaluated **authoritatively
   server-side** on submit (`ignore_pricing_rule` is set, so ERPNext Pricing
   Rules never interfere).
-- **Smart offer nudges**: when the cart almost qualifies — has the "buy"
+- **Smart offer nudges**: when the cart almost qualifies, has the "buy"
   items of a Buy X Get Y, misses one bundle component, or sits near a
-  spend-and-save threshold — the cart shows a suggestion the cashier can
+  spend-and-save threshold, the cart shows a suggestion the cashier can
   tap to pull up the missing product.
 - **Register sessions**: opening float, cash in/out, blind-countable closing
   counts per payment mode with expected vs counted differences (Z-report data
@@ -57,7 +57,7 @@ ERPNext desk. Brand accent color: `#2E5BFF`.
   9100, Epson-compatible) configured per POS Profile, with cash-drawer kick;
   falls back to browser printing when no printer is configured.
 - **Strict serial numbers**: a serialized item cannot enter the cart without
-  scanning/typing its serial — validated live (exists, Active, in this
+  scanning/typing its serial, validated live (exists, Active, in this
   register's warehouse) and re-validated on submit; no FIFO auto-pick.
   Quantity is locked to the scanned serial count, scanning a serial in the
   search bar adds its item directly, and refunds require selecting exactly
@@ -110,7 +110,7 @@ range, days of week, and an optional daily time window.
 
 **Stacking rule:** promotions marked *Can combine* stack with each other;
 non-stackable promotions compete and the customer automatically gets whichever
-is worth more — the combined stack or the single best exclusive promotion.
+is worth more, the combined stack or the single best exclusive promotion.
 Discounts never exceed the line/basket total.
 
 ## Architecture
@@ -151,15 +151,15 @@ npm run dev    # Vite dev server on :8080, proxies /api to a bench on :8000
 - **Loyalty**: create a Loyalty Program in ERPNext and assign it to customers
   (or via customer group); earning happens automatically on POS sales,
   redemption appears in the payment screen when the customer has points.
-- **Store credit**: nothing to configure — the "Store Credit" mode of payment
+- **Store credit**: nothing to configure, the "Store Credit" mode of payment
   and its liability account are created on first use.
 - **Printer**: on the POS Profile set *Printer IP* (and port, default 9100).
   The Frappe server opens the socket, so the printer must be reachable from
-  the server — on cloud-hosted sites use the browser-print fallback.
+  the server, on cloud-hosted sites use the browser-print fallback.
 - **Offline**: the catalog caches automatically after the first online load.
   The register must be opened while online; loyalty/store credit and history
   need a connection. Queued sales sync as soon as the network returns.
-  **Keep the tab open while offline** — the page itself is served by the
+  **Keep the tab open while offline**, the page itself is served by the
   server, so a refresh or navigation during an outage cannot reload the app
   (a service worker for full offline boot is on the roadmap).
 

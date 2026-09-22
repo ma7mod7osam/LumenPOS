@@ -407,7 +407,7 @@ class TestOptionalSchedule(unittest.TestCase):
         self.assertAlmostEqual(r["total_savings"], 1.0)
 
     def test_equal_times_treated_as_all_day(self):
-        # An empty time field can be stored as 00:00:00 on both sides —
+        # An empty time field can be stored as 00:00:00 on both sides, 
         # that must mean "all day", not "only at midnight"
         p = promo(
             apply_on_all=1,

@@ -124,7 +124,7 @@ let scanTimer = null
 
 onMounted(() => input.value?.focus())
 
-// A scanned barcode arrives as a fast burst — look it up immediately without
+// A scanned barcode arrives as a fast burst, look it up immediately without
 // waiting for Enter (typed queries still submit on Enter / the Check button).
 function onInput() {
   clearTimeout(scanTimer)

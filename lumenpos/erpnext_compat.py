@@ -9,7 +9,7 @@ points, POS-invoice consolidation, and the return builder. Those live at module
 paths that a major release is allowed to move.
 
 Importing them here means a moved API produces ONE clear, actionable message
-naming the app, the ERPNext version and what broke — instead of an ImportError
+naming the app, the ERPNext version and what broke, instead of an ImportError
 stack trace from the middle of a sale. It also gives us a single place to add a
 version fallback if v16 ever relocates one of them.
 """
@@ -27,7 +27,7 @@ def _fail(what, exc):
         _(
             "LumenPOS could not use ERPNext's {0} on this version of ERPNext ({1}). "
             "This usually means the site is running an ERPNext release LumenPOS "
-            "has not been updated for yet — please report it to "
+            "has not been updated for yet, please report it to "
             "hello@lumen-solutions.co with this message."
         ).format(what, _erpnext_version())
     )
@@ -117,7 +117,7 @@ def new_doc(doctype):
     not: the attribute simply isn't there, and the first read raises
     `AttributeError: 'X' object has no attribute 'y'`.
 
-    That difference broke the register close on v13 — the Z-report accumulators
+    That difference broke the register close on v13, the Z-report accumulators
     scan `payment_reconciliation` looking for an existing row before adding one.
     Rather than reorder every accumulator, normalise the document here so all
     supported versions behave the same way.

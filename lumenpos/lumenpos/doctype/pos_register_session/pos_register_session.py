@@ -46,7 +46,7 @@ class POSRegisterSession(Document):
 
     def _cancel_opening_entry(self):
         """Cancel the native POS Opening Entry this shift created, so cancelling
-        or deleting the shift never leaves an orphan "Open" entry behind — that
+        or deleting the shift never leaves an orphan "Open" entry behind, that
         orphan is exactly what used to make the next cashier resume a dead
         shift."""
         name = self.get("pos_opening_entry")

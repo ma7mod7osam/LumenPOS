@@ -23,8 +23,8 @@
         </select>
 
         <p class="muted small">
-          {{ t('Sold to') }} {{ cart.customer?.customer_name || t('the walk-in customer') }} —
-          {{ t('posts to the Gift Cards liability account (no tax; tax applies when the card is spent).') }}
+          {{ t('Sold to') }} {{ cart.customer?.customer_name || t('the walk-in customer') }},
+          {{ t('posts to the Gift Cards liability account (no tax, tax applies when the card is spent).') }}
         </p>
       </div>
       <div class="modal-footer">

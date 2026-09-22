@@ -13,7 +13,7 @@
           <div class="shift-banner warn">
             <div class="shift-name">{{ t('⚠ Previous shift not finished') }}</div>
             <div class="muted small" style="margin-top: 4px">
-              {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being finalised') }}<span v-if="pending.closing_status === 'Failed'"> {{ t('— the last attempt') }} <b>{{ t('failed') }}</b></span>. {{ t('You can open a new shift now — it keeps finalising in the background.') }}
+              {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being finalised') }}<span v-if="pending.closing_status === 'Failed'">&nbsp;{{ t('and the last attempt') }} <b>{{ t('failed') }}</b></span>. {{ t('You can open a new shift now, it keeps finalising in the background.') }}
             </div>
             <div v-if="pending.closing_error" class="err-detail">{{ pending.closing_error }}</div>
           </div>
@@ -24,13 +24,13 @@
             @click="retry"
           >
             <Icon name="refresh" /> {{ busy ? t('Retrying…') : t('Retry closing') }}
-            <span class="choice-hint">{{ t('consolidate the previous shift now instead of waiting for the background retry') }}</span>
+            <span class="choice-hint">{{ t('Consolidate the previous shift now instead of waiting for the background retry') }}</span>
           </button>
           <p class="muted small">
-            {{ t("This runs in the background and usually takes a few seconds. It's safe to retry as often as needed — nothing is double-posted.") }}
+            {{ t("This runs in the background and usually takes a few seconds. It's safe to retry as often as needed, nothing is double-posted.") }}
           </p>
 
-          <!-- The register is closed the moment the cashier closes it — the POS
+          <!-- The register is closed the moment the cashier closes it, the POS
                Closing consolidation is a background task (Pending / Queued /
                Failed) that must NEVER block the next shift. So a fresh shift can
                always be opened here, whatever the closing status; the previous
@@ -48,7 +48,7 @@
             <button class="btn btn-primary choice-btn" :disabled="busy" @click="forceNew">
               <Icon name="play" /> {{ busy ? t('Opening…') : t('Open a new shift') }}
               <span class="choice-hint"
-                >{{ t('keep selling now — the previous shift keeps finalising in the background until it consolidates') }}</span
+                >{{ t('Keep selling now, the previous shift keeps finalising in the background until it consolidates') }}</span
               >
             </button>
           </div>
@@ -89,7 +89,7 @@
             </p>
           </template>
           <p v-else class="muted">
-            {{ session.posProfile }} {{ t('— enter the opening cash float to start selling.') }}
+            {{ session.posProfile }}. {{ t('Enter the opening cash float to start selling.') }}
           </p>
           <label class="field-label">{{ t('Opening float') }}</label>
           <input
@@ -147,7 +147,7 @@ onMounted(() => {
 onBeforeUnmount(() => clearInterval(poll))
 
 // Choose which outlet to open the register for (users assigned to more than one
-// POS Profile). Switching reloads that outlet — if it's already open the dialog
+// POS Profile). Switching reloads that outlet, if it's already open the dialog
 // closes and you're selling on it; if closed, the dialog now opens that outlet.
 async function onSwitchOutlet(name) {
   if (!name || name === session.posProfile) return
@@ -162,7 +162,7 @@ async function onSwitchOutlet(name) {
 async function open() {
   busy.value = true
   try {
-    // Opening is always a fresh shift — there is no resume/retry branch.
+    // Opening is always a fresh shift, there is no resume/retry branch.
     await session.openRegister(openingFloat.value || 0)
     session.notify(t('Register opened'))
   } catch (e) {
@@ -176,7 +176,7 @@ async function forceNew() {
   busy.value = true
   try {
     await session.openRegister(openingFloat.value || 0)
-    session.notify(t('New shift opened — the previous one keeps finalising in the background'))
+    session.notify(t('New shift opened, the previous one keeps finalising in the background'))
   } catch (e) {
     session.notify(e.message, true)
   } finally {
@@ -205,14 +205,14 @@ function startPoll(sessionName) {
       const res = await call('lumenpos.api.register.closing_entry_status', { session: sessionName })
       if (res.status === 'Closed') {
         clearInterval(poll)
-        session.notify(t('Previous shift closed — you can open the register now'))
+        session.notify(t('Previous shift closed, you can open the register now'))
         await session.bootstrap(session.posProfile)
         pending.value = session.pendingClosing
         busy.value = false
       } else if (res.closing_status === 'Failed') {
         clearInterval(poll)
         pending.value = { ...pending.value, closing_status: 'Failed', closing_error: res.closing_error }
-        session.notify(t('Closing failed again — check the error and retry'), true)
+        session.notify(t('Closing failed again. Check the error and retry'), true)
         busy.value = false
       }
     } catch {

@@ -10,13 +10,13 @@
       </div>
       <div class="modal-body">
         <div v-if="receipt.offline" class="offline-banner">
-          {{ t('Saved offline — it will post to ERPNext automatically when the connection returns.') }}
+          {{ t('Saved offline, it will post to ERPNext automatically when the connection returns.') }}
         </div>
         <div v-if="receipt.change_amount > 0" class="change-banner">
           {{ t('Change due:') }} <strong>{{ money(receipt.change_amount) }}</strong>
         </div>
         <div v-if="receipt.gift_card_no" class="giftcard-banner">
-          <Icon name="gift" /> {{ t('Gift card') }} <strong>{{ receipt.gift_card_no }}</strong> —
+          <Icon name="gift" /> {{ t('Gift card') }} <strong>{{ receipt.gift_card_no }}</strong>,
           {{ t('balance') }} {{ money(receipt.gift_card_balance) }}<span v-if="receipt.gift_card_expiry"> · {{ t('expires') }} {{ receipt.gift_card_expiry }}</span>
         </div>
 
@@ -30,7 +30,7 @@
         >
           {{ t('Refund…') }}
         </button>
-        <!-- Refunds live in History (one money-flow path) — jump there with
+        <!-- Refunds live in History (one money-flow path), jump there with
              this sale already open rather than duplicating the flow here. -->
         <button
           v-if="showOpenInHistory && !receipt.offline"
@@ -114,14 +114,14 @@ async function print() {
       session.notify(t('Receipt sent to printer'))
       return
     } catch (e) {
-      session.notify(t('Printer failed ({error}) — using browser print', { error: e.message }), true)
+      session.notify(t('Printer failed ({error}), using browser print', { error: e.message }), true)
     } finally {
       printing.value = false
     }
   }
   if (session.printFormat && !props.receipt.offline && !session.offline) {
     // Use the sale's ACTUAL doctype (POS Invoice or Sales Invoice, per the
-    // profile's mode) — hardcoding "POS Invoice" broke custom Print Formats in
+    // profile's mode), hardcoding "POS Invoice" broke custom Print Formats in
     // Sales-Invoice mode.
     const doctype = props.receipt.doctype || session.invoiceMode || 'POS Invoice'
     const url =

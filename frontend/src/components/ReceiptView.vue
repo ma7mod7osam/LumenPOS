@@ -132,7 +132,7 @@ const session = useSessionStore()
 const s = computed(() => props.settings || session.settings || {})
 const tpl = computed(() => (s.value.receipt_template || 'Standard').toLowerCase())
 
-// Dynamic custom fields resolved by the server (get_receipt) — each is
+// Dynamic custom fields resolved by the server (get_receipt), each is
 // { label, value, render: 'Text'|'Image', position: 'Header'|'Footer' }.
 const cf = computed(() => props.receipt.custom_fields || [])
 const headerCustomFields = computed(() => cf.value.filter((f) => f.position === 'Header'))

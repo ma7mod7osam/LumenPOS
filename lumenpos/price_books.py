@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Vend-style price books — a set of per-item override prices that apply for a
+"""Vend-style price books, a set of per-item override prices that apply for a
 period, scoped by outlet and customer group, with a priority to break ties.
 
 A price book is NOT a separate ERPNext Price List. It simply holds
@@ -19,7 +19,7 @@ from frappe.utils import flt, getdate, nowdate
 def resolve_price_list(profile, customer_group=None, app_price_list=None):
     """The ERPNext Price List a sale posts against: a delivery app's own list
     when present, otherwise the profile's standard selling list. Price books no
-    longer map to a list — they apply as per-item overrides (see book_overrides)."""
+    longer map to a list, they apply as per-item overrides (see book_overrides)."""
     return app_price_list or profile.selling_price_list
 
 
@@ -59,7 +59,7 @@ def get_price_map(item_codes, price_list, stock_uom_map=None, on_date=None):
 
 def book_overrides(profile, customer_group, item_codes, on_date=None):
     """{item_code: rate} from the active price books that match this outlet,
-    customer group and date — highest priority wins per item."""
+    customer group and date, highest priority wins per item."""
     if not item_codes:
         return {}
     today = getdate(on_date or nowdate())
@@ -117,7 +117,7 @@ def effective_prices(profile, item_codes, customer_group=None, app_price_list=No
 
 
 def standard_prices(profile, item_codes, stock_uom_map=None):
-    """The plain selling price (no books, no apps) — promotions on the
+    """The plain selling price (no books, no apps), promotions on the
     'Standard Price' basis discount from this."""
     return get_price_map(item_codes, profile.selling_price_list, stock_uom_map)
 

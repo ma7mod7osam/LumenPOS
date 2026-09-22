@@ -3,10 +3,10 @@
    "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-/* LumenPOS design tokens — Lumen brand identity.
+/* LumenPOS design tokens, the Lumen brand identity.
    Primary blue #1463FF (light) / #2F7BFF (dark); type: Plus Jakarta Sans. */
 :root {
-  --nav-bg: #0a0e1c;        /* Lumen "night" sidebar — navy, not charcoal */
+  --nav-bg: #0a0e1c;        /* Lumen "night" sidebar, navy and not charcoal */
   --nav-active: #16294f;    /* brand-blue-tinted active rail item */
   --topbar-bg: #0c1226;     /* cohesive Lumen navy chrome */
   --page-bg: #f4f6fa;
@@ -17,7 +17,7 @@
   --input-bg: #ffffff;
   --text: #0c1322;          /* ink */
   --text-muted: #687386;    /* muted */
-  /* Lumen brand accent — #1463FF. The whole UI uses these --brand tokens. */
+  /* Lumen brand accent, #1463FF. The whole UI uses these --brand tokens. */
   --brand: #1463ff;
   --brand-dark: #0f54e0;
   --brand-soft: #7fa8ff;
@@ -33,7 +33,7 @@
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
-/* Dark theme — toggled by adding data-theme="dark" on <html>. */
+/* Dark theme, toggled by adding data-theme="dark" on <html>. */
 :root[data-theme='dark'] {
   --nav-bg: #0e1320;
   --nav-active: #1b2e55;

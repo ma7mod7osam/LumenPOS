@@ -23,7 +23,7 @@
    "fieldtype": "Table",
    "label": "Shifts",
    "options": "POS Shift Schedule Slot",
-   "description": "A reusable timetable — one schedule can serve many outlets."
+   "description": "A reusable timetable, one schedule can serve many outlets."
   }
  ],
  "index_web_pages_for_search": 0,

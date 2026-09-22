@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Return restrictions — "we do not take underwear back", expressed against the
+"""Return restrictions, "we do not take underwear back", expressed against the
 catalogue.
 
 A rule refuses ONE kind of product (an item, an item group INCLUDING everything
@@ -79,7 +79,7 @@ def _describe(item_code, block):
 
 
 def assert_returnable(items, pos_profile=None, approved=False):
-    """Server-side gate — the authoritative one. Raises when a line cannot come
+    """Server-side gate, the authoritative one. Raises when a line cannot come
     back. `approved` says an approver has already allowed this return."""
     blocked = blocked_items(items, pos_profile)
     if not blocked:

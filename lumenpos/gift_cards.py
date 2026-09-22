@@ -4,11 +4,11 @@
 """Gift cards, retail best practice:
 
 - SELLING a card is a real sale: the POS Invoice carries a non-stock
-  GIFT-CARD item whose income account is the 'Gift Cards' LIABILITY account —
+  GIFT-CARD item whose income account is the 'Gift Cards' LIABILITY account, 
   cash comes in, liability goes up, no revenue yet (and no tax: tax applies
   when the card is spent).
 - REDEEMING pays via the 'Gift Card' mode of payment backed by the same
-  liability account — liability goes down against the sale.
+  liability account, liability goes down against the sale.
 - Balances live on POS Gift Card with an entry ledger for the audit trail.
 """
 
@@ -29,13 +29,13 @@ def _setting(field):
 
 
 def mode_of_payment():
-    """The gift-card Mode of Payment — the one mapped in LumenPOS Settings, else the
+    """The gift-card Mode of Payment, the one mapped in LumenPOS Settings, else the
     default 'Gift Card'."""
     return _setting("gift_card_mode_of_payment") or DEFAULT_MODE_OF_PAYMENT
 
 
 def item_code():
-    """The gift-card Item — mapped in LumenPOS Settings, else the default."""
+    """The gift-card Item, mapped in LumenPOS Settings, else the default."""
     return _setting("gift_card_item") or DEFAULT_ITEM_CODE
 
 
@@ -89,7 +89,7 @@ def ensure_setup(company):
                 "is_sales_item": 1,
                 "include_item_in_manufacturing": 0,
                 # Preset our OWN item default so ERPNext does not copy the Item
-                # Group's defaults on insert — those can carry a wrong-company
+                # Group's defaults on insert, those can carry a wrong-company
                 # default warehouse that fails validation on a multi-company site
                 # (update_defaults_from_item_group only copies when item_defaults
                 # is empty). No warehouse: a non-stock gift card needs none.
@@ -101,8 +101,8 @@ def ensure_setup(company):
 
     # A non-stock gift card never needs a stock warehouse, but ERPNext validates
     # every item_default's default_warehouse against THAT row's company whenever
-    # the Item is SAVED (validate_item_default_company_links). A stray warehouse —
-    # copied from the Item Group's defaults, or the global Stock Settings default —
+    # the Item is SAVED (validate_item_default_company_links). A stray warehouse, 
+    # copied from the Item Group's defaults, or the global Stock Settings default, 
     # that points at another company throws "Row #1: Warehouse … doesn't belong to
     # Company …". This fails inside ensure_setup, before an invoice is ever built,
     # and simply re-saving the doc to blank the field does NOT hold (ERPNext
@@ -130,7 +130,7 @@ def _account(company):
     """The mapped gift-card liability account, else auto-create the default.
 
     Honours a per-company override (LumenPOS Settings → Company Accounts) and
-    only uses a configured account that ACTUALLY belongs to this company — so on
+    only uses a configured account that ACTUALLY belongs to this company, so on
     a multi-company site a global account set for one company is never posted to
     another's GL (it auto-creates the right one instead)."""
     from lumenpos.api.settings import company_setting
@@ -141,7 +141,7 @@ def _account(company):
         and frappe.db.exists("Account", configured)
         and frappe.db.get_value("Account", configured, "company") == company
         # A gift card is a LIABILITY we owe the holder. It must never be a party
-        # account (Receivable/Payable) — redeeming would post the payment to it
+        # account (Receivable/Payable), redeeming would post the payment to it
         # WITHOUT a party and fail "Customer is required against Receivable …".
         and frappe.db.get_value("Account", configured, "account_type")
         not in ("Receivable", "Payable")

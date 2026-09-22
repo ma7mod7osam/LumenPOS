@@ -10,7 +10,7 @@
       </div>
       <div class="modal-body">
         <p class="muted small intro">
-          {{ t('Every sale made while offline, and what happened to it on reconnect. A sale stays here as Pending until it has uploaded — nothing is removed until the server confirms it.') }}
+          {{ t('Every sale made while offline, and what happened to it on reconnect. A sale stays here as Pending until it has uploaded, nothing is removed until the server confirms it.') }}
         </p>
 
         <div class="ol-summary">
@@ -50,7 +50,7 @@
         </table>
       </div>
       <div class="modal-footer">
-        <span v-if="session.offline" class="muted small">{{ t('⚠ Offline — queued sales upload when the connection returns') }}</span>
+        <span v-if="session.offline" class="muted small">{{ t('⚠ Offline, queued sales upload when the connection returns') }}</span>
         <span style="flex: 1" />
         <button class="btn btn-outline" @click="refresh"><Icon name="refresh" /> {{ t('Refresh') }}</button>
         <button

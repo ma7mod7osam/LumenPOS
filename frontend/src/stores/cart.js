@@ -70,7 +70,7 @@ export const useCartStore = defineStore('cart', {
       return suggestOffers(this._promoView.cart, session.promotions)
     },
 
-    // Suggestions placed on the cart line they relate to — a line can carry
+    // Suggestions placed on the cart line they relate to, a line can carry
     // several (one item, many promotions). Basket-level ones stay separate.
     lineSuggestions(state) {
       const { idx } = this._promoView
@@ -141,7 +141,7 @@ export const useCartStore = defineStore('cart', {
 
     bundleSavings() {
       // Sum the per-line discounts (not the applied list) so allocation
-      // splits — including lines adjusted upward — always net correctly
+      // splits, including lines adjusted upward, always net correctly
       return round2(
         this.bundleBreakdown.discounts.reduce((sum, amount) => sum + amount, 0)
       )
@@ -190,7 +190,7 @@ export const useCartStore = defineStore('cart', {
     },
 
     // Optional flat-percent service charge / tip, added AFTER taxes as its own
-    // line (so it is not itself taxed — matches the common "tip line" model).
+    // line (so it is not itself taxed, matches the common "tip line" model).
     // The percent is server-authoritative (read from Settings), never the cart.
     serviceCharge() {
       const session = useSessionStore()
@@ -244,7 +244,7 @@ export const useCartStore = defineStore('cart', {
 
     itemCount: (state) => state.lines.reduce((sum, l) => sum + l.qty, 0),
 
-    // The largest single discount on the sale — the per-line max OR the
+    // The largest single discount on the sale, the per-line max OR the
     // whole-cart percent, whichever is bigger. Drives the approval gate so an
     // order-level discount is policed by the same limit as a line discount.
     maxManualDiscount: (state) =>
@@ -277,7 +277,7 @@ export const useCartStore = defineStore('cart', {
     // the number of serials on the line.
     addItem(item, serial = null) {
       if (item.has_serial_no && !serial) return false // strict: no serial, no sale
-      // never merge into a bundle line — bundle pricing is per-instance
+      // never merge into a bundle line, bundle pricing is per-instance
       const existing = this.lines.find(
         (l) => l.item_code === item.item_code && !l.bundle_key
       )
@@ -456,7 +456,7 @@ export const useCartStore = defineStore('cart', {
       this.discountRequest = null
       this.activePriceList = null
       this.note = ''
-      // salesPerson intentionally kept — it's the staff member on shift
+      // salesPerson intentionally kept, it's the staff member on shift
     },
 
     async addCoupon(code) {
@@ -466,7 +466,7 @@ export const useCartStore = defineStore('cart', {
         throw new Error(`Coupon ${code} is already applied`)
       }
       const session = useSessionStore()
-      // Coupon promos are never in the bootstrap payload — fetch via the
+      // Coupon promos are never in the bootstrap payload, fetch via the
       // validation endpoint (throws on a bad code) and merge it in.
       const promo = await call('lumenpos.api.session.check_coupon', {
         pos_profile: session.posProfile,
@@ -483,7 +483,7 @@ export const useCartStore = defineStore('cart', {
       this.couponCodes = this.couponCodes.filter((c) => c !== code)
     },
 
-    // Whole-cart discount. Clamped to 0–100; changing it invalidates any
+    // Whole-cart discount. Clamped to 0 to 100; changing it invalidates any
     // previously granted over-limit approval so a higher value must be
     // re-approved (mirrors the per-line discount flow).
     setOrderDiscount(percent) {
@@ -520,7 +520,7 @@ export const useCartStore = defineStore('cart', {
     },
 
     // Authoritative amount to collect, computed by the SERVER with the same math
-    // as submit — so the till charges exactly what the posted invoice shows (no
+    // as submit, so the till charges exactly what the posted invoice shows (no
     // phantom rounding "change"). Returns null offline / on error so the caller
     // falls back to the client-side cart total.
     async quote() {
@@ -563,22 +563,22 @@ export const useCartStore = defineStore('cart', {
     async _queueOffline(payload, payments) {
       const session = useSessionStore()
       if (payload.items.some((i) => (i.serial_nos || []).length)) {
-        throw new Error('Serialized items need a connection — they cannot be queued offline')
+        throw new Error('Serialized items need a connection, they cannot be queued offline')
       }
       if (payload.app_type) {
-        throw new Error('Delivery-app sales need a connection — they cannot be queued offline')
+        throw new Error('Delivery-app sales need a connection, they cannot be queued offline')
       }
       if ((payload.gift_cards || []).length) {
-        throw new Error('Gift card payments need a connection — remove them and retry')
+        throw new Error('Gift card payments need a connection. Remove them and retry')
       }
       if (payload.redeem_loyalty_points > 0) {
-        throw new Error('Loyalty redemption needs a connection — remove it and retry')
+        throw new Error('Loyalty redemption needs a connection. Remove it and retry')
       }
       if (payments.some((p) => p.mode_of_payment === session.storeCreditMode)) {
-        throw new Error('Store credit needs a connection — remove it and retry')
+        throw new Error('Store credit needs a connection. Remove it and retry')
       }
       if (payments.some((p) => p.mode_of_payment === session.cashbackMode)) {
-        throw new Error('Cashback needs a connection — remove it and retry')
+        throw new Error('Cashback needs a connection. Remove it and retry')
       }
       session.markOffline()
       // Idempotency key so a retried sync (lost ACK) can't post a duplicate.
@@ -592,7 +592,7 @@ export const useCartStore = defineStore('cart', {
 
       // Durable log entry so the cashier can later see this sale went out and
       // what became of it on reconnect (pending → synced with the real invoice
-      // no., or failed with a reason). Best-effort — never block the sale.
+      // no., or failed with a reason). Best-effort, never block the sale.
       logSale({
         key: payload.idempotency_key,
         queued_at: new Date().toISOString(),

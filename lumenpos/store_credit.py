@@ -124,7 +124,7 @@ def _get_or_create_account(company):
     )
     if not parent:
         frappe.throw(
-            _("No liability account group found for {0}; create a 'Store Credit' liability account manually").format(company)
+            _("No liability account group found for {0}, create a 'Store Credit' liability account manually").format(company)
         )
 
     account = frappe.get_doc(

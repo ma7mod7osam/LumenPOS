@@ -5,7 +5,7 @@
 
 A coupon-locked POS Promotion can have MANY codes (generated or imported), each
 unlocking that promotion's discount at the till. Codes are either single-use
-(spent after one redemption) or reusable (work until they expire) — chosen per
+(spent after one redemption) or reusable (work until they expire), chosen per
 batch. Legacy single `coupon_code` on the promotion keeps working alongside the
 pool.
 """
@@ -16,7 +16,7 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, now_datetime, nowdate
 
-# Human-friendly alphabet — no 0/O, 1/I/L to avoid mis-reads.
+# Human-friendly alphabet, no 0/O, 1/I/L to avoid mis-reads.
 _ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 
@@ -50,7 +50,7 @@ def resolve(code):
 
 def apply_to_promotions(promotions, codes):
     """Mutate a serialized promo list so a valid pool code unlocks its promotion
-    in the (DB-free) engine — by setting that promo's coupon_code to the code,
+    in the (DB-free) engine, by setting that promo's coupon_code to the code,
     exactly like a legacy single coupon. Returns the same list."""
     if not codes:
         return promotions
@@ -184,7 +184,7 @@ def list_codes(promotion, only_unused=False):
 
 
 def parse_codes_file(filename, content):
-    """Extract a flat list of codes from an uploaded .xlsx/.csv — the first
+    """Extract a flat list of codes from an uploaded .xlsx/.csv, the first
     non-empty cell of each row (a 'code'/'coupon' header row is skipped)."""
     import base64
     import io

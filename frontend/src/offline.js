@@ -25,8 +25,8 @@ let dbPromise = null
 // Ask the browser to make this origin's storage PERSISTENT so the offline
 // queue can't be evicted under disk pressure / LRU (and survives Safari's
 // 7-day "no interaction" wipe). Best-effort by design: the grant is heuristic
-// and a manual cache-clear still wipes it — so it pairs with server-side
-// idempotent replay — but it is the standard guard for an offline queue.
+// and a manual cache-clear still wipes it, so it pairs with server-side
+// idempotent replay, but it is the standard guard for an offline queue.
 export async function ensurePersistentStorage() {
   try {
     if (navigator.storage?.persisted && navigator.storage?.persist) {
@@ -34,7 +34,7 @@ export async function ensurePersistentStorage() {
       return await navigator.storage.persist()
     }
   } catch {
-    /* not supported / blocked — ignore */
+    /* not supported / blocked, ignore */
   }
   return false
 }
@@ -226,7 +226,7 @@ export async function queueSale(payload) {
     // strict durability: the write is flushed to disk BEFORE oncomplete fires,
     // so a power cut / crash right after a sale can't silently drop a queued
     // invoice (Chrome 121+ defaults to relaxed, which acks before the disk
-    // flush). Unknown to older engines — the option is safely ignored there.
+    // flush). Unknown to older engines, the option is safely ignored there.
     const transaction = database.transaction('queue', 'readwrite', { durability: 'strict' })
     const req = transaction
       .objectStore('queue')
@@ -252,8 +252,8 @@ export async function queueCount() {
 
 // --- offline sales log ------------------------------------------------------
 // A durable, user-visible record of every sale made offline and what became of
-// it on sync: pending (queued, not yet uploaded), synced (posted — with the
-// real server invoice name), or failed (server rejected it — with the reason).
+// it on sync: pending (queued, not yet uploaded), synced (posted, with the
+// real server invoice name), or failed (server rejected it, with the reason).
 // Keyed by the sale's idempotency key so flushQueue can update the right row.
 // This is a LOG for confidence/audit; the `queue` store remains the source of
 // truth for what still needs uploading.

@@ -35,7 +35,7 @@
             </div>
           </button>
           <div v-if="searched && !results.length" class="muted empty">
-            {{ session.offline ? t('No match in the offline cache — connect to search all customers.') : t('No customers found') }}
+            {{ session.offline ? t('No match in the offline cache, connect to search all customers.') : t('No customers found') }}
           </div>
         </div>
         <button class="btn btn-outline" style="width: 100%" @click="creating = true">
@@ -45,7 +45,7 @@
 
       <div class="modal-body form" v-else>
         <p v-if="session.offline" class="muted small offline-note">
-          {{ t('Offline — saved on this device and synced (matched to an existing customer or created) when you reconnect.') }}
+          {{ t('Offline, saved on this device and synced (matched to an existing customer or created) when you reconnect.') }}
         </p>
         <div class="type-tabs">
           <button
@@ -167,7 +167,7 @@ function select(customer) {
 async function create() {
   // Offline: save a LOCAL pending customer with a temp id. On reconnect the
   // flush resolves it (match existing by mobile, else create) and remaps the
-  // queued sale — see session.flushQueue.
+  // queued sale. See session.flushQueue.
   if (session.offline) {
     const tempId = '__local__' + newId()
     await savePendingCustomer({
@@ -187,7 +187,7 @@ async function create() {
     }
     await putCustomer(localCustomer) // searchable for the next offline sale
     cart.setCustomer(localCustomer)
-    session.notify(t('Customer saved offline — will sync when back online'))
+    session.notify(t('Customer saved offline, will sync when back online'))
     emit('close')
     return
   }

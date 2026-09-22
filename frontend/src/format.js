@@ -8,7 +8,7 @@ export function setCurrency(code) {
 }
 
 // Unicode isolate: on an RTL page a bare amount is re-ordered by the bidi
-// algorithm — a refund's minus sign migrates to the wrong end of the number
+// algorithm, a refund's minus sign migrates to the wrong end of the number
 // ("‎-25.00 SAR" rendering as "25.00 SAR-"). Wrapping each amount in FSI…PDI
 // isolates it from the surrounding text so it always reads correctly.
 const FSI = '⁨'
@@ -64,11 +64,11 @@ export function shortTime(value) {
 }
 
 // A browser reports an EMPTY value from <input type="number"> for anything it
-// can't parse in the user's locale — "1,500", a stray space, Arabic-Indic
-// digits — while the text the cashier typed stays visible on screen. That is
+// can't parse in the user's locale, "1,500", a stray space, Arabic-Indic
+// digits, while the text the cashier typed stays visible on screen. That is
 // how a register was opened with cash in the drawer and recorded 0.00.
 // So money is read from the RAW text with this parser, never from .valueAsNumber.
-// Returns null when the value is blank or unreadable — callers must stop rather
+// Returns null when the value is blank or unreadable, callers must stop rather
 // than silently substitute zero.
 const ARABIC_DIGITS = /[\u0660-\u0669\u06F0-\u06F9]/g
 

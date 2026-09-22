@@ -26,7 +26,7 @@ const router = createRouter({
     { path: '/register', component: RegisterView },
     { path: '/insights', component: InsightsView },
     { path: '/settings', component: SettingsView },
-    // Second-screen customer-facing display — chrome-free, no bootstrap.
+    // Second-screen customer-facing display, chrome-free, no bootstrap.
     { path: '/display', component: CustomerDisplayView },
   ],
 })

@@ -3,7 +3,7 @@
      "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
 <template>
   <!-- Customer-facing display: a chrome-free second screen, no app shell and
-       no bootstrap — it only listens for cart snapshots over BroadcastChannel. -->
+       no bootstrap, it only listens for cart snapshots over BroadcastChannel. -->
   <router-view v-if="isDisplay" />
 
   <div class="shell" v-else-if="session.loaded && !session.error">
@@ -48,7 +48,7 @@
             :title="t('View queued offline sales')"
             @click="offlineLogOpen = true"
           >
-            ⚠ {{ t('Offline') }}{{ session.queuedCount ? ` — ${session.queuedCount}` : '' }}
+            ⚠ {{ t('Offline') }}{{ session.queuedCount ? `, ${session.queuedCount}` : '' }}
           </button>
           <button
             v-else-if="session.queuedCount"
@@ -142,13 +142,13 @@ const shiftText = computed(() => {
 })
 onBeforeUnmount(() => clearInterval(clockTimer))
 
-// X-report — reachable from the top bar all shift. Fetches a fresh read-only
+// X-report, reachable from the top bar all shift. Fetches a fresh read-only
 // session summary on demand (no register-page visit needed).
 const xreportOpen = ref(false)
 const xreportSummary = ref(null)
 const xreportLoading = ref(false)
 
-// Offline sales log — reachable from the offline / syncing pill and Settings.
+// Offline sales log, reachable from the offline / syncing pill and Settings.
 const offlineLogOpen = ref(false)
 async function openXReport() {
   if (!session.registerSession || xreportLoading.value) return
@@ -199,7 +199,7 @@ const pageTitle = computed(
 )
 
 onMounted(async () => {
-  // The display window is a passive mirror — no bootstrap, no catalog, no shell.
+  // The display window is a passive mirror, no bootstrap, no catalog, no shell.
   if (isDisplay.value) return
 
   clockTimer = setInterval(() => (now.value = Date.now()), 1000)

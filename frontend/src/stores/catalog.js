@@ -20,7 +20,7 @@ export const useCatalogStore = defineStore('catalog', {
   actions: {
     // LOCAL-FIRST: searches run against the IndexedDB cache (instant, works
     // offline). The cache is filled on startup and refreshed in the
-    // background — the server is only hit when the cache is empty.
+    // background, the server is only hit when the cache is empty.
     async fetch() {
       const session = useSessionStore()
       if (!session.posProfile) return
@@ -35,7 +35,7 @@ export const useCatalogStore = defineStore('catalog', {
         return
       }
 
-      // Cold start: no cache yet — query the server directly
+      // Cold start: no cache yet, query the server directly
       this.loading = true
       try {
         const data = await call('lumenpos.api.catalog.get_items', {
@@ -76,7 +76,7 @@ export const useCatalogStore = defineStore('catalog', {
     },
 
     // Cache a capped recent/frequent customer subset for offline SELECT (not the
-    // full directory — see the offline-customers decision). Best-effort.
+    // full directory. See the offline-customers decision). Best-effort.
     async cacheCustomers() {
       const session = useSessionStore()
       if (!session.posProfile || session.offline) return

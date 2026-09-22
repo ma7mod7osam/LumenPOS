@@ -14,7 +14,7 @@ LumenPOS_ROLES = ["LumenPOS Cashier", "LumenPOS Manager"]
 # Core ERPNext doctypes the LumenPOS roles need so they are turnkey: granting a
 # user "LumenPOS Cashier" should let them load the POS, sell, and run the register
 # (the closing consolidation runs as the cashier, so they also need the merge
-# log + Sales Invoice rights). These are ADDITIVE — existing perms are never
+# log + Sales Invoice rights). These are ADDITIVE, existing perms are never
 # removed, so admins can still tighten/loosen everything in the Role
 # Permissions Manager afterwards.
 CORE_GRANTS = {
@@ -170,11 +170,11 @@ def backfill_store_credit_references():
 
 
 # Indexes LumenPOS's own hot paths need. Harmless on a small site, decisive on a
-# large one. (name, doctype, [columns]) — created only if the column exists.
+# large one. (name, doctype, [columns]), created only if the column exists.
 HOT_INDEXES = [
     # Every sale checks "did this idempotency key already post?" before
     # inserting. Unindexed, that is a FULL SCAN of the invoice table on EVERY
-    # sale — imperceptible at demo size, seconds per sale at a million rows.
+    # sale, imperceptible at demo size, seconds per sale at a million rows.
     # The custom field is unique, so on a healthy site Frappe's own UNIQUE index
     # already serves this and nothing is built here.
     ("lumenpos_idem_idx", "POS Invoice", ["lumenpos_idempotency_key"]),
@@ -183,7 +183,7 @@ HOT_INDEXES = [
     ("lumenpos_session_idx", "POS Invoice", ["lumenpos_session"]),
     ("lumenpos_session_idx", "Sales Invoice", ["lumenpos_session"]),
     # ERPNext itself, on EVERY submit, asks "how much of this item is reserved by
-    # unconsolidated POS invoices?" — joining the largest table on the site, once
+    # unconsolidated POS invoices?", joining the largest table on the site, once
     # per cart line. This composite serves exactly that query.
     ("lumenpos_item_wh_idx", "POS Invoice Item", ["item_code", "warehouse"]),
     # Loyalty lookups per sale/receipt.
@@ -268,8 +268,8 @@ def ensure_index_fields():
 
 def index_health():
     """Every performance index with its state: built / missing / n-a (the column
-    doesn't exist on this site). Index builds fail SILENTLY into the Error Log —
-    a big site can refuse the lock — so this is surfaced in Settings → Status
+    doesn't exist on this site). Index builds fail SILENTLY into the Error Log, 
+    a big site can refuse the lock, so this is surfaced in Settings → Status
     with a rebuild button rather than being invisible."""
     out = []
     for index_name, doctype, columns in HOT_INDEXES:
@@ -294,7 +294,7 @@ def index_health():
 def ensure_hot_indexes():
     """Create any performance index the columns above still lack. Idempotent and
     best-effort: a failure is logged, never fatal to a migrate (building an
-    index on a huge, busy table can be refused the lock — deploy in a quiet
+    index on a huge, busy table can be refused the lock. Deploy in a quiet
     window and re-run the migrate).
 
     With ensure_index_fields() in place, Frappe keeps these indexes itself, so
@@ -329,7 +329,7 @@ def ensure_hot_indexes():
 
 def drop_deprecated_custom_fields():
     """Remove POS Profile custom fields LumenPOS no longer uses. Idempotent.
-    `lumenpos_ignore_pricing_rules` was retired in v0.12.0 — POS sales now ALWAYS
+    `lumenpos_ignore_pricing_rules` was retired in v0.12.0. POS sales now ALWAYS
     ignore ERPNext Pricing Rules (the till never applies them), so the toggle
     only invited the price-book-vs-Pricing-Rule mismatch."""
     for name in ("POS Profile-lumenpos_ignore_pricing_rules",):
@@ -349,7 +349,7 @@ def drop_deprecated_custom_fields():
 def migrate_coupon_limits():
     """v0.18.0 coupons had a single_use flag; v0.19.0 uses a numeric usage_limit
     (0 = unlimited). Reusable old codes (single_use=0) would inherit the new Int
-    default of 1 on migrate — restore them to unlimited. Idempotent."""
+    default of 1 on migrate, restore them to unlimited. Idempotent."""
     if not frappe.db.exists("DocType", "POS Coupon"):
         return
     frappe.db.sql(
@@ -445,7 +445,7 @@ def make_custom_fields():
 
     Delivery-app channel data is written to the site's existing fields
     (custom_app_type, pick_order_no, pick_customer, is_exchange) when they
-    exist — LumenPOS does not create them (see lumenpos.api.sales._set_custom)."""
+    exist. LumenPOS does not create them (see lumenpos.api.sales._set_custom)."""
     invoice_fields = [
         dict(
             fieldname="lumenpos_section",
@@ -495,10 +495,10 @@ def make_custom_fields():
             read_only=1,
             unique=1,
             no_copy=1,
-            description="Client key for an offline-queued sale — prevents a retried sync from posting a duplicate invoice.",
+            description="Client key for an offline-queued sale, prevents a retried sync from posting a duplicate invoice.",
         ),
         # Delivery-app channel data is written to the site's OWN fields when
-        # present — custom_app_type (Select), pick_order_no (Data),
+        # present, custom_app_type (Select), pick_order_no (Data),
         # pick_customer (Check), is_exchange (Check). LumenPOS does not create
         # those; it only reads/writes them if they exist.
     ]
@@ -523,7 +523,7 @@ def make_custom_fields():
                     "ERPNext consolidates into Sales Invoices at register close. "
                     "Sales Invoice: each sale posts a Sales Invoice directly (GL posts "
                     "immediately, no consolidation); the register is a lightweight "
-                    "LumenPOS cash shift (optionally with POS Opening/Closing Entries — see below).",
+                    "LumenPOS cash shift (optionally with POS Opening/Closing Entries. See below).",
                 ),
                 dict(
                     fieldname="lumenpos_si_opening_closing",
@@ -534,7 +534,7 @@ def make_custom_fields():
                     depends_on="eval:doc.lumenpos_invoice_mode=='Sales Invoice'",
                     description="Sales Invoice mode only. On: opening the register creates a "
                     "POS Opening Entry and closing creates a POS Closing Entry (for cash "
-                    "supervision and the standard ERPNext POS reports) — with NO "
+                    "supervision and the standard ERPNext POS reports), with NO "
                     "consolidation, since sales already post as Sales Invoices. Off: a "
                     "lightweight cash shift with no opening/closing entry.",
                 ),
@@ -631,5 +631,5 @@ def make_custom_fields():
         },
         ignore_validate=True,
     )
-    # exchange_against_invoice already exists on POS Invoice (a site field) — LumenPOS
+    # exchange_against_invoice already exists on POS Invoice (a site field). LumenPOS
     # does not create it; exchanges.py writes the original invoice to it directly.

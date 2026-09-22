@@ -43,7 +43,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Legacy/internal — price books now store item prices directly below.",
+   "description": "Legacy/internal, price books now store item prices directly below.",
    "fieldname": "price_list",
    "fieldtype": "Link",
    "hidden": 1,

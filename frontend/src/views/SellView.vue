@@ -107,7 +107,7 @@
           <div class="fav-price">{{ money(fav.price) }}</div>
           <div v-if="fav.is_stock_item" class="muted small">{{ t('{qty} in stock', { qty: fav.actual_qty }) }}</div>
         </button>
-        <div v-if="!favourites.length" class="muted">{{ favLoading ? t('Loading…') : t('No favourites configured — add some in Settings → Features.') }}</div>
+        <div v-if="!favourites.length" class="muted">{{ favLoading ? t('Loading…') : t('No favourites configured. Add some in Settings → Features.') }}</div>
       </div>
       <ProductGrid v-else @select="addToCart" />
     </section>
@@ -168,7 +168,7 @@ const session = useSessionStore()
 const scanGuard = createScanGuard()
 let scanTimer = null
 
-// A barcode scanner fires characters as a fast burst — add the item the instant
+// A barcode scanner fires characters as a fast burst. Add the item the instant
 // it's scanned, without waiting for an Enter key (typed searches still need it).
 function onSearchInput(value) {
   catalog.setSearch(value)
@@ -241,7 +241,7 @@ async function toggleFavourites() {
 }
 
 function openCustomerDisplay() {
-  // Same SPA, hash route — opens (or focuses) a dedicated second-screen window.
+  // Same SPA, hash route, opens (or focuses) a dedicated second-screen window.
   const url = window.location.href.replace(/#.*$/, '') + '#/display'
   window.open(url, 'lumenpos-customer-display', 'width=1024,height=720')
 }
@@ -272,7 +272,7 @@ async function addBundleToCart(bundle) {
 async function onSearchEnter() {
   clearTimeout(scanTimer)
   // Was this entry SCANNED (fast burst) or typed? Capture before resetting the
-  // guard — it's needed to enforce "scan only" on a serial entered here.
+  // guard, it's needed to enforce "scan only" on a serial entered here.
   const wasScan = scanGuard.isScan(catalog.search)
   scanGuard.reset()
   const term = catalog.search.trim()
@@ -290,7 +290,7 @@ async function onSearchEnter() {
         // Scan-only: a serial TYPED into the search box must not bypass the rule
         // (same guard as the serial modal). A scanned serial (burst) is allowed.
         if (result.serial && session.settings.serial_scan_only && !wasScan) {
-          session.notify(t('Manual entry is off — scan the serial with the scanner.'), true)
+          session.notify(t('Manual entry is off. Scan the serial with the scanner.'), true)
           catalog.clearSearch()
           return
         }

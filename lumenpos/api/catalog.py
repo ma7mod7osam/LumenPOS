@@ -9,7 +9,7 @@ from lumenpos.price_books import effective_prices, resolve_price_list, standard_
 
 
 def warranty_field():
-    """The Item field holding the warranty period in days — the site's custom
+    """The Item field holding the warranty period in days, the site's custom
     'warranty_days' if present, otherwise ERPNext's standard 'warranty_period'."""
     if frappe.db.has_column("Item", "warranty_days"):
         return "warranty_days"
@@ -19,7 +19,7 @@ def warranty_field():
 
 
 def _gift_card_item_code():
-    """The gift-card placeholder item code — hidden from the product grid/search
+    """The gift-card placeholder item code, hidden from the product grid/search
     (it's sold via the gift-card action, not tapped as a product)."""
     try:
         from lumenpos import gift_cards
@@ -38,7 +38,7 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
 
     filters = {"disabled": 0, "is_sales_item": 1, "has_variants": 0}
     # The gift-card placeholder item is sold via the gift-card action, not tapped
-    # as a product — keep it out of the grid / search / offline cache.
+    # as a product. Keep it out of the grid / search / offline cache.
     gc = _gift_card_item_code()
     if gc:
         filters["name"] = ["!=", gc]
@@ -111,7 +111,7 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
         item["standard_price"] = standard_map.get(item["item_code"]) or item["price"]
         item["actual_qty"] = stock_map.get(item["item_code"], 0)
         item["barcode"] = barcode_map.get(item["item_code"])
-        # _user_tags is comma-joined with a leading comma — hand the client a list
+        # _user_tags is comma-joined with a leading comma, hand the client a list
         # so promotions can target items by tag.
         item["tags"] = [t.strip() for t in (item.pop("_user_tags", "") or "").split(",") if t.strip()]
 
@@ -505,7 +505,7 @@ def recent_customers(pos_profile, limit=2000):
     """A CAPPED set of recent/frequent customers to cache for OFFLINE select.
     Prefers customers this outlet's company has recently transacted with, topped
     up with the most-recently-created ones. Deliberately NOT the full directory
-    (a huge client mirror hurts search perf + risks eviction) — online search
+    (a huge client mirror hurts search perf + risks eviction), online search
     still hits the server. Same shape as search_customers."""
     limit = min(int(limit or 0) or 2000, 10000)
     from lumenpos.api.sales import _table_doctype
@@ -609,7 +609,7 @@ def _host_mobile_fields():
 
 
 def find_customer_by_mobile(mobile):
-    """An existing, enabled customer with this mobile — checking the standard
+    """An existing, enabled customer with this mobile, checking the standard
     field AND any mobile field the host site added. THE MOBILE IS THE IDENTITY:
     names repeat endlessly, mobiles don't, so this is what stops the POS
     creating a second record for a customer the site already has."""
@@ -735,7 +735,7 @@ def resolve_pending_customer(payload):
     if isinstance(payload, str):
         payload = json.loads(payload)
     mobile = (payload.get("mobile_no") or "").strip()
-    # Shared identity rule — also matches a mobile stored in the HOST's own
+    # Shared identity rule, also matches a mobile stored in the HOST's own
     # field, so reconnecting can't duplicate a customer the site already has.
     existing = find_customer_by_mobile(mobile)
     if existing:

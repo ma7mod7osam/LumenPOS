@@ -24,7 +24,7 @@ export function publishCart(snapshot) {
   try {
     chan()?.postMessage({ kind: 'cart', snapshot })
   } catch {
-    /* channel unavailable — ignore */
+    /* channel unavailable, ignore */
   }
 }
 

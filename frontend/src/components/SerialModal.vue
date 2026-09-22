@@ -11,7 +11,7 @@
       <div class="modal-body">
         <div class="item-name">{{ item.item_name }}</div>
         <p class="muted hint">
-          {{ t("This item is serialized — scan or type the unit's serial number. It must match stock in this register's warehouse.") }}
+          {{ t("This item is serialized. Scan or type the unit's serial number. It must match stock in this register's warehouse.") }}
         </p>
         <input
           ref="input"
@@ -63,7 +63,7 @@ async function confirm() {
   if (!value || checking.value) return
   error.value = ''
   if (scanOnly.value && !scan.isScan(serial.value)) {
-    error.value = t('Manual entry is off — scan the serial with the scanner.')
+    error.value = t('Manual entry is off. Scan the serial with the scanner.')
     serial.value = ''
     scan.reset()
     input.value?.focus()

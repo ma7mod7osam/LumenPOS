@@ -18,7 +18,7 @@ INVOICE_DOCTYPE = "POS Invoice"
 
 def _sale_doctype(profile):
     """The document a sale posts as for this POS Profile: a **POS Invoice**
-    (default — consolidated into a Sales Invoice at register close) or a **Sales
+    (default, consolidated into a Sales Invoice at register close) or a **Sales
     Invoice** (posted directly, GL immediately, no consolidation)."""
     return (
         "Sales Invoice"
@@ -29,7 +29,7 @@ def _sale_doctype(profile):
 
 def _doctype_of(name):
     """The sale doctype an existing invoice name belongs to (works in either
-    backend — names are unique per doctype)."""
+    backend, names are unique per doctype)."""
     return "Sales Invoice" if frappe.db.exists("Sales Invoice", name) else "POS Invoice"
 
 
@@ -74,7 +74,7 @@ def _table_doctype(pos_profile):
 
 def _ensure_ignore_pricing_rule(profile):
     """LumenPOS prices every sale itself (price books + its own promotion engine)
-    and never applies ERPNext Pricing Rules — so a rule ERPNext re-applies on
+    and never applies ERPNext Pricing Rules, so a rule ERPNext re-applies on
     submit would diverge from what the till charged and land the invoice
     "Partly Paid". We already set `ignore_pricing_rule` on the invoice, but
     ERPNext's POS flow (`set_pos_fields`) re-reads that flag from the POS Profile
@@ -94,7 +94,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     """Build a fully-priced, fully-taxed but NOT-yet-inserted POS Invoice from
     the cart. Shared by submit_sale (which then attaches payments and submits)
     and quote_sale (which only reads the authoritative totals so the till can
-    charge exactly what the posted invoice will show — no phantom rounding
+    charge exactly what the posted invoice will show, no phantom rounding
     'change'). Prices and promotions are ALWAYS resolved server-side; the
     client's math is display-only. Returns (invoice, customer). Does NOT set
     lumenpos_session (the caller does that on submit)."""
@@ -116,7 +116,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     )
     bundle_discounts, bundle_applied = _apply_bundles(payload["items"], lines)
 
-    # Promotions never touch bundle lines — bundle pricing is final.
+    # Promotions never touch bundle lines, bundle pricing is final.
     non_bundle_idx = [
         i for i, row in enumerate(payload["items"]) if not row.get("bundle_key")
     ]
@@ -146,7 +146,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     }
 
     # LumenPOS owns POS pricing (price books + its own promotion engine), and the
-    # till/cart NEVER applies ERPNext Pricing Rules — so POS sales always ignore
+    # till/cart NEVER applies ERPNext Pricing Rules, so POS sales always ignore
     # them. Otherwise the posted invoice would diverge from what the till charged
     # and land "Partly Paid". (ERPNext Pricing Rules still apply to non-POS docs.)
     ignore_pricing_rule = 1
@@ -154,7 +154,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     # Some ERPNext versions don't carry `update_stock` on the POS Profile, so a
     # direct attribute access throws ('POSProfile' object has no attribute
     # 'update_stock') and kills the sale. Read it defensively: honour the
-    # profile's setting when present, otherwise default to 1 — a POS reduces
+    # profile's setting when present, otherwise default to 1, a POS reduces
     # stock at the point of sale (and Sales-Invoice-direct mode needs it to move
     # stock at all, since there is no consolidation step).
     _update_stock = profile.get("update_stock")
@@ -228,7 +228,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
 
     invoice.set_missing_values()
 
-    # Every line keeps the profile's warehouse (set in the row build above) — it
+    # Every line keeps the profile's warehouse (set in the row build above), it
     # belongs to the profile's company. Do NOT clear it for non-stock lines:
     # clearing lets ERPNext fall back to the GLOBAL default warehouse, which on a
     # multi-company site can be another company's ("Warehouse … doesn't belong to
@@ -251,7 +251,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         # LumenPOS prices (price books + its own promotion engine) are
         # authoritative. set_missing_values can stamp an ERPNext Pricing Rule on
         # the row; if left, ERPNext RE-APPLIES it on submit and overrides the
-        # price book — the till already collected the LumenPOS price, so the
+        # price book, the till already collected the LumenPOS price, so the
         # posted invoice diverges and lands "Partly Paid". Clear the stamp so the
         # price we set is what posts.
         item_row.pricing_rules = ""
@@ -271,8 +271,8 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
 def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
     """Optional flat-percent service charge / tip (LumenPOS Settings → Features).
     Posted as a FINAL non-taxed 'Actual' charge so it lands in the grand total
-    exactly as the till displayed it. The percent is server-authoritative — read
-    from Settings, never the cart — and the base is the discounted, VAT-inclusive
+    exactly as the till displayed it. The percent is server-authoritative. Read
+    from Settings, never the cart, and the base is the discounted, VAT-inclusive
     line total so it mirrors the client's `serviceCharge` getter. No-op on
     returns (negative qty) and when the feature/percent is off."""
     settings = frappe.get_cached_doc("LumenPOS Settings")
@@ -311,7 +311,7 @@ def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
 
 @frappe.whitelist()
 def quote_sale(payload):
-    """Authoritative pre-payment totals for the current cart — the SAME server
+    """Authoritative pre-payment totals for the current cart, the SAME server
     computation submit_sale uses, so the till charges exactly what the posted
     invoice will show (a VAT-inclusive promo line can round a couple of halalas
     differently from the client, which would otherwise surface as phantom
@@ -344,7 +344,7 @@ def submit_sale(payload):
     ERPNext when the register closes).
 
     The client sends its cart and chosen payments. Promotions and prices are
-    ALWAYS re-resolved server-side — the client's math is display-only.
+    ALWAYS re-resolved server-side, the client's math is display-only.
 
     payload = {
         "pos_profile", "customer",
@@ -361,7 +361,7 @@ def submit_sale(payload):
     _started = _perf_now()
     _require_sell()
     # Idempotency: a queued OFFLINE sale whose server ACK was lost gets retried
-    # on the next flush — if it already posted, return the existing receipt
+    # on the next flush, if it already posted, return the existing receipt
     # instead of creating a duplicate invoice.
     key = (payload.get("idempotency_key") or "").strip()
     if key:
@@ -425,7 +425,7 @@ def submit_sale(payload):
 
     _reconcile_payment(invoice, profile)
     _drop_empty_payments(invoice)
-    # Shop rules on HOW this basket may be paid — re-checked server-side so a
+    # Shop rules on HOW this basket may be paid, re-checked server-side so a
     # stale tab, a queued offline sale or a direct API call can't bypass them.
     from lumenpos import payment_restrictions
 
@@ -521,10 +521,10 @@ def sell_gift_card(payload):
     # A gift card is non-stock, but ERPNext STILL validates the line/default
     # warehouse against the company even for a POS sale. Its warehouse resolver
     # (get_item_warehouse) reads the header `set_warehouse` FIRST, then item
-    # defaults, then the GLOBAL default warehouse — which on a multi-company site
+    # defaults, then the GLOBAL default warehouse, which on a multi-company site
     # belongs to the wrong company ("Warehouse … doesn't belong to Company …").
     # So we pin a company-owned warehouse UP FRONT (in the header + on the row),
-    # exactly like regular sales do — setting it after set_missing_values is too
+    # exactly like regular sales do, setting it after set_missing_values is too
     # late, the row was already defaulted to the global warehouse by then.
     warehouse = _company_warehouse(profile)
     if not warehouse:
@@ -637,7 +637,7 @@ def _lock_open_session(session_name):
     """Row-lock the session and re-assert it's still Open immediately before an
     invoice is committed. This serializes against close_register's flip to
     'Closing', so a sale (or correction) can never land on a shift that's being
-    closed — which would otherwise leave a submitted invoice that the closing
+    closed, which would otherwise leave a submitted invoice that the closing
     snapshot missed and nothing ever consolidates."""
     status = frappe.db.get_value(
         "POS Register Session", session_name, "status", for_update=True
@@ -649,7 +649,7 @@ def _lock_open_session(session_name):
 
 
 def _open_session(pos_profile):
-    """THE chokepoint for every sale, return and gift-card sale — so the
+    """THE chokepoint for every sale, return and gift-card sale, so the
     shift-ownership rule is enforced here once, for all of them."""
     from lumenpos.api.session import get_open_session, shift_scope
 
@@ -658,7 +658,7 @@ def _open_session(pos_profile):
         frappe.throw(_("No open register session. Open the register first."))
     # "Per cashier" scope: the takings land in the drawer of whoever OPENED the
     # shift, so only that cashier may ring one up. Deliberately no manager
-    # bypass — selling is operational, not supervisory (supervision, i.e. cash
+    # bypass, selling is operational, not supervisory (supervision, i.e. cash
     # in/out and closing, keeps its own owner-or-manager check). Handover is
     # close + reopen, which is instant.
     if shift_scope() == "Per cashier":
@@ -667,7 +667,7 @@ def _open_session(pos_profile):
             frappe.throw(
                 _(
                     "This shift belongs to {0}. Only the cashier who opened the register "
-                    "can sell on it — close that shift and open your own."
+                    "can sell on it. Close that shift and open your own."
                 ).format(frappe.utils.get_fullname(owner)),
                 frappe.PermissionError,
             )
@@ -686,7 +686,7 @@ def _resolve_delivery_app(payload):
         (r for r in (settings.delivery_apps or []) if r.app_name == app_name), None
     )
     if not row:
-        frappe.throw(_("Unknown delivery app {0} — add it in LumenPOS Settings").format(app_name))
+        frappe.throw(_("Unknown delivery app {0}. Add it in LumenPOS Settings").format(app_name))
     if row.require_order_id and not (payload.get("order_id") or "").strip():
         frappe.throw(_("Order ID is required for {0} sales").format(app_name))
     return {"app_name": row.app_name, "price_list": row.price_list}
@@ -774,14 +774,14 @@ def _check_discount_passcode(payload):
 
     if mode == "Request only":
         frappe.throw(
-            _("A manual discount of {0}% exceeds the {1}% limit — send an approval request.").format(worst, limit)
+            _("A manual discount of {0}% exceeds the {1}% limit. Send an approval request.").format(worst, limit)
         )
     if mode == "Passcode or request":
         frappe.throw(
-            _("A manual discount of {0}% exceeds the {1}% limit — enter the manager passcode or send an approval request.").format(worst, limit)
+            _("A manual discount of {0}% exceeds the {1}% limit. Enter the manager passcode or send an approval request.").format(worst, limit)
         )
     frappe.throw(
-        _("A manual discount of {0}% exceeds the {1}% limit — approver passcode required").format(worst, limit)
+        _("A manual discount of {0}% exceeds the {1}% limit, approver passcode required").format(worst, limit)
     )
 
 
@@ -789,7 +789,7 @@ def _apply_bundles(payload_items, lines):
     """Validate and price bundle instances. Items arrive as separate lines
     tagged with bundle_key ('BNDL-0001#2'); each instance must contain
     exactly the bundle's components, and the saving (natural total minus
-    bundle price) is split across the lines cent-correct — so every line
+    bundle price) is split across the lines cent-correct, so every line
     stays individually returnable at its discounted rate."""
     groups = {}
     for i, row in enumerate(payload_items):
@@ -815,7 +815,7 @@ def _apply_bundles(payload_items, lines):
             )
         if actual != expected:
             frappe.throw(
-                _("Bundle {0} is incomplete — it needs exactly: {1}").format(
+                _("Bundle {0} is incomplete, it needs exactly: {1}").format(
                     bundle.title,
                     ", ".join(f"{int(q)} x {c}" for c, q in expected.items()),
                 )
@@ -955,7 +955,7 @@ def _split_tags(value):
 # `online_order` holding the marketplace order NUMBER while we assume it is the
 # boolean "is this an online order" flag. Matching on the name alone then makes
 # the Yes/No filter compare an order number to 1 (matching nothing) and renders
-# a number where a flag belongs — silently, with no error. So a candidate must
+# a number where a flag belongs, silently, with no error. So a candidate must
 # match on TYPE as well as name.
 _BOOL_FIELDTYPES = {"Check", "Select"}   # Select only when it looks like Yes/No
 _TEXT_FIELDTYPES = {
@@ -978,7 +978,7 @@ def _first_column(candidates, doctype=INVOICE_DOCTYPE, kind=None):
     given sale doctype (so history search uses the site's real fields), or None.
 
     `kind` ("bool" | "text") additionally requires the field to BE that kind on
-    this site — see the note above on same-name/different-meaning collisions.
+    this site. See the note above on same-name/different-meaning collisions.
     Appended as a third parameter on purpose: existing callers pass `doctype`
     positionally, and reordering would silently bind the doctype into the new
     argument."""
@@ -994,7 +994,7 @@ def _first_column(candidates, doctype=INVOICE_DOCTYPE, kind=None):
         if kind and meta:
             df = meta.get_field(fieldname)
             if not df:
-                continue  # a real column with no docfield — can't verify, skip
+                continue  # a real column with no docfield, can't verify, skip
             if kind == "bool" and not _is_boolean_field(df):
                 continue
             if kind == "text" and (df.fieldtype not in _TEXT_FIELDTYPES or _is_boolean_field(df)):
@@ -1012,7 +1012,7 @@ def _validate_line_serials(line, serial_nos, profile, seen_serials):
 
     qty = line["qty"]
     if abs(qty - round(qty)) > 1e-6:
-        frappe.throw(_("{0} is serialized; quantity must be a whole number").format(line["item_code"]))
+        frappe.throw(_("{0} is serialized, quantity must be a whole number").format(line["item_code"]))
     serials = [s.strip() for s in (serial_nos or []) if s and s.strip()]
     if len(serials) != int(qty):
         frappe.throw(
@@ -1104,7 +1104,7 @@ def _reconcile_payment(invoice, profile):
         frappe.throw(
             _(
                 "This sale was rung up as {0} but ERPNext calculated {1} (short by {2}). "
-                "This is usually a price-list or VAT mismatch — check that every item is "
+                "This is usually a price-list or VAT mismatch. Check that every item is "
                 "priced on the active price list and that the VAT template's "
                 "'included in rate' flag matches your shelf prices (Settings → Status)."
             ).format(flt(paid + loyalty, 2), target, shortfall)
@@ -1162,7 +1162,7 @@ def _payment_rules():
 
 def _apply_payment_references(doc, payments):
     """Stamp each tender's transaction reference onto its payment row, and
-    enforce the ones configured as required — a card payment with no approval
+    enforce the ones configured as required, a card payment with no approval
     code can't be traced back to the terminal when a customer disputes it."""
     rules = _payment_rules()
     if not rules:
@@ -1200,7 +1200,7 @@ def _set_payment(invoice, mode_of_payment, amount):
 def _drop_empty_payments(doc):
     """ERPNext pre-fills a zero-amount row for EVERY Mode of Payment on the POS
     Profile (set_missing_values). Keep only the tenders actually used, so the
-    invoice records — and history shows — the real payment method(s) instead of
+    invoice records, and history shows, the real payment method(s) instead of
     all eleven. No-op if nothing was used (e.g. a loyalty-only sale)."""
     used = [p for p in doc.payments if flt(p.amount)]
     if used and len(used) != len(doc.payments):
@@ -1209,7 +1209,7 @@ def _drop_empty_payments(doc):
 
 def _sync_return_paid_amount(doc):
     """make_return_doc copies the ORIGINAL sale's paid_amount onto the credit
-    note, and calculate_taxes_and_totals does NOT recompute it for returns — so
+    note, and calculate_taxes_and_totals does NOT recompute it for returns, so
     paid_amount keeps the full original figure (e.g. -274.50) while the payment
     rows we set total only the returned value (e.g. -137.24). That mismatch trips
     POS validate_pos ("Paid amount + Write Off Amount can not be greater than
@@ -1439,7 +1439,7 @@ def email_receipt(invoice, email=None):
     if not recipient and doc.get("customer"):
         recipient = frappe.db.get_value("Customer", doc.customer, "email_id")
     if not recipient:
-        frappe.throw(_("No email address — add one to the customer or type it in."))
+        frappe.throw(_("No email address. Add one to the customer or type it in."))
 
     print_format = frappe.db.get_value("POS Profile", doc.get("pos_profile"), "print_format")
     attachment = None
@@ -1450,7 +1450,7 @@ def email_receipt(invoice, email=None):
         frappe.clear_last_message()
     frappe.sendmail(
         recipients=[recipient],
-        subject=_("Your receipt from {0} — {1}").format(doc.get("company") or "", invoice),
+        subject=_("Your receipt from {0}, {1}").format(doc.get("company") or "", invoice),
         message=_("Thank you for your purchase. Your receipt {0} is attached.").format(invoice),
         attachments=[attachment] if attachment else None,
         reference_doctype=doctype,
@@ -1591,8 +1591,8 @@ def _log_slow_sale(invoice_name, *, started, build, insert, submit, done, lines)
 def _search_probe_names(doctype, term, order_field=None, cap=SEARCH_PROBE_CAP):
     """Free-text sales search as SLIM, SINGLE-PREDICATE PROBES.
 
-    One wide OR over invoice-no / customer / customer-name / mobile / order-id —
-    each a leading-wildcard LIKE, one of them across a JOIN — gives the query
+    One wide OR over invoice-no / customer / customer-name / mobile / order-id, 
+    each a leading-wildcard LIKE, one of them across a JOIN, gives the query
     planner a choice between an index merge and a full table scan. That is why
     the same search is instant one minute and times out the next once the table
     is large. Every probe below can use exactly ONE index; we merge the names
@@ -1627,13 +1627,13 @@ def _search_probe_names(doctype, term, order_field=None, cap=SEARCH_PROBE_CAP):
     anywhere = f"%{term}%"
     remaining = lambda: max(0, cap - len(names))  # noqa: E731
 
-    # 1) exact invoice number — primary key, instant
+    # 1) exact invoice number, primary key, instant
     add(q(f"select name from `{tbl}` where name = %s limit 1", (term,)))
-    # 2) invoice-number prefix — primary-key range
+    # 2) invoice-number prefix, primary-key range
     add(q(f"select name from `{tbl}` where name like %s limit %s", (prefix, remaining())))
-    # 3) customer id prefix — indexed foreign key
+    # 3) customer id prefix, indexed foreign key
     add(q(f"select name from `{tbl}` where customer like %s limit %s", (prefix, remaining())))
-    # 4) customer-name prefix — indexed on most sites
+    # 4) customer-name prefix, indexed on most sites
     add(q(f"select name from `{tbl}` where customer_name like %s limit %s", (prefix, remaining())))
     # 5) mobile: resolve customers first (their own index), then invoices by FK
     if remaining():
@@ -1655,7 +1655,7 @@ def _search_probe_names(doctype, term, order_field=None, cap=SEARCH_PROBE_CAP):
                 (prefix, remaining()),
             )
         )
-    # 7) last resort — bounded contains scans, only when the precise probes were
+    # 7) last resort, bounded contains scans, only when the precise probes were
     # thin (a cashier searching a mid-string fragment).
     if len(names) < 50:
         add(q(f"select name from `{tbl}` where customer_name like %s limit %s", (anywhere, 200)))
@@ -1690,7 +1690,7 @@ def search_sales(filters=None):
 
     # kind= makes these resolve by TYPE as well as name: a site whose
     # `online_order` holds the marketplace order NUMBER must not be treated as
-    # the boolean online flag (and vice-versa) — see _first_column.
+    # the boolean online flag (and vice-versa). See _first_column.
     app_field = _first_column(("custom_app_type", "lumenpos_app_type"), doctype, kind="text")
     # `online_order` is last: on a site where it is a Data field it holds the
     # marketplace order NUMBER, and without this the number is invisible to
@@ -1759,7 +1759,7 @@ def search_sales(filters=None):
 
     if f.search:
         # Resolve the free text to a bounded set of invoice names FIRST (slim,
-        # single-index probes — see _search_probe_names), then filter by primary
+        # single-index probes. See _search_probe_names), then filter by primary
         # key. The old single wide OR mixed leading-wildcard LIKEs across a JOIN,
         # which let the optimizer pick a full table scan: instant on a small
         # site, a 504 on a large one.
@@ -1841,7 +1841,7 @@ def search_sales(filters=None):
         params,
         as_dict=True,
     )
-    # is_exchange may be stored as a Yes/No Select on some sites — normalise to 1/0.
+    # is_exchange may be stored as a Yes/No Select on some sites, normalise to 1/0.
     for row in rows:
         row["is_exchange"] = _truthy_custom(row.get("is_exchange"))
         row["owner_name"] = row.get("owner_name") or row.get("owner")
@@ -1879,12 +1879,12 @@ def get_returnable(invoice, pos_profile=None):
             returned[row.item_code] = abs(flt(row.qty))
 
     sold_serials = _sold_serials(doc)
-    # Which serials have ALREADY come back on a prior credit note — read from our
+    # Which serials have ALREADY come back on a prior credit note. Read from our
     # own return documents, not from Serial No.status.
     #
     # ERPNext v15 routes serials through the Serial and Batch Bundle and no
     # longer reliably marks a sold serial "Delivered", so keying returnability
-    # off that status made every serialized item show NOTHING to pick — the item
+    # off that status made every serialized item show NOTHING to pick, the item
     # was un-returnable at the till. Our own records are authoritative here.
     already_returned = _returned_serials(doctype, return_names)
     items = []
@@ -1940,7 +1940,7 @@ def _return_window(original):
 def _refund_splits(refund_payments, refund_amount, default_mode, allowed_modes):
     """Normalise the refund tenders into [{mode_of_payment, amount(neg), reference_no}].
 
-    Splitting a refund matters when the customer paid two ways — but DIRECTION
+    Splitting a refund matters when the customer paid two ways, but DIRECTION
     matters too: collecting money may use any tender, whereas REFUNDING is
     restricted to the configured refund rules. So every requested tender is
     validated here, not just the first.
@@ -1996,7 +1996,7 @@ def _allowed_refund_modes(original):
             allowed.add(rule.refund_mode)
     # Refunding onto the customer's account used to be hard-wired as always
     # allowed, so a cashier could park a refund on credit against shop policy.
-    # It's a switch now — with ONE carve-out: credit the customer actually SPENT
+    # It's a switch now, with ONE carve-out: credit the customer actually SPENT
     # on this sale can always go back to credit (capped at what they spent),
     # because otherwise a credit-paid sale would have no refund method at all.
     if settings.get("allow_store_credit_refund") or store_credit.MODE_OF_PAYMENT in paid:
@@ -2010,7 +2010,7 @@ def _has_serial_bundle(doctype=None):
     v15 moved serials onto a Bundle doctype; v13/v14 keep them in the plain
     `serial_no` text field. Querying the Bundle (or selecting its column) on an
     older site is a hard SQL error, so every Bundle-specific query is gated on
-    this. Cached per request — it can't change mid-request."""
+    this. Cached per request, it can't change mid-request."""
     key = f"_lumenpos_has_sbb:{doctype or ''}"
     cached = getattr(frappe.local, key, None)
     if cached is not None:
@@ -2087,7 +2087,7 @@ def create_return(
     """Create a POS return (credit note) against a submitted POS sale.
 
     items = {"ITEM-001": 2, ...} quantities to return (positive numbers).
-    serials = {"ITEM-001": ["SN-1", "SN-2"]} — REQUIRED for serialized items;
+    serials = {"ITEM-001": ["SN-1", "SN-2"]}. REQUIRED for serialized items;
     each serial must have been sold on the original invoice and still be
     marked Delivered.
     refund_mode = a Mode of Payment; use "Store Credit" to keep the value on
@@ -2126,7 +2126,7 @@ def create_return(
     if not window["within"] and not permissions.can_exceed_return_window():
         if not return_request:
             frappe.throw(
-                _("Returns are allowed within {0} days — this invoice is {1} days old. Send a return approval request to continue.").format(
+                _("Returns are allowed within {0} days, this invoice is {1} days old. Send a return approval request to continue.").format(
                     window["window_days"], window["age_days"]
                 )
             )
@@ -2155,7 +2155,7 @@ def create_return(
     # note as a POS Invoice return against the original POS Invoice, tied to the
     # CURRENT open shift, so the refund comes from the current drawer. ERPNext's
     # consolidation links/merges this return into a credit-note Sales Invoice at
-    # the next close — no desk trip needed.
+    # the next close, no desk trip needed.
 
     allowed_modes = _allowed_refund_modes(original)
     # With a split refund every tender is validated in _refund_splits below, so
@@ -2217,7 +2217,7 @@ def create_return(
     if not return_doc.items:
         frappe.throw(_("Selected items were not found on the original sale"))
     sold = _sold_serials(original)
-    # Serials already returned on a previous credit note (our own record — see
+    # Serials already returned on a previous credit note (our own record. See
     # _returned_serials on why Serial No.status can't be trusted on v15).
     prior_returns = frappe.get_all(
         sale_doctype,
@@ -2226,7 +2226,7 @@ def create_return(
     )
     already_returned = _returned_serials(sale_doctype, prior_returns)
     for row in return_doc.items:
-        # Lines carry the ORIGINAL outlet's warehouse / cost center too — stock
+        # Lines carry the ORIGINAL outlet's warehouse / cost center too, stock
         # would come back into the selling branch instead of the one taking it.
         if handling_profile.get("warehouse"):
             row.warehouse = handling_profile.warehouse
@@ -2258,7 +2258,7 @@ def create_return(
     # validate_pos checks `abs(paid) + abs(write_off) - abs(rounded_total or
     # grand_total)`; it uses rounded_total when rounding is on (POS Invoice has
     # no disable_rounded_total field, so we can't turn that off). Paying that
-    # exact figure and forcing write_off to 0 makes the difference 0 — so a
+    # exact figure and forcing write_off to 0 makes the difference 0, so a
     # tax-inclusive half-cent can never trip "Paid amount + Write Off Amount can
     # not be greater than Grand Total".
     invoice_total = return_doc.rounded_total or return_doc.grand_total
@@ -2339,7 +2339,7 @@ def create_return(
 
 def _enforce_return_groups(returnable_items, items):
     """Items sold together as a bundle or a Buy X Get Y set must be returned as a
-    whole on a REGULAR return — every member at its full remaining quantity, or
+    whole on a REGULAR return, every member at its full remaining quantity, or
     none. Exchanges are exempt (they never call this)."""
     members = {}  # group -> {item_code: total_returnable_qty}
     group_of = {}

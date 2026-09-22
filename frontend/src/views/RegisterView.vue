@@ -9,7 +9,7 @@
       <div class="panel-head">{{ t('Previous shift not finished') }}</div>
       <div class="panel-body">
         <p>
-          {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being consolidated') }}<span v-if="pending.closing_status === 'Failed'"> {{ t('— the last attempt') }}
+          {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being consolidated') }}<span v-if="pending.closing_status === 'Failed'">&nbsp;{{ t('and the last attempt') }}
           <b class="neg">{{ t('failed') }}</b></span>.
         </p>
         <pre v-if="pending.closing_error" class="err-detail">{{ pending.closing_error }}</pre>
@@ -22,10 +22,10 @@
           <Icon name="refresh" /> {{ retrying === pending.session ? t('Finalising…') : t('Retry closing') }}
         </button>
         <p class="muted small" style="margin-top: 8px">
-          {{ t('Safe to retry as often as needed — ERPNext rolls a failed attempt back fully, so nothing is ever double-posted.') }}
+          {{ t('Safe to retry as often as needed. ERPNext rolls a failed attempt back fully, so nothing is ever double-posted.') }}
         </p>
 
-        <!-- Closing keeps FAILING — let the store keep trading. Opens a fresh shift
+        <!-- Closing keeps FAILING, let the store keep trading. Opens a fresh shift
              now; the failed one stays in the background and keeps retrying. -->
         <div
           v-if="pending.closing_status === 'Failed' && session.permissions.close_register !== false"
@@ -46,7 +46,7 @@
             </button>
           </div>
           <p class="muted small" style="margin-top: 8px">
-            {{ t('Keep selling now — the failed shift stays in the background and keeps retrying until its invoices consolidate.') }}
+            {{ t('Keep selling now, the failed shift stays in the background and keeps retrying until its invoices consolidate.') }}
           </p>
         </div>
       </div>
@@ -61,18 +61,17 @@
       <div class="panel-body">
         <p>
           {{ t('Session') }} <b>{{ closedResult.name }}</b>
-          <template v-if="closeState.status === 'Closed'">
-            {{ t('closed.') }}
+          <template v-if="closeState.status === 'Closed'">&nbsp;{{ t('closed.') }}
             <template v-if="closeState.pos_closing_entry">
               {{ t('POS Closing Entry') }}
               <a :href="`/app/pos-closing-entry/${closeState.pos_closing_entry}`" target="_blank" class="entry-link">
                 {{ closeState.pos_closing_entry }}
               </a>
-              {{ t('— invoices consolidated.') }}
+              {{ t('consolidated its invoices.') }}
             </template>
           </template>
-          <template v-else-if="closeState.closing_status === 'Failed'">
-            <span class="neg">{{ t('— consolidation failed.') }}</span> {{ t('The shift is safely closed (no more sales) but its invoices still need to post. Retry below.') }}
+          <template v-else-if="closeState.closing_status === 'Failed'">&nbsp;<span class="neg">{{ t('was closed, but consolidation failed.') }}</span>
+            {{ t('No more sales can be added, but its invoices still need to post. Retry below.') }}
           </template>
           <template v-else>
             <span class="muted"><Icon name="hourglass" /> {{ t('Consolidating invoices in the background… this usually takes a few seconds.') }}</span>
@@ -109,7 +108,7 @@
     <div v-if="!session.registerOpen && !closedResult && !pending" class="card panel">
       <div class="panel-head">{{ t('Open register') }}</div>
       <div class="panel-body">
-        <p class="muted">{{ session.posProfile }} {{ t('— enter the opening cash float to start selling.') }}</p>
+        <p class="muted">{{ session.posProfile }}. {{ t('Enter the opening cash float to start selling.') }}</p>
         <label class="field-label">{{ t('Opening float') }}</label>
         <input type="text" inputmode="decimal" v-model="openFloat" style="width: 200px" :disabled="!canOpen" @keydown.enter="openRegister()" />
         <div style="margin-top: 14px">
@@ -177,7 +176,7 @@
         <div class="panel-body" v-else>
           <!-- Queued offline sales belong to THIS shift's drawer. Closing before
                they upload would push them onto the next shift and leave both
-               counts wrong — so block the close until they're in. -->
+               counts wrong, so block the close until they're in. -->
           <div v-if="session.queuedCount > 0" class="queued-block">
             <div>
               <b>{{ t('{n} offline sales are still waiting to upload.', { n: session.queuedCount }) }}</b>
@@ -188,11 +187,11 @@
             </button>
           </div>
           <div v-if="loadError" class="summary-error">
-            {{ t('⚠ Couldn\'t load the expected takings') }} ({{ loadError }}). {{ t('You can still close the register — enter the counted amounts below.') }}
+            {{ t('⚠ Couldn\'t load the expected takings') }} ({{ loadError }}). {{ t('You can still close the register. Enter the counted amounts below.') }}
           </div>
           <p class="muted small" style="margin: 0 0 10px">
             {{ t('Need to fix a wrong payment method? Do the return + corrected sale') }}
-            <b>{{ t('before') }}</b> {{ t("closing — they're picked up automatically. Once you close, the shift can't be sold on again.") }}
+            <b>{{ t('before') }}</b> {{ t("closing, they're picked up automatically. Once you close, the shift can't be sold on again.") }}
           </p>
           <table class="count-table">
             <thead>
@@ -201,7 +200,7 @@
             <tbody>
               <tr v-for="row in countRows" :key="row.mode_of_payment">
                 <td>{{ row.mode_of_payment }}</td>
-                <td class="right">{{ row.expected_amount != null ? money(row.expected_amount) : '—' }}</td>
+                <td class="right">{{ row.expected_amount != null ? money(row.expected_amount) : '-' }}</td>
                 <td class="right">
                   <input
                     type="text"
@@ -313,14 +312,14 @@ async function openRegister() {
     session.notify(t('Enter the opening float as a number, e.g. 1500 or 1500.50'), true)
     return
   }
-  // A genuine zero must be deliberate — this is the "opened with cash in the
+  // A genuine zero must be deliberate, this is the "opened with cash in the
   // drawer, recorded 0.00" case.
   if (float === 0 && !confirm(t('Open with an opening float of 0.00? Confirm the drawer is empty.'))) {
     return
   }
   opening.value = true
   try {
-    // Always a fresh shift — no resume / force-new branches.
+    // Always a fresh shift, no resume / force-new branches.
     await session.openRegister(float)
     pending.value = null
     session.notify(t('Register opened'))
@@ -384,7 +383,7 @@ function pollCloseState(sessionName) {
         if (pending.value && pending.value.session === sessionName) {
           pending.value = { ...pending.value, closing_status: 'Failed', closing_error: res.closing_error }
         }
-        session.notify(t('Consolidation failed — check the error and retry'), true)
+        session.notify(t('Consolidation failed. Check the error and retry'), true)
         loadHistory()
       }
     } catch {
@@ -495,14 +494,14 @@ async function close() {
   await session.refreshQueueCount()
   if (session.queuedCount > 0) {
     session.notify(
-      t('{n} offline sales still need to upload — press Upload now before closing.', {
+      t('{n} offline sales still need to upload. Press Upload now before closing.', {
         n: session.queuedCount,
       }),
       true
     )
     return
   }
-  if (!confirm(t('Close the register? This ends the current session — make any corrections first.'))) return
+  if (!confirm(t('Close the register? This ends the current session. Make any corrections first.'))) return
   closing.value = true
   try {
     const countedClean = {}

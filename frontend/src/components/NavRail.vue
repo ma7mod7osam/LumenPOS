@@ -84,12 +84,12 @@ async function refreshPending() {
     return
   }
   try {
-    // No profile scoping — an approver sees every open-shift request they can
+    // No profile scoping, an approver sees every open-shift request they can
     // act on, even when their till is on a different POS profile than the cashier.
     const rows = await call('lumenpos.api.approval_requests.pending_requests', {})
     pendingCount.value = rows.length
   } catch {
-    /* ignore — the badge is best-effort */
+    /* ignore, the badge is best-effort */
   }
 }
 

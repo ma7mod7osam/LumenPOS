@@ -11,7 +11,7 @@ never lost to an audit problem). Reads are manager-only.
 import frappe
 from frappe.utils import cint, flt
 
-# Actions worth recording. Free-form strings — these are just the common ones.
+# Actions worth recording. Free-form strings, these are just the common ones.
 SALE = "Sale"
 RETURN = "Return"
 OVER_LIMIT_DISCOUNT = "Over-limit discount"
@@ -39,7 +39,7 @@ def log(
     user=None,
 ):
     """Record one sensitive action. Silent no-op when the feature is off or the
-    write fails — auditing must never break the till."""
+    write fails, auditing must never break the till."""
     if not _enabled():
         return
     try:

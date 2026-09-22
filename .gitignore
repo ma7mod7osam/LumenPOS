@@ -8,7 +8,7 @@ __pycache__
 frontend/dist
 .vscode
 
-# Internal working documents — never committed to the public repository.
+# Internal working documents, never committed to the public repository.
 # (Backport notes reference a separate product and a named client; the listing
 # copy and case-study draft are unpublished business material.)
 docs/vpos-*.md

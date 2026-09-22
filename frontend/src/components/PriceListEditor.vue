@@ -5,7 +5,7 @@
   <div class="ple">
     <div class="ple-head">
       <span class="ple-count">
-        {{ t('Search to edit existing prices on') }} <b>{{ priceList }}</b>{{ t(', or add / import below — changes apply immediately') }}
+        {{ t('Search to edit existing prices on') }} <b>{{ priceList }}</b>, {{ t('or add / import below, changes apply immediately') }}
       </span>
       <div class="ple-actions">
         <button class="btn btn-outline" :disabled="exporting" @click="doExport">
@@ -42,7 +42,7 @@
 
     <div v-if="importReport" class="import-report">
       <div class="gate-ok">
-        ✓ {{ t('Imported — {created} added, {updated} updated', { created: importReport.created, updated: importReport.updated }) }}
+        ✓ {{ t('Imported, {created} added, {updated} updated', { created: importReport.created, updated: importReport.updated }) }}
       </div>
       <div v-for="(err, i) in importReport.errors" :key="i" class="gate-bad">⚠ {{ err }}</div>
       <button class="btn-ghost dismiss" @click="importReport = null">{{ t('Dismiss') }}</button>
@@ -64,7 +64,7 @@
             <div class="muted small mono">{{ row.item_code }}</div>
           </td>
           <td class="right muted" v-if="compareList">
-            {{ row.default_rate != null ? money(row.default_rate) : '—' }}
+            {{ row.default_rate != null ? money(row.default_rate) : '-' }}
           </td>
           <td class="right">
             <input
@@ -89,7 +89,7 @@
     <div v-else-if="!loading" class="muted empty-note">
       {{ search
         ? t('No matching priced items.')
-        : t('No items priced in this book yet — add an item or import a file. Items not priced here have no price (0).') }}
+        : t('No items priced in this book yet. Add an item or import a file. Items not priced here have no price (0).') }}
     </div>
     <button v-if="rows.length && rows.length < total" class="btn btn-outline add-row" @click="load(true)">
       {{ t('Load more ({count} remaining)', { count: total - rows.length }) }}
@@ -128,7 +128,7 @@ let timer = null
 
 // Show the items priced on this (dedicated) list: load on open and whenever
 // the list changes. Base selling lists are blocked elsewhere, so this only
-// ever loads a small per-book/app list — never the whole catalogue.
+// ever loads a small per-book/app list, never the whole catalogue.
 onMounted(() => {
   if (props.priceList) load()
 })

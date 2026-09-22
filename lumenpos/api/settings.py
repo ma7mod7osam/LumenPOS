@@ -36,7 +36,7 @@ def _require_manager():
 
 
 def _default_selling_price_list():
-    """The price list a new price book starts on — the site's default selling
+    """The price list a new price book starts on, the site's default selling
     price list, falling back to ERPNext's 'Standard Selling'."""
     return frappe.db.get_single_value("Selling Settings", "selling_price_list") or (
         "Standard Selling" if frappe.db.exists("Price List", "Standard Selling") else None
@@ -44,7 +44,7 @@ def _default_selling_price_list():
 
 
 def _protected_price_lists():
-    """Base selling lists a price book / delivery app must NOT edit — editing
+    """Base selling lists a price book / delivery app must NOT edit, editing
     them would change real selling prices, not create overrides. Covers the
     company's default selling list, every POS Profile's selling list and
     ERPNext's 'Standard Selling'."""
@@ -64,7 +64,7 @@ def _block_if_protected(price_list):
     if price_list and price_list in _protected_price_lists():
         frappe.throw(
             _(
-                "“{0}” is a base selling price list — editing it here would change your "
+                "“{0}” is a base selling price list, editing it here would change your "
                 "normal selling prices. Create a dedicated price list for this book/app instead."
             ).format(price_list)
         )
@@ -555,7 +555,7 @@ def get_index_health():
 def rebuild_indexes():
     """Build any missing performance index, in the background (building one on a
     multi-million-row table stalls writes for minutes, so this never runs inline
-    on a request). No deploy needed — the same builder the migrate uses."""
+    on a request). No deploy needed, the same builder the migrate uses."""
     _require_manager()
     frappe.enqueue(
         "lumenpos.install.ensure_hot_indexes", queue="long", timeout=3600, is_async=True
@@ -566,7 +566,7 @@ def rebuild_indexes():
 @frappe.whitelist()
 def receipt_field_options(source):
     """Pickable fields for the receipt custom-field builder: fields of the POS
-    Profile, or of the sale invoice (POS Invoice + Sales Invoice, deduped) —
+    Profile, or of the sale invoice (POS Invoice + Sales Invoice, deduped), 
     INCLUDING custom fields, which is how a ZATCA-QR / country-specific field
     shows up. Layout fields (sections, columns, tables) are excluded."""
     _require_manager()
@@ -717,7 +717,7 @@ def save_promotion(payload):
         _require("POS Promotion", "create")
         doc = erpnext_compat.new_doc("POS Promotion")
 
-    # Empty date/time inputs arrive as "" — store None, never 00:00:00
+    # Empty date/time inputs arrive as "", store None, never 00:00:00
     # (a 00:00-00:00 window would silently disable the promotion)
     for field in ("start_date", "end_date", "start_time", "end_time"):
         if field in payload and not payload[field]:
@@ -774,7 +774,7 @@ def save_promotion(payload):
 
 def _resolve_link(doctype, value):
     """STRICT link resolution for the settings editor: the value must be a
-    real record. For items, a pasted item NAME is resolved to its code —
+    real record. For items, a pasted item NAME is resolved to its code, 
     anything unknown is rejected with a clear message instead of saving a
     promotion that can never match."""
     value = (value or "").strip()
@@ -790,7 +790,7 @@ def _resolve_link(doctype, value):
         if by_barcode:
             return by_barcode
     frappe.throw(
-        _("{0} '{1}' does not exist — pick it from the dropdown list").format(_(doctype), value)
+        _("{0} '{1}' does not exist. Pick it from the dropdown list").format(_(doctype), value)
     )
 
 
@@ -863,7 +863,7 @@ def save_cashback_rule(payload):
         _require("POS Cashback Rule", "create")
         doc = erpnext_compat.new_doc("POS Cashback Rule")
 
-    # Empty date/time inputs arrive as "" — store None, never 00:00:00
+    # Empty date/time inputs arrive as "", store None, never 00:00:00
     # (a 00:00-00:00 window would silently disable the rule)
     for field in ("start_date", "end_date", "start_time", "end_time"):
         if field in payload and not payload[field]:
@@ -922,7 +922,7 @@ def delete_cashback_rule(name):
 
 
 # ---------------------------------------------------------------------------
-# Return restrictions (POS Return Restriction) — what the shop will not take back
+# Return restrictions (POS Return Restriction), what the shop will not take back
 # ---------------------------------------------------------------------------
 
 RETURN_RESTRICTION_FIELDS = [
@@ -1093,7 +1093,7 @@ def test_promotion(name, items, pos_profile, customer_group=None):
         )
 
     price_warnings = [
-        _("{0} has NO price on price list '{1}' — a percentage of 0 is 0").format(
+        _("{0} has NO price on price list '{1}', a percentage of 0 is 0").format(
             line["item_code"], profile.selling_price_list
         )
         for line in lines
@@ -1254,7 +1254,7 @@ def list_price_book_prices(price_list, search="", start=0, limit=50, compare_pri
     """Items priced on a price book's price list, with the default price
     alongside for comparison."""
     # Always apply the search filter (an empty search becomes "%", which matches
-    # everything) so the query is a fixed literal — no string building, no
+    # everything) so the query is a fixed literal, no string building, no
     # injection surface. All values are bound parameters.
     params = {
         "price_list": price_list,
@@ -1324,7 +1324,7 @@ def _upsert_item_price(price_list, item_code, rate):
 
 
 def _resolve_item(value):
-    """Item code from a code, an item name, or a barcode — or None."""
+    """Item code from a code, an item name, or a barcode, or None."""
     value = (value or "").strip()
     if not value:
         return None
@@ -1521,7 +1521,7 @@ def _item_group_descendants(group):
 
 
 def _items_with_tag(tag):
-    """Item codes carrying an ERPNext tag — via the Tag Link table, falling back
+    """Item codes carrying an ERPNext tag, via the Tag Link table, falling back
     to the denormalised _user_tags string."""
     codes = frappe.get_all(
         "Tag Link",
@@ -1536,7 +1536,7 @@ def _items_with_tag(tag):
 @frappe.whitelist()
 def resolve_items(brand=None, item_group=None, tag=None):
     """Sellable item codes matching a brand / item group (incl. sub-groups) /
-    tag — for bulk-adding to a price book in one click. Returns
+    tag, for bulk-adding to a price book in one click. Returns
     [{item_code, item_name}]."""
     _require("Item", "read")
     brand = (brand or "").strip()
@@ -1648,7 +1648,7 @@ def delete_coupons(promotion, only_unused=1):
 @frappe.whitelist()
 def parse_price_rows(filename, content):
     """Parse an uploaded .xlsx/.csv into item+price rows for the price-book item
-    editor. The rows are merged into the book and saved with it — nothing is
+    editor. The rows are merged into the book and saved with it, nothing is
     written to Item Price here."""
     _require("POS Price Book", "write")
     rows = _parse_price_table(filename, content)
@@ -1852,7 +1852,7 @@ def link_options(doctype, search="", company=None, root_type=None):
         filters["is_group"] = 0
     if doctype == "Account":
         # Any postable account (loyalty wants Expense, gift cards want a
-        # Liability account) — the field label guides the choice. On a
+        # Liability account), the field label guides the choice. On a
         # multi-company site, scope to the chosen company so its chart of
         # accounts isn't mixed with the others'.
         filters["is_group"] = 0
@@ -1876,7 +1876,7 @@ def link_options(doctype, search="", company=None, root_type=None):
         limit_page_length=20,
     )
     if doctype == "Price List":
-        # Don't offer base selling lists as a price-book / app list — editing
+        # Don't offer base selling lists as a price-book / app list, editing
         # them would change normal selling prices.
         protected = _protected_price_lists()
         results = [r for r in results if r["name"] not in protected]
@@ -1884,7 +1884,7 @@ def link_options(doctype, search="", company=None, root_type=None):
 
 
 def _item_link_options(search):
-    """Item autocomplete for the settings editors — matches on item code,
+    """Item autocomplete for the settings editors, matches on item code,
     item name OR barcode, and returns the first barcode for display."""
     search = (search or "").strip()
     or_filters = None

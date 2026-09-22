@@ -7,8 +7,8 @@
 // A hand scanner in keyboard-wedge mode emits all characters within a few ms of
 // each other and ends with Enter; a human types far slower. We record the
 // timestamp of each character keydown and, on confirm, accept only if the whole
-// code arrived as a fast burst. Deliberately lenient — real scanners (even slow
-// ones, ~30–40ms/char) pass; only human-speed typing is rejected.
+// code arrived as a fast burst. Deliberately lenient, real scanners (even slow
+// ones, ~30 to 40ms/char) pass; only human-speed typing is rejected.
 
 const MAX_AVG_GAP_MS = 70 // average ms between characters that still counts as a scan
 

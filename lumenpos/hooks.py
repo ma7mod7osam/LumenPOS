@@ -11,7 +11,7 @@ app_license = "AGPL-3.0-only"
 required_apps = ["erpnext"]
 
 after_install = "lumenpos.install.after_install"
-# Runs on every app update (Frappe Cloud deploy) — keeps the LumenPOS roles and
+# Runs on every app update (Frappe Cloud deploy), keeps the LumenPOS roles and
 # custom fields in place on existing sites without shell access.
 after_migrate = "lumenpos.install.ensure_setup"
 
@@ -24,7 +24,7 @@ scheduler_events = {
         "*/10 * * * *": [
             "lumenpos.api.register.reconcile_stuck_closings",
         ],
-        # Forgotten-shift alert. Hourly is enough — it emails once per shift
+        # Forgotten-shift alert. Hourly is enough, it emails once per shift
         # (de-duped by the session's overdue_notified flag) and never closes a
         # till, so it can't race anything.
         "0 * * * *": [

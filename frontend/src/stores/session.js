@@ -94,7 +94,7 @@ export const useSessionStore = defineStore('session', {
   getters: {
     registerOpen: (s) => Boolean(s.registerSession),
     // "Per cashier" scope: the takings land in the drawer of whoever OPENED the
-    // shift, so only they may ring one up (no manager bypass — handover is
+    // shift, so only they may ring one up (no manager bypass, handover is
     // close + reopen). Empty when the shift is the outlet's.
     sellBlockedBy: (s) => {
       if ((s.settings?.shift_scope || 'Per outlet') !== 'Per cashier') return ''
@@ -155,13 +155,13 @@ export const useSessionStore = defineStore('session', {
           if (cached) {
             this._applyBootstrap(cached)
             this.offline = true
-            this.notify('Offline — using cached data')
+            this.notify('Offline, using cached data')
           } else {
             this.error =
               'No connection and no cached data yet. Connect once so the POS can cache its catalog.'
           }
         } else if (!posProfile && target) {
-          // The remembered outlet is stale / no longer permitted — forget it and
+          // The remembered outlet is stale / no longer permitted, forget it and
           // boot the user's default outlet instead.
           try {
             localStorage.removeItem('lumenpos_profile')
@@ -178,7 +178,7 @@ export const useSessionStore = defineStore('session', {
     },
 
     // Switch the active outlet (POS Profile) and reload everything for it. The
-    // other outlet's shift stays open — this only changes what this screen shows.
+    // other outlet's shift stays open, this only changes what this screen shows.
     async switchProfile(name) {
       if (!name || name === this.posProfile) return
       try {
@@ -228,7 +228,7 @@ export const useSessionStore = defineStore('session', {
         this.offline = true
       })
       // Promotions edited on another terminal/tab show up when this till
-      // regains focus — no reload needed.
+      // regains focus, no reload needed.
       window.addEventListener('focus', () => {
         this.refreshPromotions().catch(() => {})
       })
@@ -239,7 +239,7 @@ export const useSessionStore = defineStore('session', {
     markOffline() {
       if (!this.offline) {
         this.offline = true
-        this.notify('Connection lost — sales will be queued')
+        this.notify('Connection lost, sales will be queued')
       }
     },
 
@@ -307,7 +307,7 @@ export const useSessionStore = defineStore('session', {
           }
         }
         // Prune pending customers no remaining queued sale references (kept ones
-        // re-resolve safely on the next flush — resolution is idempotent).
+        // re-resolve safely on the next flush, resolution is idempotent).
         try {
           const remaining = await listQueue()
           const stillRef = new Set(remaining.map((e) => e.payload?.customer).filter(Boolean))
@@ -322,7 +322,7 @@ export const useSessionStore = defineStore('session', {
         if (synced) this.notify(`Synced ${synced} offline sale${synced > 1 ? 's' : ''}`)
         if (failed)
           this.notify(
-            `${failed} offline sale${failed > 1 ? 's' : ''} still need attention — see the offline sales log`,
+            `${failed} offline sale${failed > 1 ? 's' : ''} still need attention. See the offline sales log`,
             true
           )
       } finally {
@@ -343,7 +343,7 @@ export const useSessionStore = defineStore('session', {
         opening_float: openingFloat,
         ...extra,
       })
-      // Opening is always a fresh shift now — the server never returns a
+      // Opening is always a fresh shift now, the server never returns a
       // resume/retry control object, so the result IS the live session.
       this.registerSession = result
       return result

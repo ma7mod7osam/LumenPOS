@@ -177,7 +177,7 @@ def _line_matches(line, rows, role=None):
 def _matching_indexes(cart, promo, role=None):
     """Include rows select lines; exclude rows then subtract from the result.
     'Apply on all' (or include rows absent while exclude rows exist) starts
-    from the whole cart — enabling 'everything except brand X'."""
+    from the whole cart, enabling 'everything except brand X'."""
     rows = promo.get("items") or []
     include_rows = [r for r in rows if not r.get("exclude")]
     exclude_rows = [r for r in rows if r.get("exclude")]
@@ -338,7 +338,7 @@ def _candidate_spend_save(cart, promo):
 
 def _candidate_bundle(cart, promo):
     """Bundle Price: the listed items bought together (row qty each) go for a
-    fixed total. Items stay separate lines — the saving is spread across the
+    fixed total. Items stay separate lines, the saving is spread across the
     consumed units proportionally to price. Cheapest matching units are
     consumed first; the bundle repeats while the cart can fill it."""
     rows = [r for r in (promo.get("items") or []) if not r.get("exclude")]

@@ -4,7 +4,7 @@
 // Lightweight i18n for the POS UI (no extra dependency).
 //
 // Translations are keyed by the ENGLISH source string, so a missing key simply
-// falls back to English — partial translation degrades gracefully and never
+// falls back to English, partial translation degrades gracefully and never
 // shows a raw key. Only the chrome/labels are translated; MASTER DATA (item
 // names, customer names, item codes, barcodes, money, dates) is never passed
 // through t() and stays exactly as entered in ERPNext.

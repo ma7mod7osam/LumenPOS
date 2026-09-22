@@ -4,7 +4,7 @@
 """Helpers for the internal documents LumenPOS auto-provisions (clearing modes of
 payment, liability accounts, the gift-card item).
 
-Sites often add their OWN mandatory custom fields to core doctypes — e.g. an
+Sites often add their OWN mandatory custom fields to core doctypes, e.g. an
 "In Arabic" name on Mode of Payment, or a required attribute on Item. LumenPOS has
 no value for those when it creates a clearing/internal record, so without help
 the insert fails with "Value missing for ...". fill_required_custom_fields puts

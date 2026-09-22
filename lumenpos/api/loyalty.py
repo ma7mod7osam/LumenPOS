@@ -38,7 +38,7 @@ def get_wallet(customer, company):
                 }
             )
     except Exception:
-        # No loyalty program configured for this customer — wallet still
+        # No loyalty program configured for this customer, wallet still
         # carries the store credit balance.
         pass
     return wallet

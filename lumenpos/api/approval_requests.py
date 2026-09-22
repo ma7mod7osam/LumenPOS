@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""POS approval requests — a generic, role-approved request used for two cases:
+"""POS approval requests, a generic, role-approved request used for two cases:
 
 - **Discount**: a manual discount above LumenPOS Settings → Discount Limit, when the
   approval method allows requests.
@@ -102,13 +102,13 @@ def create_request(
     if request_type == "Discount":
         if approval_mode() == "Passcode only":
             frappe.throw(
-                _("Discount requests are turned off — ask a manager for the passcode.")
+                _("Discount requests are turned off. Ask a manager for the passcode.")
             )
         discount_percent = flt(discount_percent)
         limit = flt(settings.get("discount_limit_percent"))
         if limit > 0 and discount_percent <= limit:
             frappe.throw(
-                _("This discount is within the {0}% limit — no approval needed.").format(limit)
+                _("This discount is within the {0}% limit, no approval needed.").format(limit)
             )
     else:  # Return
         if not return_invoice:
@@ -121,7 +121,7 @@ def create_request(
         ):
             frappe.throw(_("Return approval isn't required, returns are open."))
         # The sale may be a POS Invoice or a Sales Invoice (per the profile's
-        # mode), so resolve the doctype instead of assuming POS Invoice — else
+        # mode), so resolve the doctype instead of assuming POS Invoice, else
         # the return-window age check silently no-ops in Sales-Invoice mode.
         inv_dt = (
             "Sales Invoice"
@@ -159,7 +159,7 @@ def create_request(
     )
     doc.insert(ignore_permissions=True)
     # A lightweight ping (only the POS Profile name, no PII) so any approver on
-    # this site can pick it up — there's no single target user to scope to.
+    # this site can pick it up, there's no single target user to scope to.
     frappe.publish_realtime(  # nosemgrep
         "lumenpos_approval_request", {"pos_profile": pos_profile}, after_commit=True
     )
@@ -168,7 +168,7 @@ def create_request(
 
 @frappe.whitelist()
 def request_status(name):
-    """Poll a request — the cashier who raised it (or any approver) may read."""
+    """Poll a request, the cashier who raised it (or any approver) may read."""
     doc = frappe.get_doc(REQUEST_DOCTYPE, name)
     if doc.cashier != frappe.session.user and not can_approve():
         frappe.throw(_("Request not found."), frappe.PermissionError)
@@ -196,7 +196,7 @@ def cancel_request(name):
 
 @frappe.whitelist()
 def pending_requests(pos_profile=None):
-    """Requests an approver can act on right now — Pending and whose register
+    """Requests an approver can act on right now. Pending and whose register
     session is still Open. Returns the list (its length is the badge count)."""
     _require_approver()
     filters = {"status": "Pending"}
@@ -238,12 +238,12 @@ def _decide(name, status, note=None):
     if frappe.db.get_value(SESSION_DOCTYPE, doc.register_session, "status") != "Open":
         doc.status = "Expired"
         doc.save(ignore_permissions=True)
-        frappe.throw(_("The cashier's register has closed — this request has expired."))
+        frappe.throw(_("The cashier's register has closed, this request has expired."))
     # Separation of duties: a role-only approver can't clear their own request.
-    # A manager (the authority) may — this is a manager override, and it also
+    # A manager (the authority) may, this is a manager override, and it also
     # lets a single owner test the flow end-to-end.
     if doc.cashier == frappe.session.user and not _is_manager():
-        frappe.throw(_("You can't approve your own request — another approver must."))
+        frappe.throw(_("You can't approve your own request, another approver must."))
     doc.status = status
     doc.approved_by = frappe.session.user
     doc.approver_name = get_fullname(frappe.session.user)
@@ -313,7 +313,7 @@ def consume(request_name, invoice_name):
 
 @frappe.whitelist()
 def expire_session_requests(session_name):
-    """Void every request on a shift that is closing — Pending AND
+    """Void every request on a shift that is closing. Pending AND
     Approved-but-unused.
 
     The rule: nothing unconfirmed survives the shift. An approval left over from
@@ -329,7 +329,7 @@ def expire_session_requests(session_name):
     voided = 0
     for row in rows:
         if row.status == "Approved" and row.consumed:
-            continue  # already spent on a sale — leave the audit trail intact
+            continue  # already spent on a sale. Leave the audit trail intact
         try:
             frappe.db.set_value(REQUEST_DOCTYPE, row.name, "status", "Expired")
             voided += 1

@@ -32,7 +32,7 @@
       </button>
     </div>
     <div v-else-if="open && typed && !loading" class="dropdown">
-      <div class="option muted">{{ t('No match — pick from the list, free text is not allowed') }}</div>
+      <div class="option muted">{{ t('No match. Pick from the list, free text is not allowed') }}</div>
     </div>
   </div>
 </template>

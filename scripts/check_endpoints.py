@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Release guard — run before every ship. No bench/site needed.
+"""Release guard. Run before every ship. No bench/site needed.
 
 Catches the class of outage where the POS looks fine but whole screens are dead:
 
@@ -139,4 +139,4 @@ if problems:
     print(f"\n{len(set(problems))} problem(s) found.")
     sys.exit(1)
 
-print(f"CLEAN — {len(whitelisted)} whitelisted endpoints, all frontend calls resolve.")
+print(f"CLEAN, {len(whitelisted)} whitelisted endpoints, all frontend calls resolve.")

@@ -219,7 +219,7 @@ const activeFilterCount = computed(() => {
 
 const route = useRoute()
 
-// Deep link from a customer's transaction list: /history?invoice=XYZ — one
+// Deep link from a customer's transaction list: /history?invoice=XYZ, one
 // money-flow path (refunds live here), rather than duplicating the refund flow
 // into the Customers screen.
 onMounted(async () => {
@@ -367,7 +367,7 @@ async function onRefundDone(returnReceipt) {
 .tag.amber { color: #9a6a0a; background: rgba(245, 166, 35, 0.18); }
 .tag.blue { color: var(--brand-dark); background: rgba(20, 99, 255, 0.12); }
 .tag.purple { color: #5b2bbf; background: rgba(123, 47, 242, 0.14); }
-/* Dark mode: faint tints + dark text are unreadable — brighten both. */
+/* Dark mode: faint tints + dark text are unreadable, brighten both. */
 html[data-theme='dark'] .tag.red { color: #ff9b9b; background: rgba(226, 48, 48, 0.26); }
 html[data-theme='dark'] .tag.amber { color: #ffce85; background: rgba(245, 166, 35, 0.26); }
 html[data-theme='dark'] .tag.blue { color: #b8c7ff; background: rgba(20, 99, 255, 0.30); }

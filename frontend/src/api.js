@@ -3,7 +3,7 @@
 // "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 export class ApiError extends Error {}
 
-// The network itself failed (no connection / server unreachable) — distinct
+// The network itself failed (no connection / server unreachable), distinct
 // from the server rejecting the request. Callers use this to switch the POS
 // into offline mode.
 export class OfflineError extends Error {

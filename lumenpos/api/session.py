@@ -124,7 +124,7 @@ def _pin_set():
     try:
         return bool(pin_api.pin_is_set())
     except Exception:
-        return True  # fail open — never lock a half-migrated site out
+        return True  # fail open, never lock a half-migrated site out
 
 
 def _gift_card_mode():
@@ -240,7 +240,7 @@ def get_bundles(pos_profile=None):
 
 def _profile_taxes(profile):
     """The profile's tax template rows, so the cart can compute taxes the
-    same way the server will — the displayed total must equal the invoice
+    same way the server will, the displayed total must equal the invoice
     grand total."""
     if not profile.taxes_and_charges:
         return []
@@ -361,11 +361,11 @@ def unlock_till(passcode=None):
     key = f"lumenpos_unlock:{user}"
     attempts = cint(frappe.cache().get_value(key) or 0)
     if attempts >= 8:
-        frappe.throw(_("Too many attempts — wait a minute and try again."))
+        frappe.throw(_("Too many attempts, wait a minute and try again."))
 
     result = pin_api.check_own_pin(passcode)
     if result == "no_pin":
-        # Nothing to check against — the client shows the "create your PIN" step.
+        # Nothing to check against, the client shows the "create your PIN" step.
         return {"ok": False, "no_pin": True}
     if result != "ok":
         frappe.cache().set_value(key, attempts + 1, expires_in_sec=60)
@@ -385,7 +385,7 @@ def get_promotions(pos_profile):
 def check_coupon(pos_profile, code):
     """Validate a coupon code and hand back its promotion. Coupon-locked
     promotions are never shipped in the bootstrap payload, so this is the
-    only way a client learns about one — and only with the right code."""
+    only way a client learns about one, and only with the right code."""
     raw = (code or "").strip()
     if not raw:
         frappe.throw(_("Enter a coupon code"))
@@ -409,8 +409,8 @@ def check_coupon(pos_profile, code):
 
 
 def shift_scope():
-    """"Per outlet" (default) — ONE shift per register; any assigned cashier
-    sells on it. "Per cashier" — each cashier opens their OWN shift on that
+    """"Per outlet" (default). ONE shift per register; any assigned cashier
+    sells on it. "Per cashier", each cashier opens their OWN shift on that
     register and sells only on their own, so several people can share one
     counter and each still gets their own Z-report and drawer accountability."""
     try:
@@ -439,7 +439,7 @@ def get_open_session(pos_profile, user=None):
 
 
 def _default_pos_profile():
-    """Prefer an outlet this user already has a LIVE shift on — otherwise a
+    """Prefer an outlet this user already has a LIVE shift on, otherwise a
     manager (or anyone on several outlets) lands on an arbitrary assignment row
     while their open register sits somewhere else."""
     user = frappe.session.user
@@ -458,7 +458,7 @@ def _default_pos_profile():
 
 
 def _other_open_registers(current_profile):
-    """Open shifts this user still holds on OTHER outlets — so the Open Register
+    """Open shifts this user still holds on OTHER outlets, so the Open Register
     dialog can remind them a drawer is open elsewhere (multi-outlet allows more
     than one open at once, so a forgotten shift wouldn't otherwise surface)."""
     rows = frappe.get_all(
@@ -482,7 +482,7 @@ def _other_open_registers(current_profile):
 
 
 def _user_profiles():
-    """Outlets this user may operate. A MANAGER sees every enabled outlet — they
+    """Outlets this user may operate. A MANAGER sees every enabled outlet, they
     supervise the shop, and being stranded on one arbitrary assignment row (or on
     none at all) left them unable to help a branch that needed them."""
     user = frappe.session.user

@@ -8,7 +8,7 @@ past the return window without approval.
 Each capability is governed by an OPTIONAL role configured in LumenPOS Settings.
 A System / LumenPOS Manager always passes. The checks are enforced server-side
 (here) and mirrored to the UI via session.get_user_permissions, so the frontend
-can hide/disable controls — but the server is always the authority.
+can hide/disable controls, but the server is always the authority.
 """
 
 import frappe

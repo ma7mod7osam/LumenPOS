@@ -22,7 +22,7 @@
         <div class="tile-foot">
           <span class="tile-price">{{ money(item.price) }}</span>
           <span class="tile-tags">
-            <span v-if="item.has_serial_no" class="tile-serial" :title="t('Serialized — serial number required')">{{ t('S/N') }}</span>
+            <span v-if="item.has_serial_no" class="tile-serial" :title="t('Serialized, serial number required')">{{ t('S/N') }}</span>
             <span
               v-if="item.is_stock_item"
               class="tile-stock"

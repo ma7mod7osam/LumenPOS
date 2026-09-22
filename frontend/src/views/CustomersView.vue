@@ -175,7 +175,7 @@ onMounted(async () => {
 function onSearch(value) {
   search.value = value
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(reload, 300) // debounce — one query per pause, not per keystroke
+  searchTimer = setTimeout(reload, 300) // debounce, one query per pause, not per keystroke
 }
 
 async function reload() {
@@ -276,7 +276,7 @@ async function loadMoreTxns() {
 
 const router = useRouter()
 
-// Refunds happen in History (one money-flow path) — jump there with this sale
+// Refunds happen in History (one money-flow path), jump there with this sale
 // already open instead of duplicating the refund flow here.
 function openInHistory() {
   const name = receipt.value?.name

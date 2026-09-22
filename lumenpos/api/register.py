@@ -1,19 +1,19 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Register lifecycle — robust open / close with reliable consolidation.
+"""Register lifecycle, robust open / close with reliable consolidation.
 
 Opening the register creates BOTH:
   - a LumenPOS `POS Register Session` (operational: cash float, cash in/out)
   - a native ERPNext `POS Opening Entry` (so POS Invoices validate and the
     closing can consolidate them into Sales Invoices)
 
-CLOSING — the hard part. ERPNext consolidates the shift's POS Invoices into
+CLOSING, the hard part. ERPNext consolidates the shift's POS Invoices into
 Sales Invoices when a `POS Closing Entry` is submitted. For >=10 invoices it
 *enqueues* that consolidation; if it fails (heavy load, or two shifts
 consolidating the same customer at once) the closing entry is left "Failed",
 its `frappe.db.rollback()` undoes every merge log (so nothing is half-posted),
-and — critically — the linked POS Opening Entry stays "Open". The old code keyed
+and, critically, the linked POS Opening Entry stays "Open". The old code keyed
 "is a shift open?" partly off that opening entry, so a failed close let the next
 cashier resume a dead shift. The endless loop.
 
@@ -24,13 +24,13 @@ This module fixes it with a strict state machine on the LumenPOS session:
 
   * The moment a cashier closes, the session flips to "Closing" and is committed.
     From then on it is NOT sellable (get_open_session only returns "Open") and
-    NOT resumable — regardless of whether consolidation later succeeds or fails.
+    NOT resumable, regardless of whether consolidation later succeeds or fails.
   * Consolidation runs in a background job, SERIALIZED behind a cluster-wide DB
     lock and driven SYNCHRONOUSLY (we call create_merge_logs ourselves instead
     of letting ERPNext enqueue it), so two shifts can never deadlock each other.
   * A failed consolidation is safe to retry (ERPNext rolls back atomically), so
     the retry button and a scheduled self-healer keep re-running it until the
-    shift reaches "Closed" — at which point the opening entry is closed too.
+    shift reaches "Closed", at which point the opening entry is closed too.
 """
 
 import json
@@ -58,7 +58,7 @@ def _drawer_mode(pos_profile):
     all of them, made the X-report add the float once per mode, and let change
     come off whichever mode happened to be first. The drawer is ONE mode:
     the profile's default Cash-type payment, else its first Cash-type payment
-    (profile row order — deterministic), else plain "Cash" if it exists.
+    (profile row order, deterministic), else plain "Cash" if it exists.
     Returns None when the profile takes no cash at all."""
     cash = _cash_modes()
     if not cash:
@@ -97,7 +97,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
 
     The REGISTER SESSION's status is the only truth. Native POS Opening Entries
     are downstream paperwork and are never consulted to decide whether a shift is
-    live — a failed or slow close leaves one "Open" indefinitely, and keying off
+    live, a failed or slow close leaves one "Open" indefinitely, and keying off
     that is exactly how the next cashier ends up resurrecting a dead shift (the
     single most common complaint about the stock ERPNext POS).
 
@@ -109,7 +109,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     opening_float = flt(opening_float)
     si_mode = profile.get("lumenpos_invoice_mode") == "Sales Invoice"
     # SI mode normally runs a lightweight cash shift (no POS Opening/Closing
-    # Entry). A POS Profile can opt back into the entries for cash supervision —
+    # Entry). A POS Profile can opt back into the entries for cash supervision, 
     # then SI mode opens/closes exactly like POS Invoice mode, minus the
     # consolidation step (there are no POS Invoices to merge at close).
     lightweight = si_mode and not cint(profile.get("lumenpos_si_opening_closing"))
@@ -120,7 +120,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
 
     # 1) This register must have no live shift (Open or still-finalising Closing).
     # In "Per cashier" scope the shift belongs to the individual, so the check is
-    # scoped to this user — several cashiers can trade on one counter, each with
+    # scoped to this user, several cashiers can trade on one counter, each with
     # their own drawer and Z-report.
     from lumenpos.api.session import shift_scope
 
@@ -139,15 +139,15 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             )
         # status == "Closing": the cashier already closed this shift. Its POS
         # Closing Entry consolidation runs (and self-heals) in the background and
-        # must NEVER block the store from opening the next shift — no matter the
+        # must NEVER block the store from opening the next shift, no matter the
         # closing_status (Pending / Queued / Failed). Open a fresh shift now; the
         # stuck close keeps retrying independently, so no invoice is lost.
         return _force_new_after_failure(profile, opening_float, existing.name)
 
-    # Lightweight Sales Invoice cash shift — just the float, no ERPNext POS
+    # Lightweight Sales Invoice cash shift, just the float, no ERPNext POS
     # Opening Entry. Sales post as Sales Invoices directly, so there's nothing to
     # consolidate at close. (Skipped when the profile opts into POS Opening/
-    # Closing Entries — that path falls through to the full opening below.)
+    # Closing Entries, that path falls through to the full opening below.)
     if lightweight:
         sess = frappe.get_doc(
             {
@@ -177,7 +177,7 @@ def _create_fresh_session(profile, opening_float, bypass_live_guard=False):
     close whose consolidation never finished) must never be able to stop a shop
     opening tomorrow. The session's own validation is only bypassed when we are
     deliberately jumping over a still-"Closing" shift."""
-    # The float belongs to the ONE drawer mode (see _drawer_mode) — never to
+    # The float belongs to the ONE drawer mode (see _drawer_mode), never to
     # every Cash-type tender.
     drawer = _drawer_mode(profile.name)
     opening_entry = frappe.get_doc(
@@ -235,7 +235,7 @@ def _role_emails(role):
 
 def _maybe_alert_variance(doc):
     """Email a role when a counted drawer differs from expected by more than the
-    threshold. RECORD AND NOTIFY — never an approval gate: a close must not be
+    threshold. RECORD AND NOTIFY, never an approval gate: a close must not be
     blocked waiting for a manager, and a shift left open is worse than a
     variance. Entirely best-effort; a mail failure only logs."""
     try:
@@ -283,7 +283,7 @@ def _maybe_alert_variance(doc):
 
 def _force_new_after_failure(profile, opening_float, stuck_session):
     """The previous shift is still 'Closing' (consolidation pending, queued or
-    failed) — let the store keep trading. Open a fresh shift now; the stuck one
+    failed), let the store keep trading. Open a fresh shift now; the stuck one
     stays in 'Closing' and the self-healer keeps retrying its consolidation, so
     no invoice is lost.
 
@@ -324,7 +324,7 @@ def get_session_summary(session):
     """Expected takings per payment mode for the close-register screen, and for
     the mid-shift X-report.
 
-    READ-ONLY on purpose — no owner/manager check here. Reading a shift's
+    READ-ONLY on purpose, no owner/manager check here. Reading a shift's
     figures is not a mutation, and requiring ownership broke the X-report for
     any cashier working a till a colleague opened. The mutating callers
     (add_cash_movement, close_register) each call _assert_owner_or_manager
@@ -332,7 +332,7 @@ def get_session_summary(session):
     if not frappe.has_permission("POS Register Session", "read"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
     doc = frappe.get_doc("POS Register Session", session)
-    # Which sale doctype this shift posted — by the profile's mode, NOT by whether
+    # Which sale doctype this shift posted, by the profile's mode, NOT by whether
     # an opening entry exists (an SI shift can now have one for cash control).
     from lumenpos.api.sales import _table_doctype
 
@@ -424,7 +424,7 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
 
     doc = frappe.get_doc("POS Register Session", session)
     # A session with no POS Opening Entry (Sales Invoice mode / legacy) closes
-    # directly — there is no POS Closing Entry to create or consolidate.
+    # directly, there is no POS Closing Entry to create or consolidate.
     needed = "POS Register Session" if not doc.get("pos_opening_entry") else "POS Closing Entry"
     if not frappe.has_permission(needed, "create"):
         frappe.throw(_("You are not permitted to close a register"), frappe.PermissionError)
@@ -432,7 +432,7 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
         frappe.throw(_("Register session is already closed"))
     if doc.status == "Closing":
         # Already finalising (double-tap or post-failure): just push the
-        # consolidation again. Benign — no new counts, no live shift touched.
+        # consolidation again. Benign, no new counts, no live shift touched.
         _enqueue_consolidation(doc.name, counted)
         return _close_result(doc, queued=True)
     # The sensitive Open->Closing flip is owner/manager only (also enforced via
@@ -441,8 +441,8 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
 
     # STALE-CLOSING-SCREEN GUARD. The cashier counts the drawer against the
     # figures on their screen. If a sale landed from another window or device
-    # after that screen loaded, those figures — and therefore the variance they
-    # just signed off — are wrong. The client sends the sales count it displayed;
+    # after that screen loaded, those figures, and therefore the variance they
+    # just signed off, are wrong. The client sends the sales count it displayed;
     # if the shift has more now, refuse and make them re-read the screen.
     # (Chosen over blocking sales while a closing screen is open: a second device
     # never knows about that screen, whereas this check covers every path.)
@@ -501,7 +501,7 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
     doc.sales_count = summary["sales_count"]
     doc.save()
     # Persist the "Closing" state NOW: from here the shift is neither sellable
-    # nor resumable, whatever happens to the consolidation next. Intentional —
+    # nor resumable, whatever happens to the consolidation next. Intentional, 
     # the state must survive even if the consolidation step below fails.
     frappe.db.commit()  # nosemgrep
 
@@ -512,7 +512,7 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
         _enqueue_consolidation(doc.name, counted)
         queued = True
     else:
-        # No opening entry (Sales Invoice mode / legacy) — nothing to consolidate;
+        # No opening entry (Sales Invoice mode / legacy), nothing to consolidate;
         # the shift closes outright. Reflect that on the doc for the response.
         _mark_closed(doc.name, None)
         doc.status = "Closed"
@@ -606,7 +606,7 @@ def build_closing_entry(session_name, counted=None):
     serialized and idempotent. Safe to call repeatedly (initial job, manual
     retry, or the scheduled self-healer).
 
-    NOT whitelisted on purpose — it runs only via the background queue and the
+    NOT whitelisted on purpose, it runs only via the background queue and the
     scheduler. The HTTP entry point is retry_closing(), which is permission
     checked. (enqueue/scheduler resolve this by dotted path; no whitelist
     needed.)"""
@@ -614,7 +614,7 @@ def build_closing_entry(session_name, counted=None):
         counted = json.loads(counted)
 
     if not _acquire_lock(timeout=10):
-        # Another consolidation holds the lock. Don't busy-wait a worker slot —
+        # Another consolidation holds the lock. Don't busy-wait a worker slot, 
         # re-queue (de-duplicated) and let it run when the lock frees. The
         # 10-minute self-healer is the backstop if this is ever lost.
         _enqueue_consolidation(session_name, counted, after_commit=False)
@@ -664,7 +664,7 @@ def _reconcile_session(session_name, counted):
                 return None
             session.db_set("pos_closing_entry", closing_name, commit=True)
         elif closing.docstatus == 2:
-            # The closing was cancelled — start over with a fresh one.
+            # The closing was cancelled, start over with a fresh one.
             session.db_set("pos_closing_entry", None, commit=True)
             return _reconcile_session(session_name, counted)
 
@@ -703,11 +703,11 @@ def _consolidate_now(closing):
             pending.append(row)
 
     if not pending:
-        # Everything already consolidated (or no sales) — just finalize.
+        # Everything already consolidated (or no sales), just finalize.
         closing.set_status(update=True, status="Submitted")
         closing.db_set("error_message", "")
         closing.update_opening_entry()
-        # Enqueued consolidation job — commit the finalised state so it persists.
+        # Enqueued consolidation job, commit the finalised state so it persists.
         frappe.db.commit()  # nosemgrep
         return "Submitted"
 
@@ -724,7 +724,7 @@ def _make_closing_entry(session_doc, counted):
     triggering ERPNext's on-submit consolidation (we consolidate ourselves,
     serialized). Returns the submitted closing doc."""
     # The cashier's real counts live on the session's payment_counts (written +
-    # committed at close time). Treat THAT as authoritative — a retry or the
+    # committed at close time). Treat THAT as authoritative, a retry or the
     # self-healer calls in without the `counted` dict, and we must never post a
     # Z-report with zeroed counts and a false full-shortage variance.
     session_counts = {
@@ -765,7 +765,7 @@ def _make_closing_entry(session_doc, counted):
         # pos_transactions links POS Invoices only. A Sales-Invoice-mode shift
         # leaves it empty (so _consolidate_now finds nothing to merge and just
         # finalizes), but its takings still roll into the payment reconciliation
-        # and the Z-report totals below — the cash-control point of the entry.
+        # and the Z-report totals below, the cash-control point of the entry.
         if sale_doctype == "POS Invoice":
             closing.append(
                 "pos_transactions",
@@ -787,7 +787,7 @@ def _make_closing_entry(session_doc, counted):
             if payment.amount:
                 _accumulate_payment(closing, payment.mode_of_payment, payment.amount)
         if full.change_amount:
-            # Change comes OUT OF THE DRAWER — not out of whichever Cash-type
+            # Change comes OUT OF THE DRAWER, not out of whichever Cash-type
             # tender happens to sort first (delivery apps are often typed Cash).
             for row in closing.payment_reconciliation:
                 if row.mode_of_payment == drawer:
@@ -815,7 +815,7 @@ def _make_closing_entry(session_doc, counted):
             drawer_applied = True
     if not drawer_applied and (cash_in or cash_out):
         # The drawer mode isn't on this opening entry (profile changed mid-life)
-        # — fall back to the first Cash-type row so the movements aren't lost.
+        #, fall back to the first Cash-type row so the movements aren't lost.
         for row in closing.payment_reconciliation:
             if row.mode_of_payment in cash_modes:
                 row.expected_amount = flt(row.expected_amount) + cash_in - cash_out
@@ -877,7 +877,7 @@ def _mark_closed(session_name, closing_name):
     if closing_name:
         values["pos_closing_entry"] = closing_name
     frappe.db.set_value("POS Register Session", session_name, values)
-    # Enqueued consolidation job — persist the closed state immediately.
+    # Enqueued consolidation job, persist the closed state immediately.
     frappe.db.commit()  # nosemgrep
 
 
@@ -892,10 +892,10 @@ def _mark_failed(session_name, closing_name, error):
     }
     if closing_name:
         values["pos_closing_entry"] = closing_name
-    # status stays "Closing" — the shift is finalised operationally but its
+    # status stays "Closing", the shift is finalised operationally but its
     # consolidation must still complete (retry / self-healer).
     frappe.db.set_value("POS Register Session", session_name, values)
-    # Enqueued consolidation job — persist the failure state so the self-healer
+    # Enqueued consolidation job, persist the failure state so the self-healer
     # can retry from a known point.
     frappe.db.commit()  # nosemgrep
 
@@ -909,7 +909,7 @@ def _short(value, length=480):
 
 
 # ---------------------------------------------------------------------------
-# Self-healer (scheduled) — converge any stuck shift to Closed
+# Self-healer (scheduled), converge any stuck shift to Closed
 # ---------------------------------------------------------------------------
 
 def reconcile_stuck_closings():
@@ -928,7 +928,7 @@ def reconcile_stuck_closings():
         # instead of looping forever; the manual retry button still works.
         if cint(row.closing_attempts) >= 30:
             frappe.log_error(
-                title="LumenPOS register stuck — manual closing needed",
+                title="LumenPOS register stuck, manual closing needed",
                 message=f"Session {row.name} has failed to consolidate {row.closing_attempts} times "
                 f"and is no longer auto-retried.\n\nLast error:\n{row.closing_error}",
             )
@@ -964,7 +964,7 @@ def _alert_orphan_invoices():
         frappe.log_error(
             title="LumenPOS un-consolidated invoices on closed shifts",
             message="These submitted POS Invoices belong to a closed shift but were "
-            "never consolidated — consolidate them from the desk:\n"
+            "never consolidated, consolidate them from the desk:\n"
             + "\n".join(o.name for o in orphans),
         )
 
@@ -1123,7 +1123,7 @@ DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 
 
 def _as_time(value):
-    """Frappe returns a Time field as a timedelta — normalise to a `time`."""
+    """Frappe returns a Time field as a timedelta, normalise to a `time`."""
     import datetime
 
     if value is None:
@@ -1146,7 +1146,7 @@ def _scheduled_end(schedule_name, opened_at):
     """When SHOULD the shift that was opened at `opened_at` have ended?
 
     Builds candidate windows from the opening day AND the previous day, because a
-    shift whose end time is at or before its start crosses midnight — a 22:00→06:00
+    shift whose end time is at or before its start crosses midnight, a 22:00→06:00
     shift opened at 23:40 belongs to the PREVIOUS day's window. Returns the end of
     the window containing the open time; failing that, the next window starting
     later the same day (a cashier who opens a few minutes early); else None so the
@@ -1191,7 +1191,7 @@ def _scheduled_end(schedule_name, opened_at):
 
 def notify_overdue_sessions():
     """Hourly: email a role about shifts that are still open well past when they
-    should have ended. ALERT ONLY — never an auto-close: a close without a real
+    should have ended. ALERT ONLY, never an auto-close: a close without a real
     cash count produces figures nobody can trust."""
     try:
         settings = frappe.get_cached_doc("LumenPOS Settings")
@@ -1235,7 +1235,7 @@ def notify_overdue_sessions():
                     f"<b>{_('Opened by')}:</b> {frappe.utils.escape_html(row.opened_by or '')}<br>"
                     f"<b>{_('Opened at')}:</b> {row.opened_at}<br>"
                     f"<b>{_('Expected to end')}:</b> {end or _('not scheduled')}</p>"
-                    f"<p>{_('The till has NOT been closed automatically — a close without a real cash count is worthless.')}</p>"
+                    f"<p>{_('The till has NOT been closed automatically, a close without a real cash count is worthless.')}</p>"
                 ),
             )
             frappe.db.set_value(

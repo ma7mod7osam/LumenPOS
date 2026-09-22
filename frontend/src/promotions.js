@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Lumen Solutions
 // SPDX-License-Identifier: AGPL-3.0-only
 // "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-// Mirror of lumenpos/promotions/engine.py — keep both in sync.
+// Mirror of lumenpos/promotions/engine.py. Keep both in sync.
 // Runs client-side so the cart updates instantly; the server re-evaluates
 // authoritatively on submit.
 
@@ -124,7 +124,7 @@ function unitDiscount(price, dtype, value) {
   return Math.max(0, Math.min(d, price))
 }
 
-// Mirror of engine._basis_unit_discount — "Standard Price" basis takes the
+// Mirror of engine._basis_unit_discount, "Standard Price" basis takes the
 // lower of the price-book price and (standard - promo); default stacks on book.
 function basisUnitDiscount(line, promo, dtype, value) {
   const book = line.price
@@ -353,7 +353,7 @@ function round2(n) {
 }
 
 // ---------------------------------------------------------------------------
-// Offer suggestions — "the cart almost qualifies, nudge the cashier".
+// Offer suggestions, "the cart almost qualifies, nudge the cashier".
 // UX-only (no Python mirror needed); pricing stays with evaluatePromotions.
 // ---------------------------------------------------------------------------
 
@@ -418,7 +418,7 @@ export function suggestOffers(cart, promotions, now = null) {
             const target = (promo.items || [])[0]
             suggestions.push({
               title: promo.title,
-              message: `Add ${need} more — ${rewardText(promo)}`,
+              message: `Add ${need} more, ${rewardText(promo)}`,
               target: target?.applies_to === 'Item' ? target.value : null,
               for_lines: unionIdx,
             })
@@ -427,7 +427,7 @@ export function suggestOffers(cart, promotions, now = null) {
           const target = (promo.items || []).find((r) => (r.role || 'Buy') === 'Get')
           suggestions.push({
             title: promo.title,
-            message: `Add ${rowLabel(target)} — ${rewardText(promo)}`,
+            message: `Add ${rowLabel(target)}, ${rewardText(promo)}`,
             target: target?.applies_to === 'Item' ? target.value : null,
             for_lines: buyIdx,
           })
@@ -437,7 +437,7 @@ export function suggestOffers(cart, promotions, now = null) {
         const target = (promo.items || [])[0]
         suggestions.push({
           title: promo.title,
-          message: `Add ${need} more — ${rewardText(promo)}`,
+          message: `Add ${need} more, ${rewardText(promo)}`,
           target: target?.applies_to === 'Item' ? target.value : null,
           for_lines: buyIdx,
         })

@@ -1,12 +1,12 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Personal till-unlock PIN — one per user.
+"""Personal till-unlock PIN, one per user.
 
 Replaces the SHARED unlock passcode on the lock screen. A shared code is a
 shared identity: once it circulates, "who unlocked this till?" has no answer and
 rotating it means telling everyone. Each cashier now sets their own PIN, and
-unlocking verifies THEIR OWN — with no manager bypass, because the lock screen
+unlocking verifies THEIR OWN, with no manager bypass, because the lock screen
 protects an unattended till rather than authorising anything.
 
 (The *approvals* passcode in LumenPOS Settings is a different mechanism for
@@ -66,7 +66,7 @@ def _throttle(key, limit, seconds):
     cache_key = f"lumenpos_pin:{key}:{frappe.session.user}"
     attempts = cint(frappe.cache().get_value(cache_key) or 0)
     if attempts >= limit:
-        frappe.throw(_("Too many attempts — wait a moment and try again."))
+        frappe.throw(_("Too many attempts, wait a moment and try again."))
     frappe.cache().set_value(cache_key, attempts + 1, expires_in_sec=seconds)
 
 
@@ -101,7 +101,7 @@ def set_pin(pin, current_pin=None):
 
 
 def check_own_pin(pin):
-    """'ok' | 'wrong' | 'no_pin' — used by session.unlock_till."""
+    """'ok' | 'wrong' | 'no_pin', used by session.unlock_till."""
     doc = _row()
     if not doc or not doc.get("pin_hash"):
         return "no_pin"
@@ -119,7 +119,7 @@ def request_pin_reset():
     user = frappe.session.user
     email = frappe.db.get_value("User", user, "email") or user
     if not email:
-        frappe.throw(_("Your user has no email address — ask an administrator to reset your PIN."))
+        frappe.throw(_("Your user has no email address. Ask an administrator to reset your PIN."))
     code = f"{secrets.randbelow(10**6):06d}"
     doc = _row(create=True)
     doc.reset_code_hash = _hash(code)
@@ -131,8 +131,8 @@ def request_pin_reset():
         subject=_("Your LumenPOS PIN reset code"),
         message=_(
             "<p>Your PIN reset code is <b>{0}</b>.</p>"
-            "<p>It expires in {1} minutes. If you didn't ask for this, ignore this email "
-            "— your current PIN still works.</p>"
+            "<p>It expires in {1} minutes. If you didn't ask for this, ignore this email, "
+            "your current PIN still works.</p>"
         ).format(code, RESET_CODE_TTL_MINUTES),
         now=True,
     )
@@ -148,7 +148,7 @@ def reset_pin_with_code(code, new_pin):
     if not doc or not doc.get("reset_code_hash"):
         frappe.throw(_("Ask for a reset code first."))
     if not doc.reset_expires or now_datetime() > doc.reset_expires:
-        frappe.throw(_("That code has expired — ask for a new one."))
+        frappe.throw(_("That code has expired. Ask for a new one."))
     if not _verify((code or "").strip(), doc.reset_code_hash):
         frappe.throw(_("That code is not right."))
     doc.pin_hash = _hash(new_pin)

@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""Customer lookup screen — paginated client search plus a per-customer profile
+"""Customer lookup screen, paginated client search plus a per-customer profile
 with balances, lifetime stats and (via sales.search_sales) their POS
 transactions. Every query is server-paginated and scoped to indexed columns, so
 opening this screen never scans the whole customer or sales table and has no
@@ -26,7 +26,7 @@ def _require_read():
 
 @frappe.whitelist()
 def search_customers(search=None, customer_group=None, start=0, limit=30):
-    """Paginated customer list. Light columns only — per-customer totals are
+    """Paginated customer list. Light columns only, per-customer totals are
     computed on demand in customer_detail, never per row here. Fetches one extra
     row to report has_more without a separate COUNT. Returns {items, has_more}."""
     _require_read()

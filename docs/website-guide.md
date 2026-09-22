@@ -1,6 +1,6 @@
 # LumenPOS Documentation
 
-A fast, single-screen point of sale for ERPNext / Frappe (v13 through v16). This guide covers everything from installing the app to running a busy shift — written for shop owners, managers and the ERPNext admin setting it up.
+A fast, single-screen point of sale for ERPNext / Frappe (v13 through v16). This guide covers everything from installing the app to running a busy shift, written for shop owners, managers and the ERPNext admin setting it up.
 
 > **In a hurry?** Install the app → open a POS Profile and add your cashier → go to `https://your-site/pos` → enter an opening float → start selling.
 
@@ -35,7 +35,7 @@ A fast, single-screen point of sale for ERPNext / Frappe (v13 through v16). This
 
 ## What LumenPOS is
 
-LumenPOS is a retail till that runs on top of ERPNext. It gives your cashiers a quick, modern selling screen — search or scan, tap to add, take payment, print — while every sale posts as a normal ERPNext invoice with the right stock and accounting behind it. Nothing is kept in a side system: your inventory, customers, and books stay in ERPNext.
+LumenPOS is a retail till that runs on top of ERPNext. It gives your cashiers a quick, modern selling screen, search or scan, tap to add, take payment, print, while every sale posts as a normal ERPNext invoice with the right stock and accounting behind it. Nothing is kept in a side system: your inventory, customers, and books stay in ERPNext.
 
 It's designed for real counters, so it also handles the things a shop needs day to day: its own promotions, cashback, gift cards, store credit, loyalty points, returns, cash-drawer reconciliation, and selling while the internet is down.
 
@@ -44,7 +44,7 @@ It's designed for real counters, so it also handles the things a shop needs day 
 ## Requirements
 
 - **Frappe / ERPNext v13, v14, v15 or v16**
-- A configured **POS Profile** — company, selling price list, warehouse, and payment methods
+- A configured **POS Profile**, company, selling price list, warehouse, and payment methods
 - Your cashier's user added to that POS Profile (under *Applicable for Users*)
 
 That's it. The front end is pre-built and shipped with the app, so you don't need Node.js or a build step to install it.
@@ -85,11 +85,11 @@ Then open `https://your-site/pos`.
 - the **payment methods** you accept (Cash, Mada, Credit Card, etc.)
 - your cashier under **Applicable for Users**
 
-**2. Set a default customer** on the POS Profile (for example, "Walk-in Customer"). This is what a sale is billed to when no specific customer is chosen — and in Sales-Invoice mode a customer is required, so don't skip it.
+**2. Set a default customer** on the POS Profile (for example, "Walk-in Customer"). This is what a sale is billed to when no specific customer is chosen, and in Sales-Invoice mode a customer is required, so don't skip it.
 
 **3. Open the POS.** Go to `https://your-site/pos`. The first time you open it online, LumenPOS quietly caches your catalogue so search is instant and offline selling works later.
 
-**4. Adjust settings (optional).** Open **Settings** inside the POS to configure promotions, price books, receipt design, gift cards, permissions and more. Store-level things like price list, warehouse, taxes and payment methods stay on the POS Profile in ERPNext — that remains the single source of truth.
+**4. Adjust settings (optional).** Open **Settings** inside the POS to configure promotions, price books, receipt design, gift cards, permissions and more. Store-level things like price list, warehouse, taxes and payment methods stay on the POS Profile in ERPNext, that remains the single source of truth.
 
 ---
 
@@ -107,22 +107,22 @@ When you're ready, press **Pay** to go to the payment screen.
 
 ### Checking a price or stock
 
-The **Price check** button looks up any item without adding it to the sale — scan it, or type a name, code or barcode. It shows the live price and the stock here.
+The **Price check** button looks up any item without adding it to the sale. Scan it, or type a name, code or barcode. It shows the live price and the stock here.
 
-If the item is held elsewhere too, tap the all-stores figure to expand a **per-branch list** — available and reserved quantity, this store first. That answers *"do you have it at the other branch?"* at the counter instead of over the phone.
+If the item is held elsewhere too, tap the all-stores figure to expand a **per-branch list**, available and reserved quantity, this store first. That answers *"do you have it at the other branch?"* at the counter instead of over the phone.
 
 
-Prices and promotions are always worked out on the server when the sale is submitted, so the amount you charge is exactly what the posted invoice shows — no rounding surprises.
+Prices and promotions are always worked out on the server when the sale is submitted, so the amount you charge is exactly what the posted invoice shows, no rounding surprises.
 
 ---
 
 ## Customers
 
-- **Add a customer** with the "+ Add a customer" button — search existing customers by name, mobile or tax ID, or create a new one on the spot.
+- **Add a customer** with the "+ Add a customer" button, search existing customers by name, mobile or tax ID, or create a new one on the spot.
 - Create either an **individual** or a **company** customer; company records can carry a tax ID and address for the receipt.
 - Picking a customer can activate a **customer-group price book**, so their pricing updates automatically.
 
-If you create a customer while offline, LumenPOS saves them locally and reconciles on reconnect — matching an existing record by mobile number if one already exists, so you don't end up with duplicates.
+If you create a customer while offline, LumenPOS saves them locally and reconciles on reconnect, matching an existing record by mobile number if one already exists, so you don't end up with duplicates.
 
 ---
 
@@ -130,7 +130,7 @@ If you create a customer while offline, LumenPOS saves them locally and reconcil
 
 LumenPOS has its own promotions engine, so you don't have to wrangle ERPNext Pricing Rules at the till. Create promotions in the desk under **POS Promotion → New**.
 
-> **LumenPOS pricing vs ERPNext Pricing Rules.** LumenPOS owns pricing at the point of sale. Its **price books, promotions and bundles** are always the source of truth, and it **automatically ignores ERPNext Pricing Rules on every POS sale** — so the price the till shows always matches the posted invoice, and there's nothing to enable or disable. (You may see an *Ignore Pricing Rule* option in ERPNext; LumenPOS already applies it for you at the POS.) Your existing Pricing Rules keep working on non-POS documents such as Sales Orders and regular Sales Invoices.
+> **LumenPOS pricing vs ERPNext Pricing Rules.** LumenPOS owns pricing at the point of sale. Its **price books, promotions and bundles** are always the source of truth, and it **automatically ignores ERPNext Pricing Rules on every POS sale**, so the price the till shows always matches the posted invoice, and there's nothing to enable or disable. (You may see an *Ignore Pricing Rule* option in ERPNext; LumenPOS already applies it for you at the POS.) Your existing Pricing Rules keep working on non-POS documents such as Sales Orders and regular Sales Invoices.
 
 | Type | What it does | Key fields |
 |---|---|---|
@@ -160,12 +160,12 @@ On the payment screen:
 - **Change due** is shown for cash over-tender.
 - Redeem **loyalty points**, **store credit** or **cashback** if the customer has a balance.
 
-Press **Complete Sale** to post the invoice. If the sale can't post for any reason, nothing is half-saved — your cart and entered payments stay on screen so you can fix the issue and try again.
+Press **Complete Sale** to post the invoice. If the sale can't post for any reason, nothing is half-saved, your cart and entered payments stay on screen so you can fix the issue and try again.
 
 ### Payment rules (optional)
 
-- **Require a transaction reference** on a method (Settings → Payment Methods) — the payment screen then asks for the terminal or transfer reference, with your own label (e.g. *Approval code*), and won't complete the sale until it's filled. A disputed card payment can always be traced back.
-- **Block a method for certain products** — create a **POS Payment Restriction** to stop, say, gift cards being used on a buy-now-pay-later method. Match by item, item group (including everything beneath it), brand or tag, optionally per outlet. The till greys the method out and says why; the server re-checks before posting, so a stale tab or an offline sale can't slip past.
+- **Require a transaction reference** on a method (Settings → Payment Methods), the payment screen then asks for the terminal or transfer reference, with your own label (e.g. *Approval code*), and won't complete the sale until it's filled. A disputed card payment can always be traced back.
+- **Block a method for certain products**, create a **POS Payment Restriction** to stop, say, gift cards being used on a buy-now-pay-later method. Match by item, item group (including everything beneath it), brand or tag, optionally per outlet. The till greys the method out and says why; the server re-checks before posting, so a stale tab or an offline sale can't slip past.
 
 ---
 
@@ -175,35 +175,35 @@ LumenPOS treats each shift as a register session so the cash drawer always balan
 
 - **Open the register** at the start of a shift and enter the **opening float** (the cash you start with).
 - **Cash in / cash out** records money added to or taken from the drawer during the shift.
-- **X-report** — a mid-shift read of sales and expected takings, available any time from the top bar. It does **not** close the drawer or post anything. Any cashier on the till can pull one.
+- **X-report**, a mid-shift read of sales and expected takings, available any time from the top bar. It does **not** close the drawer or post anything. Any cashier on the till can pull one.
 - **Close the register** at the end of the shift: count the drawer (a blind count, so the expected figure doesn't bias it), and LumenPOS compares counted vs expected per payment method and produces a **Z-report**.
 
 ### Several outlets, one login
 
-If you're assigned to more than one outlet, the **Open register** dialog has an **Outlet** picker — choose which till you're operating and enter its float. Each outlet runs its **own independent shift**, so a shift open in one branch never blocks another, and you're warned if you still have a register open elsewhere. Managers see every outlet.
+If you're assigned to more than one outlet, the **Open register** dialog has an **Outlet** picker. Choose which till you're operating and enter its float. Each outlet runs its **own independent shift**, so a shift open in one branch never blocks another, and you're warned if you still have a register open elsewhere. Managers see every outlet.
 
 ### Who owns a shift
 
 Under **Settings → A shift belongs to** you choose:
 
-- **The outlet** *(default)* — one shift per register; any assigned cashier can sell on it.
-- **The cashier** — each person opens their **own** shift on that register and can only sell on their own. Several people can share one counter while each stays accountable for their own drawer and gets their own Z-report.
+- **The outlet** *(default)*, one shift per register; any assigned cashier can sell on it.
+- **The cashier**, each person opens their **own** shift on that register and can only sell on their own. Several people can share one counter while each stays accountable for their own drawer and gets their own Z-report.
 
 ### Safeguards at closing
 
 - **Queued offline sales block the close.** They belong to *this* shift's drawer, so the close screen shows how many are waiting with an **Upload now** button.
-- **A stale closing screen is refused.** If a sale lands from another till or tab after you opened the closing screen, the figures you counted against are out of date — LumenPOS asks you to refresh and re-check rather than posting a wrong variance.
+- **A stale closing screen is refused.** If a sale lands from another till or tab after you opened the closing screen, the figures you counted against are out of date. LumenPOS asks you to refresh and re-check rather than posting a wrong variance.
 - **A slow or failed end-of-day close never blocks the next shift.** The moment you close, the register is free; consolidation finishes in the background and self-heals.
-- **Typed amounts are read exactly as typed** — `1,500`, spaces and Arabic-Indic digits all work, and an unreadable box stops the action instead of silently becoming zero.
+- **Typed amounts are read exactly as typed**, `1,500`, spaces and Arabic-Indic digits all work, and an unreadable box stops the action instead of silently becoming zero.
 
 ### Alerts (optional)
 
-- **Cash variance** — email a chosen role when a counted amount differs from expected by more than a threshold. It records and notifies; it never blocks the close.
-- **Forgotten shift** — build a **shift schedule** (a reusable timetable, including shifts that cross midnight) and attach it to an outlet. LumenPOS emails a role when a register is still open past its shift end, with a grace period. A till is **never** closed automatically — a close without a real cash count is worthless.
+- **Cash variance**, email a chosen role when a counted amount differs from expected by more than a threshold. It records and notifies; it never blocks the close.
+- **Forgotten shift**, build a **shift schedule** (a reusable timetable, including shifts that cross midnight) and attach it to an outlet. LumenPOS emails a role when a register is still open past its shift end, with a grace period. A till is **never** closed automatically, a close without a real cash count is worthless.
 
 ### Locking the till
 
-Turn on the lock screen in Settings and each cashier sets their **own PIN** (4–8 digits) the first time they meet it. Unlocking checks *their* PIN and is recorded with their name. **Forgot your PIN?** emails a 6-digit code, valid 15 minutes. There's no shared code and no manager override — the lock screen guards an unattended till, it doesn't authorise anything.
+Turn on the lock screen in Settings and each cashier sets their **own PIN** (4 to 8 digits) the first time they meet it. Unlocking checks *their* PIN and is recorded with their name. **Forgot your PIN?** emails a 6-digit code, valid 15 minutes. There's no shared code and no manager override, the lock screen guards an unattended till, it doesn't authorise anything.
 
 ---
 
@@ -211,15 +211,15 @@ Turn on the lock screen in Settings and each cashier sets their **own PIN** (4�
 
 - Open **History**, find the sale, and choose **Refund**. (From a customer's purchase list, **Open in History** takes you straight there.)
 - Refund the whole sale or selected lines.
-- **Split the refund** across several methods — useful when the customer paid partly by card and partly in cash. Each line has its own amount and, where the method requires it, its transaction reference; a running *"x left to allocate"* must match to the cent before the refund can post.
+- **Split the refund** across several methods, useful when the customer paid partly by card and partly in cash. Each line has its own amount and, where the method requires it, its transaction reference; a running *"x left to allocate"* must match to the cent before the refund can post.
 - **Refunding is restricted** to the methods your refund rules allow (unlike collecting, where any tender is fine), and every line is checked.
-- **Refunding to Store Credit is a setting.** Turn it off if shop policy is money-back only — with one exception: credit the customer actually *spent* on that sale can always go back to credit.
-- A return **posts on the outlet handling it**, not the one that made the sale — so the money and the returned stock land where they really moved. Returns across different companies are refused.
+- **Refunding to Store Credit is a setting.** Turn it off if shop policy is money-back only, with one exception: credit the customer actually *spent* on that sale can always go back to credit.
+- A return **posts on the outlet handling it**, not the one that made the sale, so the money and the returned stock land where they really moved. Returns across different companies are refused.
 - The refund posts as a proper credit-note invoice, linked to the register session, so the drawer count stays correct.
 
 **Decide what you will not take back.** In **Settings → General → Returns and refunds** you can refuse a return by item, item group (and everything under it), brand or tag, at every outlet or only at some. Each rule is one of two strengths: the product comes back only when an approver allows it, or it never comes back at all. At the till the refund screen marks the line, shows the reason you wrote, and turns the button into a return approval request when one can still help. The server checks again before the credit note posts.
 
-Who may process a return — and who may approve one past the return window — is controlled in Permissions (below). An approval request shows the approver **what** is being returned or discounted, and any request left unconfirmed is voided when the shift closes.
+Who may process a return, and who may approve one past the return window, is controlled in Permissions (below). An approval request shows the approver **what** is being returned or discounted, and any request left unconfirmed is voided when the shift closes.
 
 ---
 
@@ -231,7 +231,7 @@ Who may process a return — and who may approve one past the return window — 
 
 **Loyalty.** LumenPOS uses ERPNext's native Loyalty Program. Assign a program to your customers (directly or via customer group); points are earned automatically on sales, and the customer can redeem them at the payment screen.
 
-> **Setup tip:** to switch loyalty on, create a Loyalty Program in ERPNext, set it to **auto opt-in** and assign it to customers. On ERPNext v15 and v16, also tick **Allow Partial Payment** on the POS Profile, otherwise ERPNext refuses any sale paid partly with points: it counts only the cash and card against the total, even though the points settle the rest. LumenPOS checks every sale adds up before it posts, so nothing is lost by ticking it. To use store credit, just take it as payment — the account and payment method are created on first use.
+> **Setup tip:** to switch loyalty on, create a Loyalty Program in ERPNext, set it to **auto opt-in** and assign it to customers. On ERPNext v15 and v16, also tick **Allow Partial Payment** on the POS Profile, otherwise ERPNext refuses any sale paid partly with points: it counts only the cash and card against the total, even though the points settle the rest. LumenPOS checks every sale adds up before it posts, so nothing is lost by ticking it. To use store credit, just take it as payment, the account and payment method are created on first use.
 
 ---
 
@@ -257,7 +257,7 @@ Cashback is on by default but earns nothing until you create a rule, and it can 
 You have three ways to print, and LumenPOS picks the best available automatically:
 
 1. **Thermal printer (ESC/POS).** Configure a printer IP and port on the POS Profile. The Frappe server prints to it directly and can kick the cash drawer. (On cloud-hosted sites the printer needs to be reachable from the server; otherwise LumenPOS falls back to browser printing.)
-2. **Your own ERPNext Print Format.** Set a Print Format on the POS Profile and it takes over — full control over layout, bilingual receipts, QR blocks, anything a Print Format can do.
+2. **Your own ERPNext Print Format.** Set a Print Format on the POS Profile and it takes over, full control over layout, bilingual receipts, QR blocks, anything a Print Format can do.
 3. **The built-in receipt designer.** In **Settings → Receipt**, choose a template (Compact, Standard, Detailed), pick what to show (item code, barcode, serial number, unit price, payment methods, note, tax ID, address, terms), and add a logo, header and footer. A live preview shows your changes as you make them.
 
 ### A different receipt per outlet
@@ -271,12 +271,12 @@ Under **Custom fields** you can add any field from the **POS Profile** or from *
 | Choose | Meaning |
 |---|---|
 | **Source** | *POS Profile* (branch details) or *Sale invoice* |
-| **Field** | picked from a dropdown of that record's fields — **your own custom fields appear here too** |
+| **Field** | picked from a dropdown of that record's fields, **your own custom fields appear here too** |
 | **Label** | what prints before the value (optional) |
 | **Show as** | **Text**, or **Image / QR** |
 | **Where** | **Header** or **Footer** |
 
-So a **ZATCA QR** stored as an image field on the invoice prints as the actual QR; a CR number, a branch licence, or any country-specific line prints as text. Fields are global by default, with per-outlet extras — and everything shows in the live preview as you build it.
+So a **ZATCA QR** stored as an image field on the invoice prints as the actual QR; a CR number, a branch licence, or any country-specific line prints as text. Fields are global by default, with per-outlet extras, and everything shows in the live preview as you build it.
 
 ---
 
@@ -287,7 +287,7 @@ LumenPOS is built to keep selling through a network outage.
 - **Products, prices and promotions** are cached on the device the first time you open the POS online, and refreshed in the background.
 - If the connection drops, the till keeps working. **Sales are queued locally** and upload automatically when you're back online. Queued writes carry a safety key so a lost confirmation can never post a sale twice.
 - **The offline sales log** (open it from the Offline / Syncing pill in the top bar, or Settings → Status) shows every offline sale and its status: **Pending** (queued), **Uploaded** (posted, with the real invoice number), or **Needs attention** (the server rejected it, with the reason). Nothing is removed until the server confirms it, and one rejected sale never blocks the good ones behind it.
-- **Queued sales must upload before you can close the register** — they belong to this shift's drawer.
+- **Queued sales must upload before you can close the register**, they belong to this shift's drawer.
 
 **Good to know:**
 
@@ -303,7 +303,7 @@ For serialised products, LumenPOS enforces scanning so the right unit is sold:
 
 - A serialised item **won't enter the cart** until you scan or type a serial number.
 - The serial must **exist**, be **Active**, and belong to **this register's warehouse**.
-- Quantity is locked to the number of serials scanned — there's no automatic FIFO pick.
+- Quantity is locked to the number of serials scanned, there's no automatic FIFO pick.
 - Serialised items can't be sold offline (the serial has to be validated live).
 
 ---
@@ -314,8 +314,8 @@ For serialised products, LumenPOS enforces scanning so the right unit is sold:
 
 **Invoice mode.** Choose per POS Profile how sales post:
 
-- **POS Invoice** (default) — sales post as POS Invoices and consolidate the ERPNext way at register close.
-- **Sales Invoice** — sales post directly as Sales Invoices. Useful when your accounting prefers Sales Invoices; you can still run opening/closing entries for cash control.
+- **POS Invoice** (default), sales post as POS Invoices and consolidate the ERPNext way at register close.
+- **Sales Invoice**, sales post directly as Sales Invoices. Useful when your accounting prefers Sales Invoices; you can still run opening/closing entries for cash control.
 
 Both modes move stock, post to the ledger, and appear in reports exactly as ERPNext expects. The promotions applied to each sale are stored on the invoice for auditing.
 
@@ -329,11 +329,11 @@ Under **Settings → Permissions**, decide which roles can:
 - **process a return**, and
 - **approve a return beyond the return window**.
 
-When a cashier needs an over-limit discount or a late return, they send an **approval request**. The approver sees **what** is being approved — the cart lines being discounted, or the items being returned — instead of a bare percentage. Anything still unconfirmed is voided when the shift closes, so an approval can never be spent on the next shift's drawer.
+When a cashier needs an over-limit discount or a late return, they send an **approval request**. The approver sees **what** is being approved, the cart lines being discounted, or the items being returned, instead of a bare percentage. Anything still unconfirmed is voided when the shift closes, so an approval can never be spent on the next shift's drawer.
 
-Sensitive actions — over-limit discounts, returns, register open/close, settings changes, receipt emails, till unlocks — are written to a **LumenPOS Audit Log** you can review in the desk.
+Sensitive actions, over-limit discounts, returns, register open/close, settings changes, receipt emails, till unlocks, are written to a **LumenPOS Audit Log** you can review in the desk.
 
-There's also an optional **till lock**: a lock screen that engages manually or after a period of inactivity. Each cashier sets their **own PIN**, so an unlock is always attributable to a person — see [The register](#the-register).
+There's also an optional **till lock**: a lock screen that engages manually or after a period of inactivity. Each cashier sets their **own PIN**, so an unlock is always attributable to a person. See [The register](#the-register).
 
 ---
 
@@ -357,32 +357,32 @@ The same page shows the offline catalogue and customer cache sizes, the connecti
 
 ## Language
 
-LumenPOS is bilingual — **English and Arabic**, with full right-to-left layout. Switch language from the top bar. New installs follow your ERPNext desk theme (light/dark) until you override it.
+LumenPOS is bilingual: **English and Arabic**, with full right-to-left layout. Switch language from the top bar. New installs follow your ERPNext desk theme (light/dark) until you override it.
 
 ---
 
 ## Troubleshooting and FAQ
 
-**A sale showed an error and didn't complete — did I lose it?**
-No. If a sale can't post, the whole thing is rolled back — there's no half-made invoice to clean up (any invoice number you saw in the error is just a skipped number, which is normal). Your cart and payments stay on screen; fix the cause and press Complete Sale again. If the fix needs an app update, park the sale and complete it afterwards.
+**A sale showed an error and didn't complete, did I lose it?**
+No. If a sale can't post, the whole thing is rolled back, there's no half-made invoice to clean up (any invoice number you saw in the error is just a skipped number, which is normal). Your cart and payments stay on screen; fix the cause and press Complete Sale again. If the fix needs an app update, park the sale and complete it afterwards.
 
 **How do I correct a sale that already posted?**
-Submitted invoices can't be edited (that's an accounting rule). Refund/return the sale to reverse it, then ring the correct one — or, in the desk, cancel and amend the invoice. During a shift, the refund route keeps your drawer count consistent.
+Submitted invoices can't be edited (that's an accounting rule). Refund/return the sale to reverse it, then ring the correct one, or, in the desk, cancel and amend the invoice. During a shift, the refund route keeps your drawer count consistent.
 
 **The receipt isn't using my custom layout.**
 Set your Print Format on the **POS Profile**. When one is set, it takes over printing and the built-in designer only styles the on-screen receipt. (A configured thermal printer uses its own fixed layout.)
 
 **Selling a gift card or paying with one fails on a multi-company site.**
-Make sure the company has its own warehouse and gift-card/liability accounts. LumenPOS auto-creates sensible defaults, but a valid warehouse for the company must exist. Keep the app up to date — multi-company handling improves with releases.
+Make sure the company has its own warehouse and gift-card/liability accounts. LumenPOS auto-creates sensible defaults, but a valid warehouse for the company must exist. Keep the app up to date, multi-company handling improves with releases.
 
 **Nothing loads / search is empty.**
 Open the POS online at least once so the catalogue can cache. Then use **Settings → Status → Refresh offline catalog** to rebuild the cache.
 
 **Do I need to turn off ERPNext Pricing Rules to use promotions, bundles or price books?**
-No. LumenPOS ignores ERPNext Pricing Rules automatically on every POS sale, so its price books, promotions and bundles always take precedence at the till — there's nothing to switch on or off. Your Pricing Rules keep working on non-POS documents.
+No. LumenPOS ignores ERPNext Pricing Rules automatically on every POS sale, so its price books, promotions and bundles always take precedence at the till, there's nothing to switch on or off. Your Pricing Rules keep working on non-POS documents.
 
 **Where do I change the price list, taxes or payment methods?**
-On the **POS Profile** in ERPNext — that's the source of truth. The in-POS Settings page covers promotions, price books, receipts, permissions and the like.
+On the **POS Profile** in ERPNext, that's the source of truth. The in-POS Settings page covers promotions, price books, receipts, permissions and the like.
 
 ---
 
@@ -391,7 +391,7 @@ On the **POS Profile** in ERPNext — that's the source of truth. The in-POS Set
 - **Email:** hello@lumen-solutions.co
 - **Website:** https://lumen-solutions.co
 
-Please include your ERPNext version and, if you hit an error, the message shown at the till — it makes fixing things much faster.
+Please include your ERPNext version and, if you hit an error, the message shown at the till, it makes fixing things much faster.
 
 ---
 

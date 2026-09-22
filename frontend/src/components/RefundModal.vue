@@ -21,7 +21,7 @@
           <div v-if="overWindow && canExceed" class="approval-box authorized">
             <div class="ap-ok">
               <Icon name="check" />
-              {{ t('This sale is {age} days old (past the {n}-day window) — you are authorized to return it.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
+              {{ t('This sale is {age} days old (past the {n}-day window), you are authorized to return it.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
             </div>
           </div>
           <div v-else-if="overWindow || restrictedNeedingApproval.length" class="approval-box" :class="reqPhase">
@@ -42,7 +42,7 @@
                 {{ t('These items come back only with approval: {items}', { items: restrictedNames }) }}
               </div>
               <div v-else class="ap-warn">
-                {{ t('This sale is {age} days old. Returns are limited to {n} days — a manager must approve this return.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
+                {{ t('This sale is {age} days old. Returns are limited to {n} days, a manager must approve this return.', { age: returnWindow.age_days, n: returnWindow.window_days }) }}
               </div>
               <button class="btn btn-primary btn-sm" :disabled="reqBusy" @click="sendReturnRequest">
                 {{ reqBusy ? t('Sending…') : t('Send return approval request') }}
@@ -57,7 +57,7 @@
             <div class="return-info">
               <div class="return-name">
                 {{ row.item_name }}
-                <span v-if="row.return_group" class="set-badge">{{ t('Set — return together') }}</span>
+                <span v-if="row.return_group" class="set-badge">{{ t('Set, return together') }}</span>
                 <span v-if="restrictions[row.item_code]" class="no-return-badge">
                   {{ restrictions[row.item_code].needs_approval ? t('Needs approval') : t('Not returnable') }}
                 </span>
@@ -193,7 +193,7 @@ function refRule(mode) {
 const splitTotal = computed(() =>
   refundSplits.value.reduce((sum, r) => sum + (parseMoney(r.amount) || 0), 0)
 )
-// To the cent — a refund that doesn't add up must not post.
+// To the cent, a refund that doesn't add up must not post.
 const splitCovered = computed(() => Math.abs(splitTotal.value - refundTotal.value) < 0.005)
 // Keep ONE row tracking the full refund until the cashier deliberately splits;
 // after that their allocation is left alone.
@@ -267,7 +267,7 @@ const refundTotal = computed(() =>
 )
 
 // Over the regular-return window and not yet approved → the refund is blocked
-// until a manager approves a Return request — unless this user is allowed to
+// until a manager approves a Return request, unless this user is allowed to
 // exceed the window (the "exceed return window" role, or a manager).
 const overWindow = computed(() => returnWindow.value && !returnWindow.value.within)
 const canExceed = computed(() => session.permissions?.can_exceed_return_window === true)
@@ -369,10 +369,10 @@ async function pollReturnStatus() {
           ? res.decision_note
             ? t('Request rejected: {note}', { note: res.decision_note })
             : t('The manager rejected this return.')
-          : t('The request expired — the register was closed.')
+          : t('The request expired, the register was closed.')
     }
   } catch {
-    /* transient — keep polling */
+    /* transient. Keep polling */
   }
 }
 
@@ -423,7 +423,7 @@ function dec(row) {
 
 // Serialized returns: the cashier must scan/type each serial (forcing them to
 // read the actual unit), and it must be one that was sold on this invoice and is
-// still returnable — no blind tapping from a list.
+// still returnable, no blind tapping from a list.
 function addSerial(row, event) {
   const raw = event.target.value || ''
   const code = raw.trim()
@@ -431,7 +431,7 @@ function addSerial(row, event) {
   if (!code) return
   if (scanOnly.value && !scan.isScan(raw)) {
     scan.reset()
-    session.notify(t('Manual entry is off — scan the serial with the scanner.'), true)
+    session.notify(t('Manual entry is off. Scan the serial with the scanner.'), true)
     return
   }
   scan.reset()
@@ -481,7 +481,7 @@ async function submit() {
       ),
       return_reason: reasonValue.value,
       return_request: returnRequest.value,
-      // The return posts on the outlet HANDLING it, not the one that sold —
+      // The return posts on the outlet HANDLING it, not the one that sold, 
       // otherwise the refund leaves this drawer under another outlet's name.
       pos_profile: session.posProfile,
     })

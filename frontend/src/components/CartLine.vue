@@ -48,7 +48,7 @@
 
     <div v-if="expanded && line.bundle_key" class="line-edit">
       <span class="muted small" style="flex: 1">
-        {{ t('Bundle pricing — items stay separate lines for individual returns.') }}
+        {{ t('Bundle pricing, items stay separate lines for individual returns.') }}
       </span>
       <button class="btn btn-ghost remove" @click="cart.removeBundle(line.bundle_key)">
         {{ t('Remove bundle') }}
