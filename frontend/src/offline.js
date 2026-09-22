@@ -150,6 +150,32 @@ export async function getCatalogItems(codes) {
   return out
 }
 
+// Write new stock figures onto the cached items. The catalogue cache is filled
+// once per shift, so without this the tile keeps showing the quantity from the
+// moment the till opened and the cashier only learns the truth at a refusal.
+export async function patchCatalogStock(levels) {
+  const codes = Object.keys(levels || {})
+  if (!codes.length) return 0
+  const database = await db()
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction('items', 'readwrite')
+    const store = transaction.objectStore('items')
+    let written = 0
+    for (const code of codes) {
+      const req = store.get(code)
+      req.onsuccess = () => {
+        const item = req.result
+        if (!item) return
+        item.actual_qty = levels[code]
+        store.put(item)
+        written += 1
+      }
+    }
+    transaction.oncomplete = () => resolve(written)
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
 // --- customers cache (recent/frequent subset, for offline select) -----------
 
 export async function saveCustomers(customers) {

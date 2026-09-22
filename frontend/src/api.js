@@ -12,8 +12,27 @@ export class OfflineError extends Error {
   }
 }
 
-export async function call(method, args = {}) {
+// Every call gets a deadline. Without one, a connection that dies mid-request
+// leaves the browser waiting a minute or more before it gives up, and all that
+// time the till still shows itself as online. A deadline is what turns "the
+// network went away" into offline mode quickly.
+const TIMEOUT_MS = 12000
+// Posting a sale, taking one back or pulling the whole catalogue legitimately
+// takes longer. A sale carries an idempotency key, so the retry after a
+// timeout can never post it twice.
+const SLOW_CALLS = /submit_sale|create_return|sell_gift_card|close_register|get_full_catalog/
+const LONG_TIMEOUT_MS = 20000
+const CATALOG_TIMEOUT_MS = 60000
+
+function deadlineFor(method) {
+  if (/get_full_catalog/.test(method)) return CATALOG_TIMEOUT_MS
+  return SLOW_CALLS.test(method) ? LONG_TIMEOUT_MS : TIMEOUT_MS
+}
+
+export async function call(method, args = {}, options = {}) {
   let res
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), options.timeout || deadlineFor(method))
   try {
     res = await fetch(`/api/method/${method}`, {
       method: 'POST',
@@ -23,9 +42,14 @@ export async function call(method, args = {}) {
         'X-Frappe-CSRF-Token': window.csrf_token || '',
       },
       body: JSON.stringify(args),
+      signal: controller.signal,
     })
   } catch {
+    // A refused connection and a request that ran out of time mean the same
+    // thing to the till: the server is not reachable right now.
     throw new OfflineError()
+  } finally {
+    clearTimeout(timer)
   }
   let data = {}
   try {

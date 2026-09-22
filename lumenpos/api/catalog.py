@@ -29,6 +29,78 @@ def _gift_card_item_code():
         return None
 
 
+def pos_reserved_map(warehouse):
+    """{item_code: qty} sold on POS Invoices that have not been consolidated.
+
+    A submitted POS Invoice writes no Stock Ledger Entry at all: ERPNext moves
+    the stock when the shift's POS Closing Entry consolidates it (this holds
+    even with Update Stock ticked on the POS Profile, proven on v13, v14 and
+    v15). Until then the goods have left the shelf but the Bin still counts
+    them, so ERPNext subtracts them itself in get_stock_availability and
+    refuses a sale for the remainder.
+
+    The tile has to show that same number. Showing the raw Bin means the
+    cashier only learns about it at the refusal, which is exactly the surprise
+    this exists to prevent. Sales Invoice outlets never appear here, their
+    invoices move the Bin on submit.
+
+    Memoised per request: get_full_catalog walks the catalogue in pages of 500
+    and would otherwise repeat this query for every page.
+    """
+    if not warehouse:
+        return {}
+    cache = getattr(frappe.local, "lumenpos_pos_reserved", None)
+    if cache is None:
+        cache = frappe.local.lumenpos_pos_reserved = {}
+    if warehouse in cache:
+        return cache[warehouse]
+    try:
+        rows = frappe.db.sql(
+            """
+            select pii.item_code as item_code, sum(pii.stock_qty) as qty
+            from `tabPOS Invoice Item` pii
+            inner join `tabPOS Invoice` pi on pi.name = pii.parent
+            where pi.docstatus = 1
+              and ifnull(pi.consolidated_invoice, '') = ''
+              and pi.is_return = 0
+              and pii.warehouse = %(warehouse)s
+            group by pii.item_code
+            """,
+            {"warehouse": warehouse},
+            as_dict=True,
+        )
+        cache[warehouse] = {r.item_code: flt(r.qty) for r in rows}
+    except Exception:
+        cache[warehouse] = {}  # never let stock display break the grid
+    return cache[warehouse]
+
+
+def available_qty(item_code, warehouse, actual_qty):
+    """What a cashier can still sell of this item here."""
+    return flt(actual_qty) - pos_reserved_map(warehouse).get(item_code, 0)
+
+
+def stock_levels(warehouse, item_codes):
+    """{item_code: what is left to sell here} for the items just sold or taken
+    back, so the tiles move with the sale instead of waiting for the next
+    catalogue refresh. Non-stock items (services, gift cards) have no Bin row
+    and are simply left out."""
+    codes = [c for c in dict.fromkeys(item_codes or []) if c]
+    if not warehouse or not codes:
+        return {}
+    # this request has just written stock, so the memo from before is stale
+    frappe.local.lumenpos_pos_reserved = {}
+    try:
+        bins = frappe.get_all(
+            "Bin",
+            filters={"item_code": ["in", codes], "warehouse": warehouse},
+            fields=["item_code", "actual_qty"],
+        )
+    except Exception:
+        return {}
+    return {b.item_code: available_qty(b.item_code, warehouse, b.actual_qty) for b in bins}
+
+
 @frappe.whitelist()
 def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_list=None):
     """Items with selling price and stock for the POS grid."""
@@ -95,7 +167,10 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
             filters={"item_code": ["in", codes], "warehouse": profile.warehouse},
             fields=["item_code", "actual_qty"],
         )
-        stock_map = {b.item_code: b.actual_qty for b in bins}
+        reserved = pos_reserved_map(profile.warehouse)
+        stock_map = {
+            b.item_code: flt(b.actual_qty) - reserved.get(b.item_code, 0) for b in bins
+        }
 
     barcode_map = {}
     for row in frappe.get_all(
@@ -190,10 +265,14 @@ def resolve_scan(pos_profile, code, customer_group=None, app_type=None):
         standard_prices(profile, [item_code], uom_map).get(item_code) or item["price"]
     )
     item["actual_qty"] = (
-        frappe.db.get_value(
-            "Bin", {"item_code": item_code, "warehouse": profile.warehouse}, "actual_qty"
+        available_qty(
+            item_code,
+            profile.warehouse,
+            frappe.db.get_value(
+                "Bin", {"item_code": item_code, "warehouse": profile.warehouse}, "actual_qty"
+            )
+            or 0,
         )
-        or 0
         if profile.warehouse
         else 0
     )
@@ -289,7 +368,9 @@ def stock_by_warehouse(item_code, pos_profile=None):
         if company and wh_company != company:
             continue
         actual = flt(r.actual_qty)
-        reserved = flt(r.reserved_qty)
+        # Sales Order reservations plus anything a till has already sold but not
+        # consolidated, so this answer matches what that branch can hand over.
+        reserved = flt(r.reserved_qty) + pos_reserved_map(r.warehouse).get(item_code, 0)
         if actual == 0 and reserved == 0:
             continue
         out.append(
@@ -442,7 +523,7 @@ def get_quick_keys(pos_profile):
             filters={"item_code": ["in", fcodes], "warehouse": profile.warehouse},
             fields=["item_code", "actual_qty"],
         ):
-            stock_map[b.item_code] = b.actual_qty
+            stock_map[b.item_code] = available_qty(b.item_code, profile.warehouse, b.actual_qty)
     barcode_map = {}
     for row in frappe.get_all(
         "Item Barcode", filters={"parent": ["in", fcodes]}, fields=["parent", "barcode"], order_by="idx asc"

@@ -9,6 +9,15 @@ from lumenpos.promotions.loader import get_active_promotions
 
 
 @frappe.whitelist()
+def ping():
+    """Is the server reachable? Touches no table on purpose: an offline till
+    calls this every few seconds until it gets an answer, and the answer must
+    cost nothing. Returns the user so a session that expired while the till was
+    offline still comes back as a failure, not a false recovery."""
+    return {"ok": True, "user": frappe.session.user}
+
+
+@frappe.whitelist()
 def get_bootstrap(pos_profile=None):
     """Everything the POS needs to start: profile, payment modes, item groups,
     promotions, currency and the current register session."""

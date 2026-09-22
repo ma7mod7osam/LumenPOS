@@ -168,6 +168,7 @@ import Icon from './Icon.vue'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
+import { useCatalogStore } from '../stores/catalog'
 import { createScanGuard } from '../scanGuard'
 import { money, parseMoney } from '../format'
 import { t } from '../i18n'
@@ -486,6 +487,7 @@ async function submit() {
       pos_profile: session.posProfile,
     })
     session.notify(t('Refund completed'))
+    useCatalogStore().applyStock(receipt?.stock_after) // returned goods go back on the tiles
     emit('done', receipt)
   } catch (e) {
     session.notify(e.message, true)

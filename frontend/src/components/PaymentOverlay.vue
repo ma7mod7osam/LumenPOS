@@ -230,20 +230,23 @@ const quickAmounts = computed(() => {
 })
 
 onMounted(async () => {
-  loadBlockedModes()
   amount.value = round2(Math.max(cart.total, 0))
   amountInput.value?.focus()
   amountInput.value?.select()
   // Pull the authoritative payable from the server (same math as submit). If it
   // differs from the client total by a rounding halfcent, snap the suggested
   // amount to it, but only while nothing has been entered yet. The same quote
-  // carries the cashback this sale will earn.
+  // carries the cashback this sale will earn and the tenders this basket may
+  // not be paid with, so opening this screen costs one request, not two. The
+  // cart usually has the answer waiting already (it quotes ahead).
   const q = await cart.quote()
   if (q && typeof q.payable === 'number') {
     serverTotal.value = q.payable
     if (!payments.value.length) amount.value = round2(Math.max(q.payable, 0))
   }
   cashbackEarn.value = q && typeof q.cashback_earn === 'number' ? q.cashback_earn : 0
+  if (q && q.blocked_modes) blockedModes.value = q.blocked_modes
+  else loadBlockedModes() // quote failed (offline), ask on its own
 })
 
 const blockedModes = ref({})

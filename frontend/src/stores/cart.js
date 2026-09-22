@@ -5,6 +5,7 @@ import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
 import { queueSale, queueCount, getCatalogItems, newId, logSale } from '../offline'
 import { evaluatePromotions, suggestOffers } from '../promotions'
+import { useCatalogStore } from './catalog'
 import { useSessionStore } from './session'
 
 function round2(n) {
@@ -26,6 +27,8 @@ export const useCartStore = defineStore('cart', {
     activePriceList: null,
     note: '',
     submitting: false,
+    _quoteCache: null, // {signature, at, promise} see quote()
+    _quoteTimer: null,
   }),
 
   getters: {
@@ -523,12 +526,38 @@ export const useCartStore = defineStore('cart', {
     // as submit, so the till charges exactly what the posted invoice shows (no
     // phantom rounding "change"). Returns null offline / on error so the caller
     // falls back to the client-side cart total.
+    // Asked AHEAD of the payment screen (see prefetchQuote), so pressing Pay
+    // does not wait on a round trip: on a till in Riyadh talking to a server in
+    // Mumbai every request costs about 190 ms before any work happens. The
+    // answer is kept against the exact basket that produced it, and only for a
+    // minute, because a promotion can start or end in between.
     async quote() {
-      try {
-        return await call('lumenpos.api.sales.quote_sale', { payload: this._basePayload() })
-      } catch {
-        return null
+      const payload = this._basePayload()
+      const signature = JSON.stringify(payload)
+      const cached = this._quoteCache
+      if (cached && cached.signature === signature && Date.now() - cached.at < 60000) {
+        return cached.promise
       }
+      const promise = call('lumenpos.api.sales.quote_sale', { payload }).catch(() => null)
+      this._quoteCache = { signature, at: Date.now(), promise }
+      // A failed quote is not an answer, don't keep it (the till falls back to
+      // its own total and tries again next time).
+      promise.then((res) => {
+        if (res == null && this._quoteCache && this._quoteCache.promise === promise) {
+          this._quoteCache = null
+        }
+      })
+      return promise
+    },
+
+    // Quote while the cashier is still scanning. Debounced, so a basket being
+    // built quickly asks once, when it settles.
+    prefetchQuote() {
+      clearTimeout(this._quoteTimer)
+      if (!this.lines.length) return
+      this._quoteTimer = setTimeout(() => {
+        this.quote().catch(() => {})
+      }, 400)
     },
 
     async quoteTotal() {
@@ -548,6 +577,7 @@ export const useCartStore = defineStore('cart', {
       this.submitting = true
       try {
         const receipt = await call('lumenpos.api.sales.submit_sale', { payload })
+        useCatalogStore().applyStock(receipt?.stock_after)
         this.clear()
         return receipt
       } catch (e) {
@@ -585,6 +615,9 @@ export const useCartStore = defineStore('cart', {
       payload.idempotency_key = payload.idempotency_key || newId()
       await queueSale(payload)
       session.queuedCount = await queueCount()
+      // No server answer offline, so take the sold quantity off the tiles here.
+      // The real figure lands when the queue syncs.
+      useCatalogStore().applyStockDelta(payload.items)
 
       // Client-side receipt stand-in; the real invoice posts when the queue
       // syncs. Totals here exclude server-side taxes.

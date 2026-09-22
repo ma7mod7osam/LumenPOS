@@ -17,6 +17,7 @@ import {
   pruneSaleLog,
 } from '../offline'
 import { syncFromErp } from '../theme'
+import { useCatalogStore } from './catalog'
 
 export const useSessionStore = defineStore('session', {
   state: () => ({
@@ -88,6 +89,7 @@ export const useSessionStore = defineStore('session', {
     offline: false,
     queuedCount: 0,
     syncing: false,
+    _heartbeat: null,
     toast: null,
   }),
 
@@ -155,6 +157,7 @@ export const useSessionStore = defineStore('session', {
           if (cached) {
             this._applyBootstrap(cached)
             this.offline = true
+            this.startHeartbeat()
             this.notify('Offline, using cached data')
           } else {
             this.error =
@@ -225,7 +228,7 @@ export const useSessionStore = defineStore('session', {
     watchConnection() {
       window.addEventListener('online', () => this.reconnect())
       window.addEventListener('offline', () => {
-        this.offline = true
+        this.markOffline()
       })
       // Promotions edited on another terminal/tab show up when this till
       // regains focus, no reload needed.
@@ -241,15 +244,44 @@ export const useSessionStore = defineStore('session', {
         this.offline = true
         this.notify('Connection lost, sales will be queued')
       }
+      this.startHeartbeat()
+    },
+
+    // While offline, ask the server every few seconds whether it is back.
+    // The browser's `online` event only knows about the network interface, and
+    // waiting for the next sale to fail is why a cashier ends up reloading the
+    // page to get the till trading again.
+    startHeartbeat() {
+      if (this._heartbeat) return
+      this._heartbeat = setInterval(async () => {
+        if (!this.offline) {
+          this.stopHeartbeat()
+          return
+        }
+        try {
+          await call('lumenpos.api.session.ping', {}, { timeout: 4000 })
+        } catch {
+          return // still down, try again on the next tick
+        }
+        this.reconnect()
+      }, 5000)
+    },
+
+    stopHeartbeat() {
+      if (this._heartbeat) clearInterval(this._heartbeat)
+      this._heartbeat = null
     },
 
     async reconnect() {
       try {
         await this.flushQueue()
         await this.bootstrap(this.posProfile)
-        if (!this.offline) this.notify('Back online')
+        if (!this.offline) {
+          this.stopHeartbeat()
+          this.notify('Back online')
+        }
       } catch {
-        /* still offline */
+        /* still offline, the heartbeat keeps trying */
       }
     },
 
@@ -281,6 +313,8 @@ export const useSessionStore = defineStore('session', {
               payload = { ...payload, customer: localMap[cust] }
             }
             const receipt = await call('lumenpos.api.sales.submit_sale', { payload })
+            // The server's figure replaces the estimate the till made offline.
+            useCatalogStore().applyStock(receipt?.stock_after)
             await removeQueued(entry.local_id)
             // Log it as uploaded, with the real server invoice number so the
             // cashier can see exactly where the offline sale landed.

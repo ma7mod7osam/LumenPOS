@@ -761,6 +761,7 @@ def _make_closing_entry(session_doc, counted):
     )
 
     grand_total = net_total = qty_total = 0.0
+    si_rows = []
     for inv in invoices:
         # pos_transactions links POS Invoices only. A Sales-Invoice-mode shift
         # leaves it empty (so _consolidate_now finds nothing to merge and just
@@ -777,6 +778,8 @@ def _make_closing_entry(session_doc, counted):
                     "posting_date": inv.posting_date,
                 },
             )
+        else:
+            si_rows.append(inv)
         full = frappe.get_doc(sale_doctype, inv.name)
         grand_total += flt(full.grand_total)
         net_total += flt(full.net_total)
@@ -828,6 +831,10 @@ def _make_closing_entry(session_doc, counted):
     # Declare the shift's cash movements ON the closing entry (they otherwise
     # live only on the session and are invisible on the official Z-report).
     _declare_cash_movements(closing, session_doc, cash_in, cash_out)
+    # And, in Sales Invoice mode, the invoices themselves: the takings above are
+    # a total, and an accountant checking this drawer has to be able to walk it
+    # back to the documents that made it.
+    _declare_sales_invoices(closing, si_rows)
 
     closing.grand_total = flt(grand_total, 2)
     closing.net_total = flt(net_total, 2)
@@ -837,6 +844,32 @@ def _make_closing_entry(session_doc, counted):
     _suppress_consolidation(closing)
     closing.submit()
     return closing
+
+
+def _declare_sales_invoices(closing, rows):
+    """List a Sales-Invoice-mode shift's invoices on its POS Closing Entry.
+
+    ERPNext's `pos_transactions` only links POS Invoices, so without this the
+    Z-report of an outlet that posts Sales Invoices shows what was taken but
+    not which documents it came from, and the reviewer has to go hunting by
+    date and user. Guarded with has_field so a not-yet-migrated site still
+    closes cleanly."""
+    if not rows:
+        return
+    if not frappe.get_meta("POS Closing Entry").has_field("lumenpos_sales_invoices"):
+        return
+    closing.set("lumenpos_sales_invoices", [])
+    for inv in rows:
+        closing.append(
+            "lumenpos_sales_invoices",
+            {
+                "sales_invoice": inv.name,
+                "customer": inv.customer,
+                "posting_date": inv.posting_date,
+                "grand_total": inv.grand_total,
+                "is_return": inv.is_return,
+            },
+        )
 
 
 def _declare_cash_movements(closing, session_doc, cash_in, cash_out):

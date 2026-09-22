@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.46.3. This document is updated with every feature change.*
+*Applies to LumenPOS v0.46.4. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -88,7 +88,7 @@ The **LumenPOS workspace** in the desk has shortcuts to everything.
 |---|---|
 | **Search bar** | Type to search name/code/barcode (instant, served from a local cache). Press **Enter** with a scanned barcode or serial number to add the item directly. |
 | **Category chips** | One scrollable row. **All** shows everything; **🎁 Bundles** appears when bundles exist. |
-| **Product grid** | Tap a tile to add to cart. Tiles show price, stock count and an **S/N** badge for serialized items. |
+| **Product grid** | Tap a tile to add to cart. Tiles show price, stock count and an **S/N** badge for serialized items. The stock number is what you can still sell here, so anything already sold on a shift that has not been consolidated is taken off it, and it moves the moment a sale or a return posts. A line running low is visible long before the till refuses it. |
 | **Cart (right panel)** | Customer, channel, salesperson, lines, coupons, totals, Pay. |
 
 ### Cart line controls
@@ -488,6 +488,12 @@ with an opening-float box, on both the Sell-screen prompt and the Register
   invoices still consolidate on their own; you've just unblocked the till. Only
   offered when the previous close actually **failed**, a close that's merely
   still *finalising* must finish (or be retried) first.
+- **Sales Invoice outlets list their invoices on the Z-report.** ERPNext's own
+  table on a POS Closing Entry links POS Invoices, so an outlet that posts
+  **Sales Invoices** directly left it empty and an accountant had nothing but
+  the totals. LumenPOS adds a **Sales Invoices in this shift** table to the
+  closing entry: every invoice the shift posted, with customer, date, total
+  and whether it was a return.
 - **Previous sessions**: the Register page lists closed (and still-finalising)
   sessions, takings, discounts, count differences, status, and direct links
   to each session's **POS Opening Entry** and **POS Closing Entry**.
@@ -521,6 +527,11 @@ this also makes everyday search instant. If the connection drops:
   serialized items, delivery-app sales, register opening.
 - **Keep the tab open while offline**, the page itself can't reload during
   an outage.
+- The switch happens in seconds, both ways. Every request carries a deadline,
+  so a connection that dies mid-call flips the till to offline instead of
+  hanging on it, and while the connection is down the till asks the server
+  every five seconds and comes back on its own the moment it answers. No
+  page reload.
 - Settings → Status shows cache size and queued count; **Refresh offline
   catalog** re-pulls it. The General toggle *Cache only in-stock items*
   keeps the cache to your warehouse's stock.
@@ -639,6 +650,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.46.4 | **The stock on a tile is live and honest, and the till notices the network in seconds.** The quantity on a product tile is now what you can actually still sell (ERPNext holds back anything sold on a shift that has not been consolidated yet, and that hold is now visible instead of turning up as a refusal), and it moves the moment a sale or a return posts instead of waiting for the next catalogue refresh. Offline: every request now has a deadline, so a connection that dies mid-call flips the till to offline in seconds instead of hanging, and while it is down the till asks the server every five seconds and comes back by itself, no page reload. The POS Closing Entry of an outlet that sells as **Sales Invoice** now lists those invoices, because ERPNext's own table only links POS Invoices and an accountant was left with totals and no documents. The payment screen also asks the server once instead of twice, and asks while the cashier is still scanning. |
 | 0.46.3 | **The text reads like a person wrote it, and the Arabic is complete.** Every em dash is gone from the app and from this guide (852 of them), replaced by the punctuation a person would actually type. Where a dash was the only thing separating two parts of a sentence, the sentence itself was rewritten: the register screen used to run the shift name straight into the next word ("Session POS-SES-0001closed."), and now reads "Session POS-SES-0001 closed. POS Closing Entry ACC-PCE-0001 consolidated its invoices." Separately, 58 labels still came up in English inside the Arabic till: the PIN lock and reset screens, the offline upload prompts, the payment method rules, the shift ownership and alert settings, and the store credit refund switch. They are translated, so every string on screen now has Arabic. |
 | 0.46.2 | **The Arabic in the till is written the way people write it.** The interface text carried 386 vowel marks (tashkeel) left over from earlier translation work, which reads like machine output and is not how a shop writes Arabic. They are gone, in every screen, with no other wording change: same keys, same 1071 strings, only the marks removed. |
 | 0.46.1 | Fixes two cards that the new General grouping put in the wrong place: the gift card settings on the **Loyalty and gift cards** tab, and the **Audit log** tab, both of which could come up empty. The gift card accounts card inside General now sits with the other accounts, where it belongs. |

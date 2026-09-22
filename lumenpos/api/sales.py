@@ -328,6 +328,8 @@ def quote_sale(payload):
     # What the till should collect: ERPNext validates payment against
     # `rounded_total or grand_total`, so quote the same.
     payable = invoice.rounded_total or invoice.grand_total
+    from lumenpos.api.catalog import blocked_payment_modes
+
     return {
         "payable": flt(payable, prec),
         "grand_total": flt(invoice.grand_total, prec),
@@ -335,6 +337,12 @@ def quote_sale(payload):
         "net_total": flt(invoice.net_total, prec),
         "total_taxes": flt(invoice.total_taxes_and_charges, prec),
         "cashback_earn": flt(_cashback_estimate(invoice, profile, payload), prec),
+        # Which tenders this basket may not be paid with, answered here rather
+        # than in a second request: on a till in Riyadh talking to a server in
+        # Mumbai the round trip costs far more than the query.
+        "blocked_modes": blocked_payment_modes(
+            profile.name, [i.get("item_code") for i in payload.get("items") or []]
+        ),
     }
 
 
@@ -484,6 +492,7 @@ def submit_sale(payload):
         approval_requests.consume(payload["discount_request"], invoice.name)
 
     receipt = get_receipt(invoice.name)
+    receipt["stock_after"] = _stock_after(invoice)
     _log_slow_sale(
         invoice.name,
         started=_started,
@@ -1566,6 +1575,25 @@ def _perf_now():
     return time.monotonic()
 
 
+def _stock_after(doc):
+    """What is left to sell of the items this invoice just moved, keyed by item
+    code and read per line warehouse. The till writes these straight onto its
+    tiles, so the number on screen follows the sale instead of waiting for the
+    next catalogue refresh. Best-effort: a display nicety never breaks a sale."""
+    try:
+        from lumenpos.api import catalog
+
+        by_warehouse = {}
+        for line in doc.items or []:
+            by_warehouse.setdefault(line.warehouse, []).append(line.item_code)
+        out = {}
+        for warehouse, codes in by_warehouse.items():
+            out.update(catalog.stock_levels(warehouse, codes))
+        return out
+    except Exception:
+        return {}
+
+
 def _log_slow_sale(invoice_name, *, started, build, insert, submit, done, lines):
     """Best-effort: never let instrumentation break a sale."""
     try:
@@ -2334,7 +2362,9 @@ def create_return(
         pos_profile=original.get("pos_profile"),
     )
 
-    return get_receipt(return_doc.name)
+    receipt = get_receipt(return_doc.name)
+    receipt["stock_after"] = _stock_after(return_doc)
+    return receipt
 
 
 def _enforce_return_groups(returnable_items, items):

@@ -627,6 +627,29 @@ def make_custom_fields():
                     insert_after="lumenpos_cash_out",
                     read_only=1,
                 ),
+                # ERPNext's own pos_transactions table links POS Invoices, so a
+                # shift that posts Sales Invoices directly leaves the Z-report
+                # with takings but no way to see WHICH invoices they came from.
+                # An accountant checking the drawer needs that list.
+                dict(
+                    fieldname="lumenpos_invoices_section",
+                    label="LumenPOS Sales Invoices",
+                    fieldtype="Section Break",
+                    insert_after="lumenpos_cash_movements",
+                    collapsible=1,
+                ),
+                dict(
+                    fieldname="lumenpos_sales_invoices",
+                    label="Sales Invoices in this shift",
+                    fieldtype="Table",
+                    options="POS Shift Invoice",
+                    insert_after="lumenpos_invoices_section",
+                    read_only=1,
+                    description=(
+                        "Every Sales Invoice this shift posted, including returns. "
+                        "Filled when the outlet sells as Sales Invoice instead of POS Invoice."
+                    ),
+                ),
             ],
         },
         ignore_validate=True,

@@ -3,7 +3,13 @@
 // "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
-import { saveCatalog, searchCatalog, catalogCount, saveCustomers } from '../offline'
+import {
+  saveCatalog,
+  searchCatalog,
+  catalogCount,
+  saveCustomers,
+  patchCatalogStock,
+} from '../offline'
 import { useSessionStore } from './session'
 
 export const useCatalogStore = defineStore('catalog', {
@@ -88,6 +94,37 @@ export const useCatalogStore = defineStore('catalog', {
       } catch {
         /* best-effort */
       }
+    },
+
+    // The server tells us what is left after a sale or a return (the same
+    // number the till will refuse on). Write it onto the tiles AND the cache so
+    // the quantity moves with the sale, not at the next catalogue refresh.
+    applyStock(levels) {
+      if (!levels) return
+      const codes = Object.keys(levels)
+      if (!codes.length) return
+      for (const item of this.items) {
+        if (item.item_code in levels) item.actual_qty = levels[item.item_code]
+      }
+      patchCatalogStock(levels).catch(() => {
+        /* the tiles are already right, the cache catches up on the next refresh */
+      })
+    },
+
+    // Offline there is no server answer, so take the sold quantity off the
+    // cached figure ourselves (negative qty for a return puts it back). The
+    // sale's real answer replaces this estimate when the queue syncs.
+    applyStockDelta(lines) {
+      const levels = {}
+      for (const line of lines || []) {
+        const code = line.item_code
+        if (!code) continue
+        const cached = this.items.find((i) => i.item_code === code)
+        const base = cached ? cached.actual_qty : null
+        if (base == null) continue
+        levels[code] = (levels[code] ?? base) - (Number(line.qty) || 0)
+      }
+      this.applyStock(levels)
     },
 
     setSearch(value) {
