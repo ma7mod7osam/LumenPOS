@@ -164,6 +164,10 @@ def get_settings():
         "return_role": doc.get("return_role") or "",
         "return_exceed_role": doc.get("return_exceed_role") or "",
         "exchange_role": doc.get("exchange_role") or "",
+        "layaway_reserve_stock": 1 if doc.get("layaway_reserve_stock") else 0,
+        "deposit_with_tax": 1 if doc.get("deposit_with_tax") else 0,
+        "layaway_days": cint(doc.get("layaway_days")) or 0,
+        "layaway_min_percent": flt(doc.get("layaway_min_percent")),
         "capability_rules": [
             {
                 "capability": row.capability,
@@ -319,6 +323,14 @@ def save_settings(payload):
     doc.return_role = payload.get("return_role") or None
     doc.return_exceed_role = payload.get("return_exceed_role") or None
     doc.exchange_role = payload.get("exchange_role") or None
+    if "layaway_reserve_stock" in payload:
+        doc.layaway_reserve_stock = 1 if payload.get("layaway_reserve_stock") else 0
+    if "deposit_with_tax" in payload:
+        doc.deposit_with_tax = 1 if payload.get("deposit_with_tax") else 0
+    if "layaway_days" in payload:
+        doc.layaway_days = cint(payload.get("layaway_days")) or 0
+    if "layaway_min_percent" in payload:
+        doc.layaway_min_percent = flt(payload.get("layaway_min_percent"))
     if "capability_rules" in payload:
         # Who may do what at the till. A row names a role or a person, several
         # rows for one capability mean any of them passes.

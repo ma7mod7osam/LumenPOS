@@ -91,7 +91,14 @@
   "insights_section",
   "enable_insights",
   "cashback_section",
-  "enable_cashback"
+  "enable_cashback",
+  "layaway_section",
+  "layaway_reserve_stock",
+  "deposit_with_tax",
+  "layaway_days",
+  "layaway_min_percent",
+  "deposit_account",
+  "deposit_item"
  ],
  "fields": [
   {
@@ -122,7 +129,7 @@
   },
   {
    "default": "0",
-   "description": "Serial numbers must be SCANNED with a barcode scanner \u2014 manual typing is rejected at the till. Turn off if a scanner is unavailable.",
+   "description": "Serial numbers must be SCANNED with a barcode scanner, manual typing is rejected at the till. Turn off if a scanner is unavailable.",
    "fieldname": "serial_scan_only",
    "fieldtype": "Check",
    "label": "Require scanning for serial numbers (block manual typing)"
@@ -500,7 +507,7 @@
    "default": "1",
    "fieldname": "receipt_show_unit_price",
    "fieldtype": "Check",
-   "label": "Show unit price (qty \u00d7 rate)"
+   "label": "Show unit price (qty × rate)"
   },
   {
    "default": "1",
@@ -558,7 +565,7 @@
   },
   {
    "default": "Per outlet",
-   "description": "Per outlet: ONE shift per register \u2014 whoever opens it, any assigned cashier can sell on it (default; how LumenPOS has always worked). Per cashier: each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer.",
+   "description": "Per outlet: ONE shift per register, whoever opens it, any assigned cashier can sell on it (default; how LumenPOS has always worked). Per cashier: each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer.",
    "fieldname": "shift_scope",
    "fieldtype": "Select",
    "label": "A shift belongs to",
@@ -566,7 +573,7 @@
   },
   {
    "default": "0",
-   "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies \u2014 it never blocks the close.",
+   "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies, it never blocks the close.",
    "fieldname": "variance_alert_enabled",
    "fieldtype": "Check",
    "label": "Email an alert on a large closing variance"
@@ -588,7 +595,7 @@
   },
   {
    "default": "1",
-   "description": "Allow a refund to be parked on the customer's Store Credit instead of handing money back. Turn OFF if shop policy is money-back only. Note: credit the customer actually SPENT on that sale can always be returned to credit (capped at what they spent) \u2014 otherwise a credit-paid sale would have no refund method at all.",
+   "description": "Allow a refund to be parked on the customer's Store Credit instead of handing money back. Turn OFF if shop policy is money-back only. Note: credit the customer actually SPENT on that sale can always be returned to credit (capped at what they spent), otherwise a credit-paid sale would have no refund method at all.",
    "fieldname": "allow_store_credit_refund",
    "fieldtype": "Check",
    "label": "Allow refunding to Store Credit"
@@ -610,7 +617,7 @@
    "fieldname": "overdue_alert_enabled",
    "fieldtype": "Check",
    "label": "Email an alert when a shift is left open",
-   "description": "Alert only \u2014 a till is never closed automatically, because a close without a real cash count produces figures nobody can trust."
+   "description": "Alert only, a till is never closed automatically, because a close without a real cash count produces figures nobody can trust."
   },
   {
    "depends_on": "overdue_alert_enabled",
@@ -658,6 +665,53 @@
    "fieldname": "enable_cashback",
    "fieldtype": "Check",
    "label": "Enable Cashback"
+  },
+  {
+   "fieldname": "layaway_section",
+   "fieldtype": "Section Break",
+   "label": "Holds and deposits"
+  },
+  {
+   "default": "1",
+   "description": "Raise a Sales Order when goods go on hold, so ERPNext shows the quantity as reserved and another till cannot sell it.",
+   "fieldname": "layaway_reserve_stock",
+   "fieldtype": "Check",
+   "label": "Reserve the goods on hold"
+  },
+  {
+   "default": "0",
+   "description": "On: a deposit is taxed the moment it is taken (an advance against a known supply), and the tax already declared is deducted at hand-over. Off: the deposit carries no tax and the goods are taxed in full when handed over.",
+   "fieldname": "deposit_with_tax",
+   "fieldtype": "Check",
+   "label": "Deposits are taxable when taken"
+  },
+  {
+   "default": "30",
+   "description": "How long a hold runs before the shop may cancel it. 0 = no limit. Nothing is cancelled automatically.",
+   "fieldname": "layaway_days",
+   "fieldtype": "Int",
+   "label": "Hold goods for (days)"
+  },
+  {
+   "default": "0",
+   "description": "Smallest first payment, as a percentage of the total. 0 = any amount.",
+   "fieldname": "layaway_min_percent",
+   "fieldtype": "Percent",
+   "label": "Minimum deposit (%)"
+  },
+  {
+   "description": "Liability account for customer deposits. Blank = LumenPOS creates 'Customer Deposits'. A per-company account can be set in Company Accounts.",
+   "fieldname": "deposit_account",
+   "fieldtype": "Link",
+   "label": "Customer deposits account",
+   "options": "Account"
+  },
+  {
+   "description": "The item a deposit is taken on. Blank = LumenPOS creates LUMENPOS-DEPOSIT.",
+   "fieldname": "deposit_item",
+   "fieldtype": "Link",
+   "label": "Deposit item",
+   "options": "Item"
   }
  ],
  "index_web_pages_for_search": 0,

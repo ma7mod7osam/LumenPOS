@@ -171,6 +171,7 @@ def get_user_permissions():
         "can_exchange": caps_mod.can_exchange(),
         "can_exceed_return_window": caps_mod.can_exceed_return_window(),
         "can_move_cash": caps_mod.can_move_cash(),
+        "can_hold_goods": caps_mod.can_hold_goods(),
         "can_reprint": caps_mod.can_reprint(),
         # ERPNext's document permission AND the shop's own rule, both must pass.
         "open_register": bool(has("POS Opening Entry", "create")) and caps_mod.can_open_register(),
@@ -314,6 +315,9 @@ def _client_settings(profile_name=None):
         "enable_service_charge": 1 if doc.get("enable_service_charge") else 0,
         "service_charge_percent": flt(doc.get("service_charge_percent")),
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
+        "layaway_days": cint(doc.get("layaway_days")) or 0,
+        "layaway_min_percent": flt(doc.get("layaway_min_percent")),
+        "deposit_with_tax": 1 if doc.get("deposit_with_tax") else 0,
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
         "enable_email_receipt": 1 if doc.get("enable_email_receipt") else 0,
         "enable_customer_display": 1 if doc.get("enable_customer_display") else 0,

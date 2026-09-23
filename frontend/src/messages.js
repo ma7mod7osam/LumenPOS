@@ -541,6 +541,14 @@ const settings = {
   "Opens without a connection": "يفتح بدون اتصال",
   "✓ Ready": "✓ جاهز",
   "⚠ Not yet, open the till once while online": "⚠ ليس بعد، افتح الصندوق مرة واحدة وأنت متصل",
+  "Goods put aside for a customer who pays for them over time, and how the money they hand over is treated until the goods leave the shop.":
+    "أصناف توضع جانبا لعميل يدفع ثمنها على دفعات، وكيف يعامل ما يدفعه حتى تخرج البضاعة من المحل.",
+  "Raises a Sales Order, so ERPNext shows the quantity as reserved and another till cannot sell the last one.":
+    "ينشئ أمر بيع، فتظهر الكمية محجوزة في ERPNext ولا يبيع صندوق آخر آخر قطعة.",
+  "Off (the default): the deposit carries no tax and the goods are taxed in full at hand-over. On: the deposit is taxed the moment it is taken, and that tax is deducted at hand-over instead of charged twice.":
+    "إيقاف (الافتراضي): الدفعة بلا ضريبة، وتحسب الضريبة كاملة على البضاعة عند التسليم. تفعيل: الدفعة تخضع للضريبة لحظة استلامها، وتخصم تلك الضريبة عند التسليم بدل احتسابها مرتين.",
+  "Nothing is cancelled automatically when a hold runs past its date: the till just flags it, a person decides.":
+    "لا يلغى أي حجز تلقائيا عند تجاوز موعده، الصندوق ينبه فقط والقرار لشخص.",
 }
 
 // Register page + open-register overlay.
@@ -1095,6 +1103,45 @@ const misc = {
   "6-digit code": "رمز من 6 أرقام",
   "Email me a code": "أرسل لي رمزا بالبريد",
   "The two PINs do not match.": "الرمزان غير متطابقين.",
+  "Hold": "حجز",
+  "Holds": "الحجوزات",
+  "Hold these goods": "احجز هذه الأصناف",
+  "Hold these goods for a customer paying over time": "احجز هذه الأصناف لعميل يدفع على دفعات",
+  "Pick the customer on the sale screen first: a hold belongs to somebody.": "اختر العميل في شاشة البيع أولا: الحجز يخص شخصا بعينه.",
+  "Held for": "محجوز لصالح",
+  "Held for {name}": "حجز لصالح {name}",
+  "Deposit now *": "الدفعة الآن *",
+  "This shop asks for at least {amount}": "هذا المحل يطلب {amount} على الأقل",
+  "Hold until": "الحجز حتى",
+  "Anything the next cashier should know": "أي شيء يحتاج الكاشير التالي معرفته",
+  "The deposit is money the shop is holding, not a sale: it posts to the deposits account and comes off the bill when the goods are handed over.": "الدفعة أمانة لدى المحل وليست بيعا: تسجل في حساب الأمانات وتخصم من الفاتورة عند تسليم البضاعة.",
+  "Holding…": "جار الحجز…",
+  "Hold and take {amount}": "احجز واستلم {amount}",
+  "Customer or hold number…": "العميل أو رقم الحجز…",
+  "Completed": "مكتمل",
+  "Cancelled": "ملغى",
+  "Holds need a connection.": "الحجوزات تحتاج اتصالا.",
+  "Nothing is on hold right now.": "لا يوجد أي حجز حاليا.",
+  "Past the date": "تجاوز الموعد",
+  "until": "حتى",
+  "{paid} of {total}": "{paid} من {total}",
+  "Paid so far": "المدفوع حتى الآن",
+  "Still to pay": "المتبقي",
+  "Instalments": "الدفعات",
+  "Take payment": "استلم دفعة",
+  "Hand over, collect {amount}": "سلم البضاعة واستلم {amount}",
+  "Cancel hold and refund {amount}": "ألغ الحجز وأعد {amount}",
+  "Handing over sells the goods at the price agreed on the day of the hold. What is already paid comes off the bill.": "التسليم يبيع الأصناف بالسعر المتفق عليه يوم الحجز، وما دفع مسبقا يخصم من الفاتورة.",
+  "Handed over on {invoice}": "سلمت على الفاتورة {invoice}",
+  "Payment taken": "تم استلام الدفعة",
+  "Goods handed over": "تم تسليم البضاعة",
+  "Hold cancelled and refunded": "ألغي الحجز وأعيد المبلغ",
+  "Holds and deposits": "الحجوزات والدفعات",
+  "Reserve the goods on hold": "احجز الكمية فعليا",
+  "Deposits are taxable when taken": "الدفعة خاضعة للضريبة عند استلامها",
+  "Hold goods for (days)": "مدة الحجز (أيام)",
+  "Minimum deposit (%)": "أقل دفعة مقدمة (%)",
+  "Hold goods for a customer": "حجز أصناف لعميل",
 }
 
 // Discount approval (over-limit), modal, approver tray, settings.

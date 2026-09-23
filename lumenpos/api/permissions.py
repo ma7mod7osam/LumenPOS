@@ -33,6 +33,7 @@ CASH_MOVEMENT = "Cash in / out"
 REPRINT = "Reprint a receipt"
 OPEN_REGISTER = "Open the register"
 CLOSE_REGISTER = "Close the register"
+HOLD_GOODS = "Hold goods for a customer"
 
 LEGACY_FIELD = {
     PRICE_EDIT: "price_edit_role",
@@ -121,6 +122,12 @@ def can_exceed_return_window(user=None):
     """Return a sale PAST the return window without an approval request. Nobody
     does unless a shop names them, managers always do."""
     return allowed(RETURN_EXCEED, user)
+
+
+def can_hold_goods(user=None):
+    """Put goods aside for a customer who pays over time, take an instalment,
+    hand the goods over or cancel the hold."""
+    return allowed(HOLD_GOODS, user)
 
 
 def can_move_cash(user=None):

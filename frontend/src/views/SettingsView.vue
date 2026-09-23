@@ -1035,6 +1035,36 @@
           <Icon :name="group.icon" /> {{ t(group.label) }}
         </button>
       </div>
+      <!-- Holds and deposits -->
+      <div class="sec-card" v-show="generalSection === 'holds'">
+        <div class="sec-title"><Icon name="bookmark" /> {{ t('Holds and deposits') }}</div>
+        <p class="sec-note">{{ t('Goods put aside for a customer who pays for them over time, and how the money they hand over is treated until the goods leave the shop.') }}</p>
+        <label class="switch-row">
+          <input type="checkbox" v-model="generalForm.layaway_reserve_stock" />
+          <span class="switch-body">
+            <span class="setting-title">{{ t('Reserve the goods on hold') }}</span>
+            <span class="muted small">{{ t('Raises a Sales Order, so ERPNext shows the quantity as reserved and another till cannot sell the last one.') }}</span>
+          </span>
+        </label>
+        <label class="switch-row">
+          <input type="checkbox" v-model="generalForm.deposit_with_tax" />
+          <span class="switch-body">
+            <span class="setting-title">{{ t('Deposits are taxable when taken') }}</span>
+            <span class="muted small">{{ t('Off (the default): the deposit carries no tax and the goods are taxed in full at hand-over. On: the deposit is taxed the moment it is taken, and that tax is deducted at hand-over instead of charged twice.') }}</span>
+          </span>
+        </label>
+        <div class="field-grid">
+          <label class="field">
+            <span>{{ t('Hold goods for (days)') }}</span>
+            <input type="number" min="0" v-model.number="generalForm.layaway_days" />
+          </label>
+          <label class="field">
+            <span>{{ t('Minimum deposit (%)') }}</span>
+            <input type="number" min="0" max="100" v-model.number="generalForm.layaway_min_percent" />
+          </label>
+        </div>
+        <p class="muted hint-row">{{ t('Nothing is cancelled automatically when a hold runs past its date: the till just flags it, a person decides.') }}</p>
+      </div>
       <!-- Delivery apps -->
       <div class="sec-card" v-show="generalSection === 'payments'">
         <div class="sec-title"><Icon name="bike" /> {{ t('Delivery apps') }}</div>
@@ -2007,6 +2037,10 @@ const generalForm = ref({
   return_role: '',
   return_exceed_role: '',
   exchange_role: '',
+  layaway_reserve_stock: true,
+  deposit_with_tax: false,
+  layaway_days: 30,
+  layaway_min_percent: 0,
   capability_rules: [],
   restrict_returns_to_window: 0,
   return_window_days: 14,
@@ -2072,6 +2106,7 @@ const generalSections = [
   { key: 'register', label: 'Register and shifts', icon: 'store' },
   { key: 'payments', label: 'Payments and delivery', icon: 'card' },
   { key: 'returns', label: 'Returns and refunds', icon: 'refresh' },
+  { key: 'holds', label: 'Holds and deposits', icon: 'bookmark' },
   { key: 'receipt', label: 'Receipt', icon: 'image' },
   { key: 'money', label: 'Accounts and gift cards', icon: 'bank' },
   { key: 'approvals', label: 'Approvals and access', icon: 'shield' },
@@ -2424,6 +2459,10 @@ async function load() {
     return_role: info.return_role || '',
     return_exceed_role: info.return_exceed_role || '',
     exchange_role: info.exchange_role || '',
+    layaway_reserve_stock: Boolean(info.layaway_reserve_stock),
+    deposit_with_tax: Boolean(info.deposit_with_tax),
+    layaway_days: info.layaway_days || 0,
+    layaway_min_percent: info.layaway_min_percent || 0,
     capability_rules: (info.capability_rules || []).map((r) => ({ ...r })),
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,

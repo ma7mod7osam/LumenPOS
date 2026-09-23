@@ -124,9 +124,10 @@
       <ProductGrid v-else @select="addToCart" />
     </section>
 
-    <CartPanel @pay="onPay" @park="parkOpen = true" @receipt="receipt = $event" />
+    <CartPanel @pay="onPay" @park="parkOpen = true" @hold="holdOpen = true" @receipt="receipt = $event" />
 
     <PaymentOverlay v-if="paymentOpen" @close="paymentOpen = false" @done="onSaleDone" />
+    <HoldModal v-if="holdOpen" @close="holdOpen = false" @done="onHeld" />
     <ParkedSalesModal v-if="parkedOpen" @close="parkedOpen = false" />
     <ReceiptModal v-if="receipt" :receipt="receipt" @close="receipt = null" />
     <SerialModal
@@ -160,6 +161,7 @@
 <script setup>
 import Icon from '../components/Icon.vue'
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { t } from '../i18n'
 import { call } from '../api'
 import { money } from '../format'
@@ -170,12 +172,14 @@ import ProductGrid from '../components/ProductGrid.vue'
 import CartPanel from '../components/CartPanel.vue'
 import PaymentOverlay from '../components/PaymentOverlay.vue'
 import ParkedSalesModal from '../components/ParkedSalesModal.vue'
+import HoldModal from '../components/HoldModal.vue'
 import ReceiptModal from '../components/ReceiptModal.vue'
 import SerialModal from '../components/SerialModal.vue'
 import PasscodeModal from '../components/PasscodeModal.vue'
 import PriceCheckModal from '../components/PriceCheckModal.vue'
 import { createScanGuard } from '../scanGuard'
 
+const router = useRouter()
 const session = useSessionStore()
 const scanGuard = createScanGuard()
 let scanTimer = null
@@ -206,6 +210,15 @@ const receipt = ref(null)
 const searchInput = ref(null)
 const serialItem = ref(null)
 const priceCheckOpen = ref(false)
+
+const holdOpen = ref(false)
+
+// Goods put aside for a customer: the cart is cleared by the modal, the hold
+// itself lives on the Holds screen from here on.
+function onHeld() {
+  holdOpen.value = false
+  router.push('/holds')
+}
 
 onMounted(() => searchInput.value?.focus())
 

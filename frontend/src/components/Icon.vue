@@ -28,6 +28,8 @@ const PATHS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   check: '<path d="M5 12l4.5 4.5L19 7"/>',
   warning: '<path d="M12 3 22 20H2z"/><path d="M12 10v4M12 17.5h.01"/>',
+  bookmark:
+    '<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
   gift:
     '<path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/>' +
     '<path d="M2.5 8h19v4h-19z"/><path d="M12 8v13"/>' +

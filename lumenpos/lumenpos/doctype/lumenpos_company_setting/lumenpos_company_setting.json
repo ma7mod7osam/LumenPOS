@@ -9,7 +9,8 @@
   "gift_card_account",
   "service_charge_account",
   "cashback_liability_account",
-  "cashback_expense_account"
+  "cashback_expense_account",
+  "deposit_account"
  ],
  "fields": [
   {
@@ -46,6 +47,13 @@
    "fieldname": "cashback_expense_account",
    "fieldtype": "Link",
    "label": "Cashback Expense Account",
+   "options": "Account"
+  },
+  {
+   "description": "Liability account this company holds customer deposits in. Blank = LumenPOS creates 'Customer Deposits'.",
+   "fieldname": "deposit_account",
+   "fieldtype": "Link",
+   "label": "Customer deposits account",
    "options": "Account"
   }
  ],

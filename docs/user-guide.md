@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.49.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.50.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -452,7 +452,54 @@ always needs return permission as well.
 linked documents against an existing sale.
 
 ---
-## 10. Serial numbers (strict)
+## 10. Holds and deposits (layaway)
+
+A customer who wants the goods kept while they pay for them over time. Ring
+the items up as usual, pick the customer, then **Hold** instead of Pay.
+
+1. The modal shows what is being held and asks for the deposit and how it was
+   paid, plus a date to hold until and a note. The shop can insist on a
+   minimum first payment (Settings).
+2. The goods are **reserved**: LumenPOS raises a Sales Order, so ERPNext shows
+   the quantity as committed and another till cannot sell the last one. A shop
+   that does not want that can switch it off.
+3. The **Holds** screen lists what is on hold, for whom, paid and still to pay,
+   and flags anything past its date. From there you take another instalment,
+   hand the goods over, or cancel.
+4. **Hand over** sells the goods at the price agreed on the day of the hold,
+   takes the balance, releases the reservation and closes the hold.
+5. **Cancel** refunds every instalment through the ordinary return, so the
+   refund method rules a shop set apply here too, and the goods go back.
+
+### Where the money sits
+
+A deposit is **not a sale**. Each instalment posts a real POS sale of one line,
+a *Customer Deposit*, whose income account is a **liability** (LumenPOS creates
+*Customer Deposits* on first use, or use your own in Settings). So the drawer
+and the Z-report see the money the moment it is taken, but nothing is counted
+as revenue while the goods are still in the shop.
+
+At hand-over, what was already paid comes off the bill and only the balance is
+collected, so the drawer is right both times.
+
+### Tax on a deposit
+
+Off by default: **the deposit carries no tax and the goods are taxed in full**
+when they are handed over. Turn on *Deposits are taxable when taken* (Settings →
+General → Holds and deposits) where an advance against a known supply is
+taxable on receipt, as it is in Saudi Arabia. Then the deposit is invoiced with
+the tax **inside** the amount the customer handed over, and at hand-over that
+advance is deducted from the taxable amount, so the same money is never taxed
+twice. Both settings work with tax-inclusive and tax-exclusive price lists.
+
+**Who may do it:** anyone, unless a shop names a role or a person for *Hold
+goods for a customer* under Settings → General → Approvals and access.
+
+**Needs a connection.** A hold reserves stock and posts documents, so it is not
+available offline.
+
+---
+## 11. Serial numbers (strict)
 
 A serialized item can never be sold without its exact serials:
 - Adding one opens a scan prompt; the serial must exist, belong to that item,
@@ -469,7 +516,7 @@ A serialized item can never be sold without its exact serials:
 
 ---
 
-## 11. Register & cash management
+## 12. Register & cash management
 
 - The **"Register open"** pill in the top bar is a shortcut, click it to
   jump to the Register page (where closing happens).
@@ -536,7 +583,7 @@ with an opening-float box, on both the Sell-screen prompt and the Register
 
 ---
 
-## 12. Sales history
+## 13. Sales history
 
 Search bar matches invoice no, customer name/ID, **mobile**, and **order ID**.
 Filters: date range, status, document status, **channel** (walk-in / app),
@@ -551,7 +598,7 @@ refund.
 
 ---
 
-## 13. Offline mode
+## 14. Offline mode
 
 After the first online load the catalog (incl. barcodes) is cached locally,
 this also makes everyday search instant. If the connection drops:
@@ -596,7 +643,7 @@ database and posted when the connection returns.
 behaviour: it sells offline as long as the tab stays open.)
 ---
 
-## 14. Settings reference (gear icon → /settings)
+## 15. Settings reference (gear icon → /settings)
 
 | Tab | Contents |
 |---|---|
@@ -616,7 +663,7 @@ on the **POS Profile**, the single source of truth.
 
 ---
 
-## 15. Roles & permissions
+## 16. Roles & permissions
 
 LumenPOS access is governed entirely by **standard ERPNext DocType permissions**,
 manage them in **Role Permissions Manager** (Frappe Cloud → desk → search
@@ -691,7 +738,7 @@ becomes one row automatically on update, and a site that restricted nothing
 stays open.
 
 ---
-## 16. Troubleshooting
+## 17. Troubleshooting
 
 | Symptom | Check |
 |---|---|
@@ -711,7 +758,7 @@ stays open.
 
 ---
 
-## 17. Customers (client lookup)
+## 18. Customers (client lookup)
 
 The **Customers** tab (left rail) is a fast way to find a client and see their
 POS activity in one place.
@@ -732,7 +779,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 
 ---
 
-## 18. Changelog
+## 19. Changelog
 
 > **LumenPOS 0.1.0** is a standalone fork of this POS for the Frappe Marketplace,
 > rebranded to the **Lumen** identity (primary blue `#1463FF`, Plus Jakarta Sans
@@ -742,6 +789,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.50.0 | **Holds and deposits.** A customer can leave a deposit and have the goods kept for them. Ring the items up, press **Hold**, take what they are paying today: the goods are reserved with a Sales Order so no other till sells the last one, and the money goes to a **liability** account, not revenue, because the shop is holding it. The new **Holds** screen shows what is held, for whom, paid and still to pay, flags anything past its date, and takes the next instalment, hands the goods over, or cancels and refunds. Handing over sells at the price agreed the day of the hold and collects only the balance. Tax follows the shop: by default the deposit is untaxed and the goods are taxed in full at hand-over, or switch on taxable deposits (as Saudi Arabia requires for an advance against a known supply) and the tax declared on the deposit is deducted at hand-over instead of charged twice. |
 | 0.49.0 | **The till opens with no connection at all, and installs like an app.** Until now an outage was survivable only as long as nobody reloaded the tab: the page itself came from the server, so a reload or a reboot meant a till that could not sell. The app now keeps itself on the device (a service worker holds the page, its script, styles and fonts), so /pos opens offline and the shift carries on with the cached catalogue and the offline queue. Settings → Status shows **Opens without a connection**. It can also be installed from Chrome or Edge, own window, own icon, starting at the till. Nothing about the data changed: no API answer is ever served from a cache, and opening or closing a shift still needs the server. |
 | 0.48.0 | **Who can do what, by role or by person.** The four separate role fields (edit price, make returns, exceed the return window, exchange) are now one table in Settings, with four more actions a shop can hold back: **cash in / out**, **reprint a receipt**, **open the register** and **close the register**. A rule names a role or a single person, and several rules for the same action mean any of them passes, so "the shift leads plus Fatima" no longer needs a role invented for one person. An action with no rule is open to everyone, so updating locks nothing, and the roles a shop already set move across on their own. The till hides what a person may not do and the server refuses it again, so a stale tab cannot get round it. |
 | 0.47.0 | **Exchange in one step.** A customer swapping one item for another used to be two errands, a refund and then a fresh sale, with the cashier holding the arithmetic in their head. Now: History, **Exchange…**, pick what comes back, ring up what they are taking instead, and the payment screen shows one figure, the difference. Dearer and you collect it with any tender, cheaper and you give it back by the normal refund rules, equal and the drawer never opens. The credit note and the replacement sale post together in one request, so there is no moment where the goods are back but the replacement is not, and the matched part settles through a clearing tender (**Exchange**, a liability account created on first use) so cash and card totals only ever see the difference. Everything a return enforces still applies: restrictions, the return window and its approval, serials, sets. A shop can name its own **Exchange role** in Settings. |
