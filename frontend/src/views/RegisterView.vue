@@ -145,7 +145,7 @@
         </div>
       </div>
 
-      <div class="card panel">
+      <div v-if="session.permissions.can_move_cash !== false" class="card panel">
         <div class="panel-head">{{ t('Cash in / out') }}</div>
         <div class="panel-body">
           <div class="cash-form">

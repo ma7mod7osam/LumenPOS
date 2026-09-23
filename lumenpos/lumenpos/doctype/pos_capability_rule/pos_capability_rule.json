@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "creation": "2026-09-23 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "capability",
+  "role",
+  "user"
+ ],
+ "fields": [
+  {
+   "fieldname": "capability",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Can",
+   "options": "Edit price / discount\nMake returns\nReturn past the window\nExchange goods\nCash in / out\nReprint a receipt\nOpen the register\nClose the register",
+   "reqd": 1
+  },
+  {
+   "description": "Anyone holding this role passes. Leave blank to name a single person instead.",
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Role",
+   "options": "Role"
+  },
+  {
+   "description": "This person passes, whatever roles they hold.",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Person",
+   "options": "User"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Capability Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

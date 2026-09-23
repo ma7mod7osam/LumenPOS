@@ -170,8 +170,11 @@ def get_user_permissions():
         "can_return": caps_mod.can_return(),
         "can_exchange": caps_mod.can_exchange(),
         "can_exceed_return_window": caps_mod.can_exceed_return_window(),
-        "open_register": bool(has("POS Opening Entry", "create")),
-        "close_register": bool(has("POS Closing Entry", "create")),
+        "can_move_cash": caps_mod.can_move_cash(),
+        "can_reprint": caps_mod.can_reprint(),
+        # ERPNext's document permission AND the shop's own rule, both must pass.
+        "open_register": bool(has("POS Opening Entry", "create")) and caps_mod.can_open_register(),
+        "close_register": bool(has("POS Closing Entry", "create")) and caps_mod.can_close_register(),
         "promotions": caps("POS Promotion"),
         "cashback": caps("POS Cashback Rule"),
         "bundles": caps("POS Bundle"),

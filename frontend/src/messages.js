@@ -527,6 +527,17 @@ const settings = {
   "Exchange role": "صلاحية الاستبدال",
   "Who can exchange": "من يستبدل",
   "Anyone who may return": "أي شخص يستطيع الاسترجاع",
+  "Any role": "أي صلاحية",
+  "or one person": "أو شخص بعينه",
+  "Add a rule": "أضف قاعدة",
+  "An action with no rule is open to everyone. Returning past the window is the exception: nobody does it directly until you name someone, everyone else sends an approval request.": "أي إجراء بلا قاعدة متاح للجميع. الاستثناء هو الاسترجاع بعد انتهاء المدة: لا أحد ينفذه مباشرة حتى تسمي شخصا أو صلاحية، والبقية يرفعون طلب موافقة.",
+  "Edit price / discount": "تعديل السعر أو الخصم",
+  "Make returns": "تنفيذ الاسترجاع",
+  "Return past the window": "الاسترجاع بعد انتهاء المدة",
+  "Exchange goods": "الاستبدال",
+  "Reprint a receipt": "إعادة طباعة الإيصال",
+  "Open the register": "فتح الصندوق",
+  "Close the register": "إغلاق الصندوق",
 }
 
 // Register page + open-register overlay.
@@ -1215,8 +1226,8 @@ const serialsAndGroups = {
 const permissions = {
   "Permissions": "الصلاحيات",
   "You are not allowed to edit prices": "غير مسموح لك بتعديل الأسعار",
-  "Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.":
-    "تقييد إجراءات نقطة البيع بمن يحمل دورا معينا. اترك الدور فارغا للسماح للجميع. مديرو النظام / LumenPOS دائما مسموح لهم.",
+  "Say who may do each action at the till. A rule names a role or one person, and any matching rule lets them through. System / LumenPOS Managers always pass.":
+    "حدد من يقوم بكل إجراء في الصندوق. القاعدة تسمي صلاحية أو شخصا بعينه، وأي قاعدة مطابقة تكفي. مديرو النظام و LumenPOS يمرون دائما.",
   "Edit price / discount role": "دور تعديل السعر / الخصم",
   "Make returns role": "دور تنفيذ المرتجعات",
   "Exceed return window role": "دور تجاوز فترة الإرجاع",

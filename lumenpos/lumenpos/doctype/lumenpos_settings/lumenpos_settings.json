@@ -47,6 +47,7 @@
   "return_role",
   "return_exceed_role",
   "exchange_role",
+  "capability_rules",
   "payment_rules_section",
   "payment_method_rules",
   "channels_section",
@@ -311,6 +312,13 @@
    "fieldtype": "Link",
    "label": "Exchange role",
    "options": "Role"
+  },
+  {
+   "description": "Who may do what at the till. A capability with no row here is open to everyone (except returning past the window, which stays closed unless named). Managers always pass.",
+   "fieldname": "capability_rules",
+   "fieldtype": "Table",
+   "label": "Who can do what",
+   "options": "POS Capability Rule"
   },
   {
    "fieldname": "channels_section",

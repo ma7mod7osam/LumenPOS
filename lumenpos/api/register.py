@@ -117,6 +117,10 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     needed = "POS Register Session" if lightweight else "POS Opening Entry"
     if not frappe.has_permission(needed, "create"):
         frappe.throw(_("You are not permitted to open a register"), frappe.PermissionError)
+    from lumenpos.api import permissions
+
+    if not permissions.can_open_register():
+        frappe.throw(_("You are not allowed to open a register"), frappe.PermissionError)
 
     # 1) This register must have no live shift (Open or still-finalising Closing).
     # In "Per cashier" scope the shift belongs to the individual, so the check is
@@ -302,6 +306,10 @@ def _force_new_after_failure(profile, opening_float, stuck_session):
 def add_cash_movement(session, movement_type, amount, reason=None):
     if not frappe.has_permission("POS Register Session", "write"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
+    from lumenpos.api import permissions
+
+    if not permissions.can_move_cash():
+        frappe.throw(_("You are not allowed to put money in or take it out"), frappe.PermissionError)
     doc = frappe.get_doc("POS Register Session", session)
     _assert_owner_or_manager(doc)
     if doc.status != "Open":
@@ -428,6 +436,10 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
     needed = "POS Register Session" if not doc.get("pos_opening_entry") else "POS Closing Entry"
     if not frappe.has_permission(needed, "create"):
         frappe.throw(_("You are not permitted to close a register"), frappe.PermissionError)
+    from lumenpos.api import permissions
+
+    if not permissions.can_close_register():
+        frappe.throw(_("You are not allowed to close a register"), frappe.PermissionError)
     if doc.status == "Closed":
         frappe.throw(_("Register session is already closed"))
     if doc.status == "Closing":

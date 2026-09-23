@@ -17,7 +17,7 @@ import socket
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 from lumenpos.api.sales import get_receipt
 
@@ -38,7 +38,14 @@ WIDTH = 42  # characters per line on a typical 80mm printer
 
 
 @frappe.whitelist()
-def print_receipt(invoice, open_drawer=0):
+def print_receipt(invoice, open_drawer=0, reprint=0):
+    from lumenpos.api import permissions
+
+    # A cashier always prints the receipt for the sale they just made. Printing
+    # one AGAIN later (and with it, opening the drawer) is the thing a shop may
+    # want to keep to a supervisor, so only that is gated.
+    if cint(reprint) and not permissions.can_reprint():
+        frappe.throw(_("You are not allowed to reprint a receipt"), frappe.PermissionError)
     receipt = get_receipt(invoice)
     profile = frappe.db.get_value("POS Invoice", invoice, "pos_profile")
     ip = frappe.db.get_value("POS Profile", profile, "lumenpos_printer_ip")

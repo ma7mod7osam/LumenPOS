@@ -164,6 +164,14 @@ def get_settings():
         "return_role": doc.get("return_role") or "",
         "return_exceed_role": doc.get("return_exceed_role") or "",
         "exchange_role": doc.get("exchange_role") or "",
+        "capability_rules": [
+            {
+                "capability": row.capability,
+                "role": row.role or "",
+                "user": row.user or "",
+            }
+            for row in (doc.get("capability_rules") or [])
+        ],
         "restrict_returns_to_window": 1 if doc.get("restrict_returns_to_window") else 0,
         "return_window_days": cint(doc.get("return_window_days")) or 0,
         "has_passcode": bool(
@@ -311,6 +319,20 @@ def save_settings(payload):
     doc.return_role = payload.get("return_role") or None
     doc.return_exceed_role = payload.get("return_exceed_role") or None
     doc.exchange_role = payload.get("exchange_role") or None
+    if "capability_rules" in payload:
+        # Who may do what at the till. A row names a role or a person, several
+        # rows for one capability mean any of them passes.
+        doc.set("capability_rules", [])
+        for row in payload.get("capability_rules") or []:
+            capability = (row.get("capability") or "").strip()
+            role = (row.get("role") or "").strip()
+            user = (row.get("user") or "").strip()
+            if not capability or not (role or user):
+                continue
+            doc.append(
+                "capability_rules",
+                {"capability": capability, "role": role or None, "user": user or None},
+            )
     doc.restrict_returns_to_window = 1 if payload.get("restrict_returns_to_window") else 0
     doc.return_window_days = cint(payload.get("return_window_days")) or 0
     if payload.get("discount_passcode"):

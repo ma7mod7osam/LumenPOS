@@ -120,7 +120,11 @@ async function print() {
   if (session.printerConfigured && !props.receipt.offline && !session.offline) {
     printing.value = true
     try {
-      await call('lumenpos.api.printing.print_receipt', { invoice: props.receipt.name })
+      await call('lumenpos.api.printing.print_receipt', {
+        invoice: props.receipt.name,
+        // Opened from History or Customers, so this is a second copy.
+        reprint: props.showOpenInHistory ? 0 : 1,
+      })
       session.notify(t('Receipt sent to printer'))
       return
     } catch (e) {

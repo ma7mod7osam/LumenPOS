@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.47.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.48.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -635,6 +635,40 @@ for holders of the configured **Approver Role** plus LumenPOS / System Managers.
 
 ---
 
+### Who can do what (Settings → General → Approvals and permissions)
+
+ERPNext roles decide what a person may reach. This table decides what they may
+do at the till, and it can name **a role or one person**, so "the shift leads,
+plus Fatima" is two rows rather than a role invented for one person.
+
+| Action | What it covers |
+|---|---|
+| **Edit price / discount** | A manual discount or price change on a sale line |
+| **Make returns** | Creating a credit note from the till |
+| **Return past the window** | Returning a sale older than the return window WITHOUT an approval request |
+| **Exchange goods** | The one-step exchange (needs *Make returns* as well) |
+| **Cash in / out** | Putting money in the drawer or taking it out mid-shift |
+| **Reprint a receipt** | Printing a receipt again later (and with it, kicking the drawer). The receipt for the sale just made always prints |
+| **Open the register** | Starting a shift |
+| **Close the register** | Counting the drawer and closing |
+
+Rules for the same action are an OR: any row that matches lets the person
+through. **An action with no row is open to everyone**, so nothing locks up the
+day you update. The single exception is *Return past the window*, which stays
+shut until somebody is named, everyone else sends an approval request.
+System and LumenPOS Managers always pass.
+
+The till hides what a person may not do (the cash in/out panel, the reprint
+button, the open and close buttons), and every one of those actions is checked
+again on the server, so a stale browser tab or a direct API call cannot get
+round it.
+
+Upgrading from the four single-role fields (Edit price role, Make returns role,
+Exceed return window role, Exchange role) needs nothing: each role that was set
+becomes one row automatically on update, and a site that restricted nothing
+stays open.
+
+---
 ## 16. Troubleshooting
 
 | Symptom | Check |
@@ -686,6 +720,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.48.0 | **Who can do what, by role or by person.** The four separate role fields (edit price, make returns, exceed the return window, exchange) are now one table in Settings, with four more actions a shop can hold back: **cash in / out**, **reprint a receipt**, **open the register** and **close the register**. A rule names a role or a single person, and several rules for the same action mean any of them passes, so "the shift leads plus Fatima" no longer needs a role invented for one person. An action with no rule is open to everyone, so updating locks nothing, and the roles a shop already set move across on their own. The till hides what a person may not do and the server refuses it again, so a stale tab cannot get round it. |
 | 0.47.0 | **Exchange in one step.** A customer swapping one item for another used to be two errands, a refund and then a fresh sale, with the cashier holding the arithmetic in their head. Now: History, **Exchange…**, pick what comes back, ring up what they are taking instead, and the payment screen shows one figure, the difference. Dearer and you collect it with any tender, cheaper and you give it back by the normal refund rules, equal and the drawer never opens. The credit note and the replacement sale post together in one request, so there is no moment where the goods are back but the replacement is not, and the matched part settles through a clearing tender (**Exchange**, a liability account created on first use) so cash and card totals only ever see the difference. Everything a return enforces still applies: restrictions, the return window and its approval, serials, sets. A shop can name its own **Exchange role** in Settings. |
 | 0.46.4 | **The stock on a tile is live and honest, and the till notices the network in seconds.** The quantity on a product tile is now what you can actually still sell (ERPNext holds back anything sold on a shift that has not been consolidated yet, and that hold is now visible instead of turning up as a refusal), and it moves the moment a sale or a return posts instead of waiting for the next catalogue refresh. Offline: every request now has a deadline, so a connection that dies mid-call flips the till to offline in seconds instead of hanging, and while it is down the till asks the server every five seconds and comes back by itself, no page reload. The POS Closing Entry of an outlet that sells as **Sales Invoice** now lists those invoices, because ERPNext's own table only links POS Invoices and an accountant was left with totals and no documents. The payment screen also asks the server once instead of twice, and asks while the cashier is still scanning. |
 | 0.46.3 | **The text reads like a person wrote it, and the Arabic is complete.** Every em dash is gone from the app and from this guide (852 of them), replaced by the punctuation a person would actually type. Where a dash was the only thing separating two parts of a sentence, the sentence itself was rewritten: the register screen used to run the shift name straight into the next word ("Session POS-SES-0001closed."), and now reads "Session POS-SES-0001 closed. POS Closing Entry ACC-PCE-0001 consolidated its invoices." Separately, 58 labels still came up in English inside the Arabic till: the PIN lock and reset screens, the offline upload prompts, the payment method rules, the shift ownership and alert settings, and the store credit refund switch. They are translated, so every string on screen now has Arabic. |

@@ -1736,28 +1736,27 @@
         <div class="sec-title"><Icon name="shield" /> {{ t('Permissions') }}</div>
         <p class="sec-note">{{ t('Which roles may change a price, take a return, and approve one.') }}</p>
         <p class="muted hint-row" style="padding: 0 0 6px">
-          {{ t('Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.') }}
+          {{ t('Say who may do each action at the till. A rule names a role or one person, and any matching rule lets them through. System / LumenPOS Managers always pass.') }}
         </p>
-        <div class="field-grid">
-          <label class="field">
-            <span>{{ t('Edit price / discount role') }}</span>
-            <LinkPicker doctype="Role" v-model="generalForm.price_edit_role" :placeholder="t('Anyone')" />
-          </label>
-          <label class="field">
-            <span>{{ t('Make returns role') }}</span>
-            <LinkPicker doctype="Role" v-model="generalForm.return_role" :placeholder="t('Anyone')" />
-          </label>
-          <label class="field">
-            <span>{{ t('Exceed return window role') }}</span>
-            <LinkPicker doctype="Role" v-model="generalForm.return_exceed_role" :placeholder="t('Nobody (use requests)')" />
-          </label>
-          <label class="field">
-            <span>{{ t('Exchange role') }}</span>
-            <LinkPicker doctype="Role" v-model="generalForm.exchange_role" :placeholder="t('Anyone who may return')" />
-          </label>
+        <!-- One row per rule: a role, or a single person by name. Several rows
+             for the same action mean any of them passes. -->
+        <div class="cap-rules">
+          <div v-for="(row, i) in generalForm.capability_rules" :key="'cap' + i" class="cap-row">
+            <select v-model="row.capability" class="cap-what">
+              <option v-for="c in capabilityOptions" :key="c" :value="c">{{ t(c) }}</option>
+            </select>
+            <LinkPicker doctype="Role" v-model="row.role" :placeholder="t('Any role')" />
+            <LinkPicker doctype="User" v-model="row.user" :placeholder="t('or one person')" />
+            <button class="btn-ghost" @click="generalForm.capability_rules.splice(i, 1)">
+              <Icon name="close" />
+            </button>
+          </div>
+          <button class="btn btn-outline btn-sm" @click="addCapabilityRule">
+            <Icon name="plus" /> {{ t('Add a rule') }}
+          </button>
         </div>
         <p class="muted hint-row">
-          {{ t('Exceed return window: this role (plus managers) can return a sale past the window directly, everyone else uses the approval request flow.') }}
+          {{ t('An action with no rule is open to everyone. Returning past the window is the exception: nobody does it directly until you name someone, everyone else sends an approval request.') }}
         </p>
       </div>
 
@@ -1977,6 +1976,22 @@ const giftCardList = ref([])
 const giftCardSearch = ref('')
 let cardTimer = null
 
+// The actions a shop can restrict. The value IS the stored label, so a rule
+// keeps meaning what it says even if the till is translated.
+const capabilityOptions = [
+  'Edit price / discount',
+  'Make returns',
+  'Return past the window',
+  'Exchange goods',
+  'Cash in / out',
+  'Reprint a receipt',
+  'Open the register',
+  'Close the register',
+]
+
+function addCapabilityRule() {
+  generalForm.value.capability_rules.push({ capability: 'Make returns', role: '', user: '' })
+}
 const generalForm = ref({
   delivery_apps: [],
   payment_method_rules: [],
@@ -1988,6 +2003,7 @@ const generalForm = ref({
   return_role: '',
   return_exceed_role: '',
   exchange_role: '',
+  capability_rules: [],
   restrict_returns_to_window: 0,
   return_window_days: 14,
   offline_stock_only: 0,
@@ -2403,6 +2419,7 @@ async function load() {
     return_role: info.return_role || '',
     return_exceed_role: info.return_exceed_role || '',
     exchange_role: info.exchange_role || '',
+    capability_rules: (info.capability_rules || []).map((r) => ({ ...r })),
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,
     offline_stock_only: info.offline_stock_only || 0,
@@ -3530,6 +3547,20 @@ button.sec-title.collapsible {
 }
 button.sec-title.collapsible + * { margin-top: 14px; }
 
+.cap-rules { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.cap-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 28px;
+  gap: 8px;
+  align-items: center;
+}
+.cap-what {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
 .field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
