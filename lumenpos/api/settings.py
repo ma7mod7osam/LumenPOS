@@ -164,6 +164,7 @@ def get_settings():
         "return_role": doc.get("return_role") or "",
         "return_exceed_role": doc.get("return_exceed_role") or "",
         "exchange_role": doc.get("exchange_role") or "",
+        "enable_layaway": 1 if doc.get("enable_layaway") else 0,
         "layaway_reserve_stock": 1 if doc.get("layaway_reserve_stock") else 0,
         "deposit_with_tax": 1 if doc.get("deposit_with_tax") else 0,
         "layaway_days": cint(doc.get("layaway_days")) or 0,
@@ -323,6 +324,8 @@ def save_settings(payload):
     doc.return_role = payload.get("return_role") or None
     doc.return_exceed_role = payload.get("return_exceed_role") or None
     doc.exchange_role = payload.get("exchange_role") or None
+    if "enable_layaway" in payload:
+        doc.enable_layaway = 1 if payload.get("enable_layaway") else 0
     if "layaway_reserve_stock" in payload:
         doc.layaway_reserve_stock = 1 if payload.get("layaway_reserve_stock") else 0
     if "deposit_with_tax" in payload:

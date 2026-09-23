@@ -549,6 +549,20 @@ const settings = {
     "إيقاف (الافتراضي): الدفعة بلا ضريبة، وتحسب الضريبة كاملة على البضاعة عند التسليم. تفعيل: الدفعة تخضع للضريبة لحظة استلامها، وتخصم تلك الضريبة عند التسليم بدل احتسابها مرتين.",
   "Nothing is cancelled automatically when a hold runs past its date: the till just flags it, a person decides.":
     "لا يلغى أي حجز تلقائيا عند تجاوز موعده، الصندوق ينبه فقط والقرار لشخص.",
+  "Enable holds and deposits":
+    "تفعيل الحجز والدفعات المقدمة",
+  "Off: the till shows nothing about holds, no button and no screen. A shop that never puts goods aside for a customer does not need it.":
+    "إيقاف: لا يظهر في الصندوق أي شيء عن الحجز، لا زر ولا شاشة. المحل الذي لا يضع بضاعة جانبا لعميل لا يحتاجه.",
+  "0 = no limit. Nothing is cancelled automatically: the till flags a hold that runs past its date, a person decides.":
+    "صفر يعني بلا حد. لا يلغى أي حجز تلقائيا، الصندوق ينبه على الحجز الذي تجاوز موعده والقرار لشخص.",
+  "The smallest first payment the shop accepts, as a share of the total. 0 = any amount.":
+    "أقل دفعة أولى يقبلها المحل، كنسبة من الإجمالي. صفر يعني أي مبلغ.",
+  "Holds and deposits are switched off for this shop. Settings, General, Holds and deposits.":
+    "الحجز والدفعات المقدمة موقوفة في هذا المحل. الإعدادات، عام، الحجوزات والدفعات.",
+  "Tax":
+    "الضريبة",
+  "{n} holds are still open. The screen stays until they are handed over or cancelled, because that money and those goods belong to someone.":
+    "ما زال هناك {n} حجز مفتوح. تبقى الشاشة ظاهرة حتى تسلم أو تلغى، لأن تلك الفلوس وتلك البضاعة ملك لأحد.",
 }
 
 // Register page + open-register overlay.

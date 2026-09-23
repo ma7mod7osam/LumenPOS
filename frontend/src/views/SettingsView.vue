@@ -1039,31 +1039,44 @@
       <div class="sec-card" v-show="generalSection === 'holds'">
         <div class="sec-title"><Icon name="bookmark" /> {{ t('Holds and deposits') }}</div>
         <p class="sec-note">{{ t('Goods put aside for a customer who pays for them over time, and how the money they hand over is treated until the goods leave the shop.') }}</p>
-        <label class="switch-row">
-          <input type="checkbox" v-model="generalForm.layaway_reserve_stock" />
-          <span class="switch-body">
-            <span class="setting-title">{{ t('Reserve the goods on hold') }}</span>
-            <span class="muted small">{{ t('Raises a Sales Order, so ERPNext shows the quantity as reserved and another till cannot sell the last one.') }}</span>
-          </span>
-        </label>
-        <label class="switch-row">
-          <input type="checkbox" v-model="generalForm.deposit_with_tax" />
-          <span class="switch-body">
-            <span class="setting-title">{{ t('Deposits are taxable when taken') }}</span>
-            <span class="muted small">{{ t('Off (the default): the deposit carries no tax and the goods are taxed in full at hand-over. On: the deposit is taxed the moment it is taken, and that tax is deducted at hand-over instead of charged twice.') }}</span>
-          </span>
-        </label>
-        <div class="field-grid">
+        <div class="setting-list">
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_layaway" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Enable holds and deposits') }}</span>
+              <span class="setting-desc">{{ t('Off: the till shows nothing about holds, no button and no screen. A shop that never puts goods aside for a customer does not need it.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row" v-if="generalForm.enable_layaway">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.layaway_reserve_stock" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Reserve the goods on hold') }}</span>
+              <span class="setting-desc">{{ t('Raises a Sales Order, so ERPNext shows the quantity as reserved and another till cannot sell the last one.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row" v-if="generalForm.enable_layaway">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.deposit_with_tax" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Deposits are taxable when taken') }}</span>
+              <span class="setting-desc">{{ t('Off (the default): the deposit carries no tax and the goods are taxed in full at hand-over. On: the deposit is taxed the moment it is taken, and that tax is deducted at hand-over instead of charged twice.') }}</span>
+            </span>
+          </label>
+        </div>
+        <p v-if="!generalForm.enable_layaway && session.settings.open_holds" class="muted hint-row" style="margin-top: 12px">
+          {{ t('{n} holds are still open. The screen stays until they are handed over or cancelled, because that money and those goods belong to someone.', { n: session.settings.open_holds }) }}
+        </p>
+        <div class="field-grid" v-if="generalForm.enable_layaway" style="margin-top: 16px">
           <label class="field">
             <span>{{ t('Hold goods for (days)') }}</span>
             <input type="number" min="0" v-model.number="generalForm.layaway_days" />
+            <span class="setting-desc">{{ t('0 = no limit. Nothing is cancelled automatically: the till flags a hold that runs past its date, a person decides.') }}</span>
           </label>
           <label class="field">
             <span>{{ t('Minimum deposit (%)') }}</span>
             <input type="number" min="0" max="100" v-model.number="generalForm.layaway_min_percent" />
+            <span class="setting-desc">{{ t('The smallest first payment the shop accepts, as a share of the total. 0 = any amount.') }}</span>
           </label>
         </div>
-        <p class="muted hint-row">{{ t('Nothing is cancelled automatically when a hold runs past its date: the till just flags it, a person decides.') }}</p>
       </div>
       <!-- Delivery apps -->
       <div class="sec-card" v-show="generalSection === 'payments'">
@@ -2037,8 +2050,9 @@ const generalForm = ref({
   return_role: '',
   return_exceed_role: '',
   exchange_role: '',
-  layaway_reserve_stock: true,
-  deposit_with_tax: false,
+  enable_layaway: 0,
+  layaway_reserve_stock: 1,
+  deposit_with_tax: 0,
   layaway_days: 30,
   layaway_min_percent: 0,
   capability_rules: [],
@@ -2459,8 +2473,9 @@ async function load() {
     return_role: info.return_role || '',
     return_exceed_role: info.return_exceed_role || '',
     exchange_role: info.exchange_role || '',
-    layaway_reserve_stock: Boolean(info.layaway_reserve_stock),
-    deposit_with_tax: Boolean(info.deposit_with_tax),
+    enable_layaway: info.enable_layaway ? 1 : 0,
+    layaway_reserve_stock: info.layaway_reserve_stock ? 1 : 0,
+    deposit_with_tax: info.deposit_with_tax ? 1 : 0,
     layaway_days: info.layaway_days || 0,
     layaway_min_percent: info.layaway_min_percent || 0,
     capability_rules: (info.capability_rules || []).map((r) => ({ ...r })),
@@ -3241,6 +3256,12 @@ async function saveGeneral() {
     session.settings.enable_till_lock = info.enable_till_lock || 0
     session.settings.auto_lock_minutes = info.auto_lock_minutes || 0
     session.settings.enable_quick_keys = info.enable_quick_keys || 0
+    // Turning holds off has to take the button and the screen away at once,
+    // not on the next reload.
+    session.settings.enable_layaway = info.enable_layaway || 0
+    session.settings.layaway_days = info.layaway_days || 0
+    session.settings.layaway_min_percent = info.layaway_min_percent || 0
+    session.settings.deposit_with_tax = info.deposit_with_tax || 0
     for (const k of Object.keys(info)) {
       if (k.startsWith('receipt_')) session.settings[k] = info[k]
     }
@@ -3452,8 +3473,9 @@ const filteredBooks = computed(() => {
 .gen-nav-btn.active .icon { color: #fff; }
 /* One line under a card title saying what the card is for. */
 .sec-note {
-  margin: -8px 0 14px;
-  font-size: 12.5px;
+  margin: -6px 0 16px;
+  font-size: 13px;
+  line-height: 1.55;
   color: var(--text-muted);
   max-width: 70ch;
 }
@@ -3491,7 +3513,7 @@ const filteredBooks = computed(() => {
 .list-view { display: flex; flex-direction: column; gap: 0; }
 .list-head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
 .list-search { flex: 1; min-width: 160px; }
-.hint-row { font-size: 12.5px; margin: 0 0 10px; }
+.hint-row { font-size: 13px; line-height: 1.55; margin: 0 0 10px; }
 .pf-banner {
   display: flex;
   gap: 10px;
@@ -3611,11 +3633,11 @@ button.sec-title.collapsible + * { margin-top: 14px; }
   gap: 12px;
 }
 .field { display: flex; flex-direction: column; gap: 5px; }
-.field span { font-size: 11.5px; font-weight: 500; color: var(--text-muted); }
+.field span { font-size: 12.25px; font-weight: 500; line-height: 1.5; color: var(--text-muted); }
 .span-2 { grid-column: span 2; }
 
 .sub-label {
-  font-size: 11.5px;
+  font-size: 12.25px;
   font-weight: 500;
   color: var(--text-muted);
   margin: 16px 0 8px;
@@ -3725,15 +3747,15 @@ button.sec-title.collapsible + * { margin-top: 14px; }
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 13px 0;
+  padding: 15px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 .setting-row:first-child { padding-top: 0; }
 .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
 .setting-toggle { margin-top: 2px; width: 17px; height: 17px; flex-shrink: 0; cursor: pointer; }
 .setting-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.setting-title { font-weight: 500; font-size: 13.5px; color: var(--text); }
-.setting-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.setting-title { font-weight: 600; font-size: 13.5px; color: var(--text); }
+.setting-desc { font-size: 12.75px; color: var(--text-muted); line-height: 1.55; }
 
 .rule-row {
   display: flex;

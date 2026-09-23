@@ -27,7 +27,7 @@
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>{{ t('Customers') }}</span>
     </router-link>
-    <router-link v-if="session.permissions.can_hold_goods !== false" to="/holds" class="rail-item" active-class="active">
+    <router-link v-if="holdsVisible" to="/holds" class="rail-item" active-class="active">
       <svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
       <span>{{ t('Holds') }}</span>
     </router-link>
@@ -71,13 +71,20 @@
 
 <script setup>
 import { theme, toggleTheme } from '../theme'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useSessionStore } from '../stores/session'
 import { call } from '../api'
 import { t } from '../i18n'
 import ApprovalsModal from './ApprovalsModal.vue'
 
 const session = useSessionStore()
+// Holds show when the shop uses them, and keep showing while any are still
+// open: switching the feature off must not strand a customer's deposit.
+const holdsVisible = computed(
+  () =>
+    (session.settings.enable_layaway || session.settings.open_holds) &&
+    session.permissions.can_hold_goods !== false
+)
 const approvalsOpen = ref(false)
 const pendingCount = ref(0)
 let timer = null

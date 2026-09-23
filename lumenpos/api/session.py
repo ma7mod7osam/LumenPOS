@@ -293,6 +293,17 @@ def _sales_persons():
     )
 
 
+def _open_holds(profile_name=None):
+    """How many holds this outlet still owes goods or money on."""
+    filters = {"status": "Open"}
+    if profile_name:
+        filters["pos_profile"] = profile_name
+    try:
+        return frappe.db.count("POS Layaway", filters)
+    except Exception:
+        return 0  # site pulled without a migrate, the doctype is not there yet
+
+
 def _client_settings(profile_name=None):
     from lumenpos import __version__
 
@@ -315,6 +326,7 @@ def _client_settings(profile_name=None):
         "enable_service_charge": 1 if doc.get("enable_service_charge") else 0,
         "service_charge_percent": flt(doc.get("service_charge_percent")),
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
+        "enable_layaway": 1 if doc.get("enable_layaway") else 0,
         "layaway_days": cint(doc.get("layaway_days")) or 0,
         "layaway_min_percent": flt(doc.get("layaway_min_percent")),
         "deposit_with_tax": 1 if doc.get("deposit_with_tax") else 0,
@@ -352,6 +364,9 @@ def _client_settings(profile_name=None):
             for row in (doc.delivery_apps or [])
         ],
     }
+    # A shop can switch holds off while money is still sitting on open ones, so
+    # the till keeps the screen (not the button) until those are settled.
+    data["open_holds"] = _open_holds(profile_name)
     # Per-outlet receipt: overlay this outlet's override on the global receipt so
     # the sell screen renders the right one (falls back to global when none set).
     if profile_name:

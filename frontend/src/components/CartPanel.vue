@@ -174,7 +174,7 @@
       <!-- Parking keeps a basket for later today. A HOLD keeps the goods for a
            customer who is paying for them over time. -->
       <button
-        v-if="session.permissions.can_hold_goods !== false"
+        v-if="session.settings.enable_layaway && session.permissions.can_hold_goods !== false"
         class="btn btn-outline"
         :disabled="!cart.lines.length || session.offline || !session.registerOpen"
         :title="t('Hold these goods for a customer paying over time')"

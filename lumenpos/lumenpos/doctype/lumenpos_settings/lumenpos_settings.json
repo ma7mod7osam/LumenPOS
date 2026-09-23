@@ -93,6 +93,7 @@
   "cashback_section",
   "enable_cashback",
   "layaway_section",
+  "enable_layaway",
   "layaway_reserve_stock",
   "deposit_with_tax",
   "layaway_days",
@@ -672,7 +673,15 @@
    "label": "Holds and deposits"
   },
   {
+   "default": "0",
+   "description": "Off: the till shows nothing about holds at all. A shop that never puts goods aside for a customer does not need the button or the screen.",
+   "fieldname": "enable_layaway",
+   "fieldtype": "Check",
+   "label": "Enable holds and deposits"
+  },
+  {
    "default": "1",
+   "depends_on": "enable_layaway",
    "description": "Raise a Sales Order when goods go on hold, so ERPNext shows the quantity as reserved and another till cannot sell it.",
    "fieldname": "layaway_reserve_stock",
    "fieldtype": "Check",

@@ -37,7 +37,26 @@ from lumenpos import deposits, erpnext_compat
 from lumenpos.api import permissions, sales
 
 
+def enabled():
+    """A shop that never puts goods aside switches the whole thing off, and the
+    till stops offering it. Checked HERE too, not only in the interface."""
+    return bool(frappe.db.get_single_value("LumenPOS Settings", "enable_layaway"))
+
+
 def _require_layaway():
+    """Whoever is putting NEW goods aside."""
+    if not enabled():
+        frappe.throw(_("Holds and deposits are switched off for this shop"))
+    _require_layaway_access()
+
+
+def _require_layaway_access():
+    """Whoever is dealing with a hold that already exists.
+
+    Deliberately NOT gated on the feature switch: a shop that turns holds off
+    still owes money to whoever left a deposit, and has goods of theirs on a
+    shelf. Those have to be collectable and refundable until they are settled,
+    whatever the switch says. Only starting a new one is stopped."""
     if not permissions.can_hold_goods():
         frappe.throw(_("You are not allowed to hold goods for a customer"), frappe.PermissionError)
 
@@ -51,16 +70,12 @@ def _profile(pos_profile):
     return frappe.get_cached_doc("POS Profile", pos_profile)
 
 
-def _post_sale(profile, customer, lines, payments, note, with_taxes, tax_included=False):
-    """Post a POS sale with the rates GIVEN, not the ones the price list has
-    today.
+def _build_sale(profile, customer, lines, note, with_taxes, tax_included=False):
+    """The invoice a hold posts, built and costed but NOT saved.
 
-    A hold fixes its prices the day it is made, and a deposit is an amount,
-    not a product, so neither may go through the normal pricing engine. This is
-    the same builder a gift card sale uses: explicit lines, the shop's tender
-    rows, one invoice tied to the open shift, so the drawer and the Z-report
-    see it like any other sale."""
-    session = sales._open_session(profile.name)
+    Separate from posting it because the same arithmetic has to be run twice:
+    once for real at hand-over, and once on the day of the hold just to learn
+    what the goods will come to with tax on them."""
     warehouse = sales._company_warehouse(profile)
     invoice = erpnext_compat.new_doc(sales._sale_doctype(profile))
     invoice.update(
@@ -76,7 +91,6 @@ def _post_sale(profile, customer, lines, payments, note, with_taxes, tax_include
             "remarks": note,
         }
     )
-    sales._set_custom(invoice, ("lumenpos_session",), session["name"])
     sales._set_custom(invoice, ("lumenpos_note",), note)
     for line in lines:
         row = dict(line)
@@ -94,6 +108,21 @@ def _post_sale(profile, customer, lines, payments, note, with_taxes, tax_include
     invoice.set("set_warehouse", warehouse)
     for row in invoice.items:
         row.warehouse = warehouse
+    return invoice
+
+
+def _post_sale(profile, customer, lines, payments, note, with_taxes, tax_included=False):
+    """Post a POS sale with the rates GIVEN, not the ones the price list has
+    today.
+
+    A hold fixes its prices the day it is made, and a deposit is an amount,
+    not a product, so neither may go through the normal pricing engine. This is
+    the same builder a gift card sale uses: explicit lines, the shop's tender
+    rows, one invoice tied to the open shift, so the drawer and the Z-report
+    see it like any other sale."""
+    session = sales._open_session(profile.name)
+    invoice = _build_sale(profile, customer, lines, note, with_taxes, tax_included)
+    sales._set_custom(invoice, ("lumenpos_session",), session["name"])
 
     for payment in payments or []:
         amount = flt(payment.get("amount"))
@@ -107,6 +136,29 @@ def _post_sale(profile, customer, lines, payments, note, with_taxes, tax_include
     invoice.insert()
     invoice.submit()
     return sales.get_receipt(invoice.name)
+
+
+def _goods_total(profile, customer, items):
+    """What the held goods will actually come to at hand-over, tax and all.
+
+    ERPNext does the arithmetic (an invoice built and costed, never saved), so
+    a tax-inclusive price list, a tax-exclusive one and several tax rows all
+    come out right without this module knowing which it is looking at. The
+    difference between this and the sum of the lines is the tax the outlet adds
+    on top, and it is frozen onto the hold: the price agreed on the day is the
+    price agreed on the day, tax included."""
+    lines = [
+        {
+            "item_code": row["item_code"],
+            "qty": flt(row.get("qty")) or 1,
+            "rate": flt(row.get("rate")),
+            "price_list_rate": flt(row.get("rate")),
+        }
+        for row in items
+    ]
+    invoice = _build_sale(profile, customer, lines, None, with_taxes=True)
+    invoice.run_method("calculate_taxes_and_totals")
+    return flt(invoice.rounded_total or invoice.grand_total, 2)
 
 
 def _deposit_line(profile, amount, negative=False, taxable=None):
@@ -231,6 +283,32 @@ def _release(doc, reason):
 
 
 @frappe.whitelist()
+def quote_hold(pos_profile, customer=None, items=None):
+    """What a hold of these goods would come to, before anyone commits to it.
+
+    The till asks this when the Hold modal opens, rather than doing the sums
+    itself, so the figure the cashier reads out to the customer is the figure
+    the hold will be written with and the invoice will settle at: same builder,
+    same tax template, same rounding."""
+    _require_layaway()
+    profile = _profile(pos_profile)
+    if isinstance(items, str):
+        items = json.loads(items or "[]")
+    items = items or []
+    if not items:
+        return {"net": 0, "tax": 0, "total": 0, "minimum": 0}
+    net = flt(sum(flt(flt(row.get("qty") or 1) * flt(row.get("rate")), 2) for row in items), 2)
+    total = _goods_total(profile, customer or profile.customer, items)
+    minimum = flt(frappe.db.get_single_value("LumenPOS Settings", "layaway_min_percent"))
+    return {
+        "net": net,
+        "tax": flt(total - net, 2),
+        "total": total,
+        "minimum": flt(total * minimum / 100, 2) if minimum else 0,
+    }
+
+
+@frappe.whitelist()
 def create_layaway(payload):
     """Start a hold: reserve the goods, take the first instalment.
 
@@ -277,6 +355,11 @@ def create_layaway(payload):
                 "amount": flt(qty * rate, 2),
             },
         )
+    # Freeze the tax the outlet will add at hand-over, so the hold quotes the
+    # figure the customer will really pay and a deposit that covers it leaves
+    # nothing to collect on the day.
+    net = flt(sum(flt(row.amount) for row in doc.items), 2)
+    doc.tax_amount = flt(_goods_total(profile, customer, items) - net, 2)
     doc.insert(ignore_permissions=True)
 
     minimum = flt(frappe.db.get_single_value("LumenPOS Settings", "layaway_min_percent"))
@@ -301,7 +384,7 @@ def add_instalment(layaway, payments):
     """Take another payment against an open hold."""
     if isinstance(payments, str):
         payments = json.loads(payments)
-    _require_layaway()
+    _require_layaway_access()
     doc = _load(layaway)
     if doc.status != "Open":
         frappe.throw(_("This hold is {0}").format(_(doc.status)))
@@ -321,7 +404,7 @@ def complete_layaway(layaway, payments=None):
     declared is deducted instead of charged twice."""
     if isinstance(payments, str):
         payments = json.loads(payments or "[]")
-    _require_layaway()
+    _require_layaway_access()
     doc = _load(layaway)
     if doc.status != "Open":
         frappe.throw(_("This hold is {0}").format(_(doc.status)))
@@ -377,7 +460,7 @@ def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None)
     methods a shop configured apply here as well."""
     if isinstance(refund_payments, str):
         refund_payments = json.loads(refund_payments or "[]")
-    _require_layaway()
+    _require_layaway_access()
     doc = _load(layaway)
     if doc.status != "Open":
         frappe.throw(_("This hold is {0}").format(_(doc.status)))
@@ -417,6 +500,7 @@ def get_layaway(name):
         "expiry_date": str(doc.expiry_date) if doc.expiry_date else None,
         "sales_order": doc.sales_order,
         "total": flt(doc.total, 2),
+        "tax_amount": flt(doc.tax_amount, 2),
         "paid": flt(doc.paid, 2),
         "balance": flt(doc.balance, 2),
         "note": doc.note,

@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 Lumen Solutions
    SPDX-License-Identifier: AGPL-3.0-only
    "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 
 /* LumenPOS design tokens, the Lumen brand identity.
    Primary blue #1463FF (light) / #2F7BFF (dark); type: Plus Jakarta Sans. */
@@ -16,7 +16,7 @@
   --border-subtle: #eef1f6;
   --input-bg: #ffffff;
   --text: #0c1322;          /* ink */
-  --text-muted: #687386;    /* muted */
+  --text-muted: #5b6577;    /* muted, dark enough to read at 12px */
   /* Lumen brand accent, #1463FF. The whole UI uses these --brand tokens. */
   --brand: #1463ff;
   --brand-dark: #0f54e0;
@@ -29,6 +29,7 @@
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.05);
   --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08), 0 2px 6px rgba(16, 24, 40, 0.04);
   --shadow-brand: 0 12px 30px rgba(20, 99, 255, 0.28);
+  --font-ar: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
   --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
@@ -45,7 +46,7 @@
   --border-subtle: #1e2430;
   --input-bg: #1a1f2c;
   --text: #f2f5fa;
-  --text-muted: #8b95a7;
+  --text-muted: #98a2b3;
   --brand: #2f7bff;
   --brand-dark: #6ba4ff;   /* readable accent text on dark surfaces */
   --brand-soft: #4a8dff;
@@ -218,6 +219,16 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.14; }
    dir="rtl" on <html> already mirrors text alignment and flex rows. These few
    rules fix the scoped directional accents that don't auto-flip. Use an
    html[dir=rtl] prefix to outrank component scoped styles. */
+html[dir='rtl'] body,
+html[dir='rtl'] input,
+html[dir='rtl'] select,
+html[dir='rtl'] textarea,
+html[dir='rtl'] button {
+  font-family: var(--font-ar);
+}
+/* Arabic sits lower and needs more room between lines than Latin does. */
+html[dir='rtl'] body { line-height: 1.6; }
+
 html[dir='rtl'] .rail-item {
   border-left: 3px solid transparent;
   border-right: 3px solid transparent;

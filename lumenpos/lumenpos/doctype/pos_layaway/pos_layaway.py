@@ -16,7 +16,14 @@ from frappe.utils import flt
 
 class POSLayaway(Document):
     def validate(self):
-        self.total = flt(sum(flt(row.amount) for row in (self.items or [])), 2)
+        # The total is what the customer will PAY, tax and all. On an outlet
+        # that adds VAT at the till the held prices are net of it, so the tax
+        # worked out on the day of the hold rides along here: a hold quoted at
+        # the net would leave someone who paid "in full" short by the tax on
+        # the day they collect, and the hand-over invoice would not settle.
+        self.total = flt(
+            sum(flt(row.amount) for row in (self.items or [])) + flt(self.tax_amount), 2
+        )
         self.paid = flt(
             sum(flt(row.amount) for row in (self.payments or []) if not row.refunded), 2
         )

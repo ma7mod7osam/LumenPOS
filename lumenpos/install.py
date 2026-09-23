@@ -3,7 +3,7 @@
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.utils import cint
+from frappe.utils import cint, flt
 
 # Roles LumenPOS ships so admins have ready-made handles to assign in the Role
 # Permissions Manager. Cashiers sell + run the register; managers also edit the
@@ -64,7 +64,11 @@ LEGACY_RETURN_REASONS = {
     "مقاس غير مناسب": "Wrong size",
     "لون مختلف عن المطلوب": "Wrong colour",
     "المنتج لا يطابق الوصف": "Does not match the description",
+    # Both spellings: the original seed carried a shadda, which the 0.46.2
+    # sweep took out of everything generated after it. Old data still has it,
+    # so this one place keeps the mark on purpose, to recognise those rows.
     "غيّر العميل رأيه": "Customer changed their mind",
+    "غير العميل رأيه": "Customer changed their mind",
     "خطأ في الطلب": "Ordered by mistake",
 }
 
@@ -85,7 +89,67 @@ def ensure_setup():
     backfill_store_credit_references()
     default_insights_on()
     default_cashback_on()
+    recost_open_holds()
     ensure_hot_indexes()
+
+
+def recost_open_holds():
+    """0.50.1: put the tax back on holds that were quoted without it.
+
+    A hold used to total the held prices and nothing else. At an outlet whose
+    price list is net of VAT that is not what the customer pays: the hand-over
+    invoice adds the tax, so someone who had paid the hold "in full" was short
+    by exactly that and the sale would not settle.
+
+    Runs here rather than as a patch because patches.txt has no
+    [post_model_sync] marker (and v13 cannot parse one), so a patch would run
+    BEFORE tax_amount exists as a column, do nothing, and be logged as done.
+    Only OPEN holds are touched, and only ones still sitting at zero: a
+    completed hold's money is already spent, and an outlet whose prices include
+    tax correctly comes out at zero anyway."""
+    if not frappe.db.exists("DocType", "POS Layaway"):
+        return
+    if not frappe.db.has_column("POS Layaway", "tax_amount"):
+        return
+    names = frappe.get_all(
+        "POS Layaway",
+        filters={"status": "Open", "tax_amount": 0},
+        pluck="name",
+        limit_page_length=200,
+    )
+    if not names:
+        return
+
+    from lumenpos.api import layaway
+
+    fixed = []
+    for name in names:
+        try:
+            doc = frappe.get_doc("POS Layaway", name)
+            if not doc.items:
+                continue
+            profile = layaway._profile(doc.pos_profile)
+            items = [
+                {"item_code": row.item_code, "qty": row.qty, "rate": row.rate}
+                for row in doc.items
+            ]
+            net = flt(sum(flt(row.amount) for row in doc.items), 2)
+            tax = flt(layaway._goods_total(profile, doc.customer, items) - net, 2)
+            if tax <= 0:
+                continue
+            doc.tax_amount = tax
+            doc.flags.ignore_permissions = True
+            doc.save()
+            fixed.append(f"{name} +{tax}")
+        except Exception:
+            # A hold whose outlet, item or tax template has moved on since is
+            # left exactly as it was. Nothing is worse than an upgrade that
+            # stops because one old record cannot be re-priced.
+            frappe.db.rollback()
+            continue
+    if fixed:
+        frappe.db.commit()  # nosemgrep
+        print("LumenPOS: re-costed open holds with tax: " + ", ".join(fixed))
 
 
 def default_insights_on():

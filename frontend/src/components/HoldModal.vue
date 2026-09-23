@@ -12,11 +12,15 @@
         <div class="hold-lines">
           <div v-for="line in cart.lines" :key="line.item_code" class="hold-line">
             <span>{{ line.qty }} × {{ line.item_name }}</span>
-            <span>{{ money(line.qty * line.price) }}</span>
+            <span>{{ money(held(line)) }}</span>
+          </div>
+          <div v-if="quote && quote.tax > 0" class="hold-line">
+            <span>{{ t('Tax') }}</span>
+            <span>{{ money(quote.tax) }}</span>
           </div>
           <div class="hold-line total">
             <span>{{ t('Total') }}</span>
-            <span>{{ money(cart.total) }}</span>
+            <span>{{ money(total) }}</span>
           </div>
         </div>
 
@@ -95,9 +99,20 @@ const modes = computed(() =>
   )
 )
 
+// What the hold will really be worth. Asked of the server, because the tax on
+// it depends on the outlet's template and its rounding, and a preview that
+// disagrees with the hold is how a customer ends up "paid in full" and still
+// owing the VAT at hand-over.
+const quote = ref(null)
+const held = (line) =>
+  Math.round(line.qty * line.price * (1 - (line.manual_discount_percent || 0) / 100) * 100) / 100
+const heldNet = computed(() => cart.lines.reduce((sum, l) => sum + held(l), 0))
+const total = computed(() => (quote.value ? quote.value.total : heldNet.value))
+
 const minimum = computed(() => {
+  if (quote.value) return quote.value.minimum
   const percent = Number(session.settings?.layaway_min_percent || 0)
-  return percent > 0 ? Math.round(cart.total * percent) / 100 : 0
+  return percent > 0 ? Math.round(total.value * percent) / 100 : 0
 })
 
 const canHold = computed(
@@ -109,8 +124,17 @@ const canHold = computed(
     Number(amount.value) >= minimum.value - 0.005
 )
 
-onMounted(() => {
+onMounted(async () => {
   modeOfPayment.value = (modes.value.find((m) => m.default) || modes.value[0])?.mode_of_payment
+  try {
+    quote.value = await call('lumenpos.api.layaway.quote_hold', {
+      pos_profile: session.posProfile,
+      customer: cart.customer?.name || null,
+      items: lines(),
+    })
+  } catch (e) {
+    quote.value = null // the till falls back to its own sum, the server still decides
+  }
   amount.value = minimum.value || null
   const days = Number(session.settings?.layaway_days || 0)
   if (days > 0) {
@@ -121,6 +145,18 @@ onMounted(() => {
   amountInput.value?.focus()
 })
 
+// The price agreed today is the price the customer comes back to, after any
+// discount the cashier gave them. A promotion is NOT carried forward: it may
+// be over by the time they collect.
+function lines() {
+  return cart.lines.map((line) => ({
+    item_code: line.item_code,
+    item_name: line.item_name,
+    qty: line.qty,
+    rate: Math.round(line.price * (1 - (line.manual_discount_percent || 0) / 100) * 100) / 100,
+  }))
+}
+
 async function hold() {
   busy.value = true
   try {
@@ -128,13 +164,7 @@ async function hold() {
       payload: {
         pos_profile: session.posProfile,
         customer: cart.customer.name,
-        items: cart.lines.map((line) => ({
-          item_code: line.item_code,
-          item_name: line.item_name,
-          qty: line.qty,
-          // The price agreed today is the price the customer comes back to.
-          rate: line.price,
-        })),
+        items: lines(),
         payments: [{ mode_of_payment: modeOfPayment.value, amount: Number(amount.value) }],
         expiry_date: expiry.value || null,
         note: note.value || null,

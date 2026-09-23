@@ -19,6 +19,7 @@
   "section_items",
   "items",
   "section_money",
+  "tax_amount",
   "total",
   "paid",
   "column_break_money",
@@ -116,6 +117,14 @@
    "label": "Money"
   },
   {
+   "description": "Tax the outlet will add on top of the held prices at hand-over. Zero where the price list already includes it.",
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax",
+   "read_only": 1
+  },
+  {
+   "description": "What the customer pays in the end, tax and all.",
    "fieldname": "total",
    "fieldtype": "Currency",
    "label": "Total",

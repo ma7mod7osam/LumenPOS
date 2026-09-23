@@ -18,7 +18,10 @@
         <button class="btn btn-outline" @click="load"><Icon name="refresh" /></button>
       </div>
 
-      <div v-if="session.offline" class="muted empty">{{ t('Holds need a connection.') }}</div>
+      <div v-if="!enabled" class="muted empty">
+        {{ t('Holds and deposits are switched off for this shop. Settings, General, Holds and deposits.') }}
+      </div>
+      <div v-else-if="session.offline" class="muted empty">{{ t('Holds need a connection.') }}</div>
       <div v-else-if="loading" class="muted empty">{{ t('Loading…') }}</div>
       <div v-else-if="!holds.length" class="muted empty">{{ t('Nothing is on hold right now.') }}</div>
       <button
@@ -134,7 +137,10 @@ const payAmount = ref(null)
 const payMode = ref(null)
 let timer = null
 
-const canHold = computed(() => session.permissions.can_hold_goods !== false)
+const enabled = computed(() =>
+  Boolean(session.settings.enable_layaway || session.settings.open_holds)
+)
+const canHold = computed(() => enabled.value && session.permissions.can_hold_goods !== false)
 const modes = computed(() =>
   session.paymentModes.filter(
     (m) =>
@@ -150,7 +156,7 @@ function debouncedLoad() {
 }
 
 async function load() {
-  if (session.offline) {
+  if (session.offline || !enabled.value) {
     loading.value = false
     return
   }

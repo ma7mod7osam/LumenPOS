@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.50.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.50.1. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -457,6 +457,12 @@ linked documents against an existing sale.
 A customer who wants the goods kept while they pay for them over time. Ring
 the items up as usual, pick the customer, then **Hold** instead of Pay.
 
+**Switched off until you want it.** A shop that never puts goods aside sees
+nothing of this: no button on the cart, no screen in the rail. Turn it on under
+Settings, General, Holds and deposits. Turning it off again strands nothing: a
+hold that is still open keeps its screen until it is handed over or cancelled,
+because that money and those goods belong to a customer.
+
 1. The modal shows what is being held and asks for the deposit and how it was
    paid, plus a date to hold until and a note. The shop can insist on a
    minimum first payment (Settings).
@@ -481,6 +487,12 @@ as revenue while the goods are still in the shop.
 
 At hand-over, what was already paid comes off the bill and only the balance is
 collected, so the drawer is right both times.
+
+The figure a hold quotes is **what the customer will pay in the end, tax and
+all**, worked out on the day the hold is made and frozen there. At an outlet
+whose price list is net of VAT that is more than the shelf prices add up to,
+and it has to be: a customer who pays a hold off in full has paid the tax too,
+and hands over nothing on the day they collect.
 
 ### Tax on a deposit
 
@@ -789,6 +801,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.50.1 | **A hold now quotes the price with tax on it.** At an outlet that adds VAT at the till, a hold used to total the shelf prices and nothing else, so a customer who had paid it "in full" was short by exactly the tax and handing the goods over failed with a mismatch. The tax is worked out on the day of the hold and frozen on it, so the balance on the screen is the money the till will actually take. Open holds are re-costed on update. **Holds are also switched off by default now** (Settings, General, Holds and deposits): a shop that never puts goods aside sees no button and no screen. And the Holds and deposits settings card, which rendered as a wall of run-on text, is laid out like the rest of them. |
 | 0.50.0 | **Holds and deposits.** A customer can leave a deposit and have the goods kept for them. Ring the items up, press **Hold**, take what they are paying today: the goods are reserved with a Sales Order so no other till sells the last one, and the money goes to a **liability** account, not revenue, because the shop is holding it. The new **Holds** screen shows what is held, for whom, paid and still to pay, flags anything past its date, and takes the next instalment, hands the goods over, or cancels and refunds. Handing over sells at the price agreed the day of the hold and collects only the balance. Tax follows the shop: by default the deposit is untaxed and the goods are taxed in full at hand-over, or switch on taxable deposits (as Saudi Arabia requires for an advance against a known supply) and the tax declared on the deposit is deducted at hand-over instead of charged twice. |
 | 0.49.0 | **The till opens with no connection at all, and installs like an app.** Until now an outage was survivable only as long as nobody reloaded the tab: the page itself came from the server, so a reload or a reboot meant a till that could not sell. The app now keeps itself on the device (a service worker holds the page, its script, styles and fonts), so /pos opens offline and the shift carries on with the cached catalogue and the offline queue. Settings → Status shows **Opens without a connection**. It can also be installed from Chrome or Edge, own window, own icon, starting at the till. Nothing about the data changed: no API answer is ever served from a cache, and opening or closing a shift still needs the server. |
 | 0.48.0 | **Who can do what, by role or by person.** The four separate role fields (edit price, make returns, exceed the return window, exchange) are now one table in Settings, with four more actions a shop can hold back: **cash in / out**, **reprint a receipt**, **open the register** and **close the register**. A rule names a role or a single person, and several rules for the same action mean any of them passes, so "the shift leads plus Fatima" no longer needs a role invented for one person. An action with no rule is open to everyone, so updating locks nothing, and the roles a shop already set move across on their own. The till hides what a person may not do and the server refuses it again, so a stale tab cannot get round it. |
