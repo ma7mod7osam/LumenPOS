@@ -1830,6 +1830,7 @@
         <div class="stat sec-card"><div class="stat-label">{{ t('Offline customers cache') }}</div><div class="stat-value">{{ cachedCustomers }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Queued offline sales') }}</div><div class="stat-value">{{ session.queuedCount }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Offline storage') }}</div><div class="stat-value">{{ persisted ? t('✓ Persistent') : t('⚠ Best-effort') }}</div></div>
+        <div class="stat sec-card"><div class="stat-label">{{ t('Opens without a connection') }}</div><div class="stat-value">{{ shellReady ? t('✓ Ready') : t('⚠ Not yet, open the till once while online') }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Receipt printer') }}</div><div class="stat-value">{{ session.printerConfigured ? t('✓ ESC/POS') : t('Browser print') }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('Print format (POS Profile)') }}</div><div class="stat-value">{{ session.printFormat || t('Built-in receipt') }}</div></div>
         <div class="stat sec-card"><div class="stat-label">{{ t('VAT / taxes') }}</div><div class="stat-value">{{ taxSummary }}</div></div>
@@ -1942,6 +1943,9 @@ async function rebuildIndexes() {
   }
 }
 const persisted = ref(false)
+// Is the app shell on this device (service worker in control)? That is what
+// decides whether the till can be RELOADED during an outage.
+const shellReady = ref(false)
 const groupPick = ref('')
 
 const promotions = ref([])
@@ -2401,6 +2405,7 @@ async function load() {
   cachedItems.value = await catalogCount().catch(() => 0)
   cachedCustomers.value = await customerCount().catch(() => 0)
   persisted.value = await storagePersisted()
+  shellReady.value = Boolean(navigator.serviceWorker && navigator.serviceWorker.controller)
   loadIndexHealth()
   if (session.offline) return
   const info = await call('lumenpos.api.settings.get_settings')

@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.48.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.49.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -561,8 +561,14 @@ this also makes everyday search instant. If the connection drops:
   tell you why),
 - needs a connection: history, customers, loyalty, store credit, gift cards,
   serialized items, delivery-app sales, register opening.
-- **Keep the tab open while offline**, the page itself can't reload during
-  an outage.
+- **The till survives a reload and a reboot.** The app itself (page, script,
+  styles, fonts) is kept on the device by a service worker, so /pos opens with
+  no connection at all and the shift carries on: cached catalogue, queued
+  sales, the lot. It needs one online visit first, Settings → Status says
+  **Opens without a connection: ✓ Ready** once it is in place.
+- **Install it like an app.** From Chrome or Edge on the till, *Install* (or
+  Add to home screen) puts LumenPOS in its own window with its own icon, no
+  address bar, and it starts straight at /pos.
 - The switch happens in seconds, both ways. Every request carries a deadline,
   so a connection that dies mid-call flips the till to offline instead of
   hanging on it, and while the connection is down the till asks the server
@@ -572,6 +578,22 @@ this also makes everyday search instant. If the connection drops:
   catalog** re-pulls it. The General toggle *Cache only in-stock items*
   keeps the cache to your warehouse's stock.
 
+
+### What is NOT available offline
+
+Anything that has to reach ERPNext to be true: sales history, the customer
+directory beyond the cached recent list, loyalty and store credit balances,
+gift cards, serialized items, delivery-app sales, exchanges, and **opening or
+closing a shift**. Open the shift while you have a connection, and the till can
+sell through an outage on its own.
+
+The service worker keeps only the app itself. It never answers an API call from
+a cache, because a shop selling against numbers nobody can see is worse than a
+shop that knows it is offline. Sales made offline are queued in the browser
+database and posted when the connection returns.
+
+(Frappe v13 does not support the hook this needs, so a v13 site keeps the old
+behaviour: it sells offline as long as the tab stays open.)
 ---
 
 ## 14. Settings reference (gear icon → /settings)
@@ -720,6 +742,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.49.0 | **The till opens with no connection at all, and installs like an app.** Until now an outage was survivable only as long as nobody reloaded the tab: the page itself came from the server, so a reload or a reboot meant a till that could not sell. The app now keeps itself on the device (a service worker holds the page, its script, styles and fonts), so /pos opens offline and the shift carries on with the cached catalogue and the offline queue. Settings → Status shows **Opens without a connection**. It can also be installed from Chrome or Edge, own window, own icon, starting at the till. Nothing about the data changed: no API answer is ever served from a cache, and opening or closing a shift still needs the server. |
 | 0.48.0 | **Who can do what, by role or by person.** The four separate role fields (edit price, make returns, exceed the return window, exchange) are now one table in Settings, with four more actions a shop can hold back: **cash in / out**, **reprint a receipt**, **open the register** and **close the register**. A rule names a role or a single person, and several rules for the same action mean any of them passes, so "the shift leads plus Fatima" no longer needs a role invented for one person. An action with no rule is open to everyone, so updating locks nothing, and the roles a shop already set move across on their own. The till hides what a person may not do and the server refuses it again, so a stale tab cannot get round it. |
 | 0.47.0 | **Exchange in one step.** A customer swapping one item for another used to be two errands, a refund and then a fresh sale, with the cashier holding the arithmetic in their head. Now: History, **Exchange…**, pick what comes back, ring up what they are taking instead, and the payment screen shows one figure, the difference. Dearer and you collect it with any tender, cheaper and you give it back by the normal refund rules, equal and the drawer never opens. The credit note and the replacement sale post together in one request, so there is no moment where the goods are back but the replacement is not, and the matched part settles through a clearing tender (**Exchange**, a liability account created on first use) so cash and card totals only ever see the difference. Everything a return enforces still applies: restrictions, the return window and its approval, serials, sets. A shop can name its own **Exchange role** in Settings. |
 | 0.46.4 | **The stock on a tile is live and honest, and the till notices the network in seconds.** The quantity on a product tile is now what you can actually still sell (ERPNext holds back anything sold on a shift that has not been consolidated yet, and that hold is now visible instead of turning up as a refusal), and it moves the moment a sale or a return posts instead of waiting for the next catalogue refresh. Offline: every request now has a deadline, so a connection that dies mid-call flips the till to offline in seconds instead of hanging, and while it is down the till asks the server every five seconds and comes back by itself, no page reload. The POS Closing Entry of an outlet that sells as **Sales Invoice** now lists those invoices, because ERPNext's own table only links POS Invoices and an accountant was left with totals and no documents. The payment screen also asks the server once instead of twice, and asks while the cashier is still scanning. |

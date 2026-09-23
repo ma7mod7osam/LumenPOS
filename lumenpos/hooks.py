@@ -53,6 +53,12 @@ doc_events = {
     "Payment Entry": {"before_insert": "lumenpos.demo_data.apply_demo_stamp"},
 }
 
+# The till's service worker has to come from the site ROOT to be allowed to
+# control /pos, and Frappe never serves a .js file from an app's www folder.
+# This renderer answers /sw.js and nothing else (see lumenpos/service_worker.py).
+# v13 has no page_renderer hook, so the till there stays online-only.
+page_renderer = ["lumenpos.service_worker.ServiceWorkerPage"]
+
 # The POS single-page app is served at /pos (see lumenpos/www/pos.py).
 # All sub-paths resolve to the same page; the frontend uses a hash router.
 website_route_rules = [

@@ -29,6 +29,23 @@ function deadlineFor(method) {
   return SLOW_CALLS.test(method) ? LONG_TIMEOUT_MS : TIMEOUT_MS
 }
 
+// The page can come back from the device's own copy (a reload while the shop
+// was offline), and the token baked into it may be one the server has since
+// rotated. Fetch a fresh one rather than making the cashier reload.
+async function refreshCsrfToken() {
+  try {
+    const html = await fetch('/pos', { cache: 'reload', credentials: 'same-origin' }).then((r) =>
+      r.text()
+    )
+    const found = html.match(/csrf_token\s*=\s*"([^"]+)"/)
+    if (!found) return false
+    window.csrf_token = found[1]
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function call(method, args = {}, options = {}) {
   let res
   const controller = new AbortController()
@@ -56,6 +73,11 @@ export async function call(method, args = {}, options = {}) {
     data = await res.json()
   } catch {
     /* non-JSON error page */
+  }
+  if (!res.ok && data && data.exc_type === 'CSRFTokenError' && !options._retried) {
+    if (await refreshCsrfToken()) {
+      return call(method, args, { ...options, _retried: true })
+    }
   }
   if (!res.ok) {
     throw new ApiError(extractMessage(data) || `Request failed (${res.status})`)

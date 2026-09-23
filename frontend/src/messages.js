@@ -538,6 +538,9 @@ const settings = {
   "Reprint a receipt": "إعادة طباعة الإيصال",
   "Open the register": "فتح الصندوق",
   "Close the register": "إغلاق الصندوق",
+  "Opens without a connection": "يفتح بدون اتصال",
+  "✓ Ready": "✓ جاهز",
+  "⚠ Not yet, open the till once while online": "⚠ ليس بعد، افتح الصندوق مرة واحدة وأنت متصل",
 }
 
 // Register page + open-register overlay.
