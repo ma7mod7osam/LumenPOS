@@ -26,6 +26,11 @@ export const useCartStore = defineStore('cart', {
     discountRequest: null, // approved POS Discount Request name (role approval)
     activePriceList: null,
     note: '',
+    // An exchange in progress: what is coming back and against which sale. The
+    // cart itself holds what the customer is taking INSTEAD, so the sell screen
+    // behaves exactly as usual while one is open, and the pair posts together
+    // at payment. {invoice, items, serials, reason, request, value, customer}
+    exchange: null,
     submitting: false,
     _quoteCache: null, // {signature, at, promise} see quote()
     _quoteTimer: null,
@@ -526,6 +531,58 @@ export const useCartStore = defineStore('cart', {
     // as submit, so the till charges exactly what the posted invoice shows (no
     // phantom rounding "change"). Returns null offline / on error so the caller
     // falls back to the client-side cart total.
+    // --- exchange -----------------------------------------------------------
+    // Start one: the goods coming back are already picked (and approved, if the
+    // shop required it), the cart is cleared for what the customer takes
+    // instead. Nothing has posted yet, and nothing does until payment.
+    startExchange(picked) {
+      this.clear()
+      this.exchange = picked
+      if (picked?.customer) {
+        this.customer = { name: picked.customer, customer_name: picked.customer_name }
+      }
+    },
+
+    cancelExchange() {
+      this.exchange = null
+      this.clear()
+    },
+
+    // The credit note and the replacement sale post together, in one request:
+    // there is no moment where the shop has taken the goods back without
+    // handing over the replacement.
+    async submitExchange(payments, refundMode, redeemLoyaltyPoints, giftCards) {
+      const session = useSessionStore()
+      if (session.offline) {
+        throw new Error('An exchange needs a connection, it cannot be queued offline')
+      }
+      const payload = {
+        ...this._basePayload(),
+        original_invoice: this.exchange.invoice,
+        return_items: this.exchange.items,
+        serials: this.exchange.serials,
+        return_reason: this.exchange.reason,
+        return_request: this.exchange.request,
+        refund_mode: refundMode || null,
+        payments,
+        gift_cards: giftCards || [],
+        redeem_loyalty_points: redeemLoyaltyPoints || 0,
+        discount_passcode: this.discountPasscode,
+        discount_request: this.discountRequest,
+        idempotency_key: newId(),
+      }
+      this.submitting = true
+      try {
+        const result = await call('lumenpos.api.exchanges.submit_exchange', { payload })
+        useCatalogStore().applyStock(result?.sale?.stock_after)
+        this.exchange = null
+        this.clear()
+        return result
+      } finally {
+        this.submitting = false
+      }
+    },
+
     // Asked AHEAD of the payment screen (see prefetchQuote), so pressing Pay
     // does not wait on a round trip: on a till in Riyadh talking to a server in
     // Mumbai every request costs about 190 ms before any work happens. The

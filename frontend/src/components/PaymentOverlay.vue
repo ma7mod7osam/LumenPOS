@@ -17,6 +17,27 @@
         </div>
       </div>
 
+      <div v-if="exchange" class="exchange-box card">
+        <div class="ex-row">
+          <span>{{ t('New items') }}</span>
+          <strong>{{ money(total) }}</strong>
+        </div>
+        <div class="ex-row credit">
+          <span>{{ t('Goods returned on {invoice}', { invoice: exchange.invoice }) }}</span>
+          <strong>- {{ money(exchangeCredit) }}</strong>
+        </div>
+        <div class="ex-row net">
+          <span>{{ exchangeRefund > 0 ? t('To give back') : t('To collect') }}</span>
+          <strong>{{ money(exchangeRefund > 0 ? exchangeRefund : payable) }}</strong>
+        </div>
+        <div v-if="exchangeRefund > 0" class="ex-refund">
+          <span class="muted small">{{ t('Give the difference back as') }}</span>
+          <select v-model="refundMode">
+            <option v-for="mode in refundModes" :key="mode" :value="mode">{{ mode }}</option>
+          </select>
+        </div>
+      </div>
+
       <div v-if="wallet && (wallet.loyalty_points > 0 || wallet.store_credit > 0 || wallet.cashback > 0)" class="wallet card">
         <div v-if="wallet.loyalty_points > 0" class="wallet-row">
           <span><Icon name="star" /> {{ t('{points} loyalty points (worth {value})', { points: wallet.loyalty_points, value: money(wallet.loyalty_points * wallet.conversion_factor) }) }}</span>
@@ -124,7 +145,15 @@
         :disabled="!canComplete || cart.submitting"
         @click="complete"
       >
-        {{ cart.submitting ? t('Processing…') : t('Complete Sale {amount}', { amount: money(total) }) }}
+        {{
+          cart.submitting
+            ? t('Processing…')
+            : exchange
+              ? exchangeRefund > 0
+                ? t('Complete exchange, give back {amount}', { amount: money(exchangeRefund) })
+                : t('Complete exchange {amount}', { amount: money(payable) })
+              : t('Complete Sale {amount}', { amount: money(total) })
+        }}
       </button>
       <p v-if="session.offline" class="muted offline-note">
         {{ t('Offline, this sale will be queued and synced automatically.') }}
@@ -180,14 +209,29 @@ const maxRedeemablePoints = computed(() => {
   )
 })
 
+// Exchange: the goods coming back pay for the new ones, so only the difference
+// is collected here (or handed back, when the new items are cheaper).
+const exchange = computed(() => cart.exchange)
+const exchangeCredit = ref(0)
+const exchangeRefund = ref(0)
+const refundModes = ref([])
+const refundMode = ref(null)
+const payable = computed(() => round2(Math.max(total.value - exchangeCredit.value, 0)))
+
 const paid = computed(() => payments.value.reduce((sum, p) => sum + p.amount, 0))
-const remaining = computed(() => round2(total.value - paid.value - loyaltyAmount.value))
-const canComplete = computed(
-  () =>
+const remaining = computed(() => round2(payable.value - paid.value - loyaltyAmount.value))
+const canComplete = computed(() => {
+  if (!referencesOk.value) return false
+  if (exchange.value) {
+    if (!cart.lines.length) return false
+    if (exchangeRefund.value > 0 && !refundMode.value) return false
+    return paid.value + loyaltyAmount.value >= payable.value - 0.005
+  }
+  return (
     (payments.value.length || loyaltyAmount.value > 0) &&
-    paid.value + loyaltyAmount.value >= total.value - 0.005 &&
-    referencesOk.value
-)
+    paid.value + loyaltyAmount.value >= total.value - 0.005
+  )
+})
 
 const visibleModes = computed(() =>
   session.paymentModes.filter(
@@ -233,6 +277,7 @@ onMounted(async () => {
   amount.value = round2(Math.max(cart.total, 0))
   amountInput.value?.focus()
   amountInput.value?.select()
+  if (cart.exchange) return loadExchange()
   // Pull the authoritative payable from the server (same math as submit). If it
   // differs from the client total by a rounding halfcent, snap the suggested
   // amount to it, but only while nothing has been entered yet. The same quote
@@ -368,11 +413,47 @@ function applyGiftCard() {
   amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
 }
 
+// Both sides valued by the server, with the same code that will post them, so
+// the figure on screen is the one that settles.
+async function loadExchange() {
+  try {
+    // Quoted from the SAME payload that will post, so the figure on screen and
+    // the figure that settles cannot drift apart.
+    const q = await call('lumenpos.api.exchanges.quote_exchange', {
+      payload: {
+        ...cart._basePayload(),
+        original_invoice: cart.exchange.invoice,
+        return_items: cart.exchange.items,
+        serials: cart.exchange.serials,
+      },
+    })
+    serverTotal.value = q.new_total
+    exchangeCredit.value = q.returned_value
+    exchangeRefund.value = q.refund
+    refundModes.value = q.allowed_refund_modes || []
+    refundMode.value = refundModes.value.includes('Cash') ? 'Cash' : refundModes.value[0] || null
+    amount.value = round2(Math.max(q.due, 0))
+  } catch (e) {
+    session.notify(e.message, true)
+  }
+}
+
 async function complete() {
   try {
     const giftCards = payments.value
       .filter((p) => p.card_no)
       .map((p) => ({ card_no: p.card_no, amount: p.amount }))
+    if (cart.exchange) {
+      const result = await cart.submitExchange(
+        payments.value,
+        refundMode.value,
+        redeemPoints.value,
+        giftCards
+      )
+      session.notify(t('Exchange completed'))
+      emit('done', result.sale)
+      return
+    }
     const receipt = await cart.submit(payments.value, redeemPoints.value, giftCards)
     session.notify(receipt.offline ? t('Sale queued (offline)') : t('Sale completed'))
     emit('done', receipt)
@@ -439,6 +520,31 @@ function round2(n) {
 }
 .due-value { font-size: 52px; font-weight: 800; }
 .due-value.change { color: var(--brand); }
+.exchange-box { padding: 12px 16px; margin-bottom: 12px; }
+.ex-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.ex-row.credit { color: var(--pos); }
+.ex-row.net {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 10px;
+  font-size: 16px;
+}
+.ex-refund {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+}
+.ex-refund select { padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+
 .wallet { padding: 6px 16px; }
 .wallet-row {
   display: flex;

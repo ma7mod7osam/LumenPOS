@@ -8,6 +8,18 @@
       <Icon name="warning" />
       {{ t('This shift belongs to {name}. Close it and open your own to sell.', { name: session.sellBlockedBy }) }}
     </div>
+    <!-- An exchange is open: the goods coming back are already picked, this
+         cart is what the customer takes instead. Nothing has posted yet. -->
+    <div v-if="cart.exchange" class="exchange-banner">
+      <span>
+        <Icon name="exchange" />
+        {{ t('Exchange against {invoice}, worth {amount}. Add what the customer is taking instead.', {
+          invoice: cart.exchange.invoice,
+          amount: money(cart.exchange.value),
+        }) }}
+      </span>
+      <button class="btn btn-ghost btn-sm" @click="cart.cancelExchange()">{{ t('Cancel exchange') }}</button>
+    </div>
     <section class="catalog">
       <div class="search-row">
         <div class="search-box">
@@ -373,6 +385,18 @@ function onDiscountApproved(result) {
   font-weight: 700;
   font-size: 13px;
 }
+.exchange-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--brand-soft, rgba(20, 99, 255, 0.1));
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 13px;
+}
+.exchange-banner .btn-sm { color: inherit; text-decoration: underline; }
 .sell {
   flex: 1;
   display: flex;

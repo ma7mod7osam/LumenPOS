@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.46.4. This document is updated with every feature change.*
+*Applies to LumenPOS v0.47.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -416,6 +416,42 @@ customer in the cart and as a payment tile.
 
 ---
 
+### Exchange in one step
+
+A customer swapping one thing for another is not two errands. **History** to the
+sale, then **Exchange…** instead of **Refund…**:
+
+1. Pick what is coming back, exactly as you would for a refund. Everything a
+   return checks still applies here: return restrictions, the return window and
+   its approval request, serial numbers, sets that must come back together.
+2. Press **Pick the new items**. The till returns to **Sell** with a banner
+   showing which sale is being exchanged and what the returned goods are worth.
+   Ring up what the customer is taking instead, the usual way.
+3. **Pay** shows the arithmetic: the new items, the credit for what came back,
+   and one line for what is actually owed. Dearer, and you collect the
+   difference with any tender. Cheaper, and you give the difference back, by the
+   same refund rules a normal refund follows. Equal, and nothing moves in the
+   drawer at all.
+
+Both documents post together, in one request: a credit note for the goods
+returned and a POS sale for the replacement. If anything fails, neither exists.
+There is no moment where the shop has taken goods back without handing over the
+replacement.
+
+**How it settles.** The matched part of the two documents goes through a
+clearing tender called **Exchange**, backed by a liability account LumenPOS
+creates on first use. So the drawer, the card totals and the Z-report only ever
+see the difference, and the clearing account is back to zero the moment the
+exchange finishes. The replacement sale is tagged **EXCHANGE** in History.
+
+**Who may do it.** Anyone who may make returns, unless a shop names a role in
+**Settings → General → Approvals and permissions → Exchange role**. An exchange
+always needs return permission as well.
+
+**Needs a connection.** An exchange is not queued offline, because it posts two
+linked documents against an existing sale.
+
+---
 ## 10. Serial numbers (strict)
 
 A serialized item can never be sold without its exact serials:
@@ -650,6 +686,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.47.0 | **Exchange in one step.** A customer swapping one item for another used to be two errands, a refund and then a fresh sale, with the cashier holding the arithmetic in their head. Now: History, **Exchange…**, pick what comes back, ring up what they are taking instead, and the payment screen shows one figure, the difference. Dearer and you collect it with any tender, cheaper and you give it back by the normal refund rules, equal and the drawer never opens. The credit note and the replacement sale post together in one request, so there is no moment where the goods are back but the replacement is not, and the matched part settles through a clearing tender (**Exchange**, a liability account created on first use) so cash and card totals only ever see the difference. Everything a return enforces still applies: restrictions, the return window and its approval, serials, sets. A shop can name its own **Exchange role** in Settings. |
 | 0.46.4 | **The stock on a tile is live and honest, and the till notices the network in seconds.** The quantity on a product tile is now what you can actually still sell (ERPNext holds back anything sold on a shift that has not been consolidated yet, and that hold is now visible instead of turning up as a refusal), and it moves the moment a sale or a return posts instead of waiting for the next catalogue refresh. Offline: every request now has a deadline, so a connection that dies mid-call flips the till to offline in seconds instead of hanging, and while it is down the till asks the server every five seconds and comes back by itself, no page reload. The POS Closing Entry of an outlet that sells as **Sales Invoice** now lists those invoices, because ERPNext's own table only links POS Invoices and an accountant was left with totals and no documents. The payment screen also asks the server once instead of twice, and asks while the cashier is still scanning. |
 | 0.46.3 | **The text reads like a person wrote it, and the Arabic is complete.** Every em dash is gone from the app and from this guide (852 of them), replaced by the punctuation a person would actually type. Where a dash was the only thing separating two parts of a sentence, the sentence itself was rewritten: the register screen used to run the shift name straight into the next word ("Session POS-SES-0001closed."), and now reads "Session POS-SES-0001 closed. POS Closing Entry ACC-PCE-0001 consolidated its invoices." Separately, 58 labels still came up in English inside the Arabic till: the PIN lock and reset screens, the offline upload prompts, the payment method rules, the shift ownership and alert settings, and the store credit refund switch. They are translated, so every string on screen now has Arabic. |
 | 0.46.2 | **The Arabic in the till is written the way people write it.** The interface text carried 386 vowel marks (tashkeel) left over from earlier translation work, which reads like machine output and is not how a shop writes Arabic. They are gone, in every screen, with no other wording change: same keys, same 1071 strings, only the marks removed. |

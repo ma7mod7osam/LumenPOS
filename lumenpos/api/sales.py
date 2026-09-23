@@ -1965,6 +1965,91 @@ def _return_window(original):
     return {"restrict": restrict, "window_days": days, "age_days": age, "within": within}
 
 
+def _build_return_doc(original, sale_doctype, invoice, items, serials, pos_profile, return_reason):
+    """The credit note for `items`, calculated but NOT inserted.
+
+    Shared by create_return, which then pays and submits it, and by the
+    exchange quote, which only needs to know what the goods coming back are
+    worth. Nothing here writes: the caller decides whether this document ever
+    becomes real.
+
+    The return posts on the outlet HANDLING it, not the one that made the sale.
+    ERPNext's return builder copies everything from the original, so a branch
+    returning (say) an online order would post on the E-Commerce profile: the
+    refund left the branch's drawer but under another outlet's name, and
+    profile-filtered closings/reports missed it entirely."""
+    handling_profile_name = pos_profile or original.pos_profile
+    handling_profile = frappe.get_cached_doc("POS Profile", handling_profile_name)
+    if handling_profile.company != original.company:
+        frappe.throw(
+            _(
+                "{0} was sold by {1}, but this till belongs to {2}. A return must be "
+                "processed by a till in the same company."
+            ).format(invoice, original.company, handling_profile.company)
+        )
+    session = _open_session(handling_profile_name)
+
+    from lumenpos.erpnext_compat import make_return_doc
+
+    return_doc = make_return_doc(sale_doctype, invoice)
+    # Re-stamp the copied header onto THIS till.
+    return_doc.pos_profile = handling_profile.name
+    if handling_profile.get("warehouse"):
+        return_doc.set("set_warehouse", handling_profile.warehouse)
+    if handling_profile.get("cost_center"):
+        return_doc.cost_center = handling_profile.cost_center
+    if handling_profile.get("selling_price_list"):
+        return_doc.selling_price_list = handling_profile.selling_price_list
+    # Keep one row per returned item code (a quantity may span duplicate
+    # lines on the original; the aggregate returnable check above still holds)
+    kept, seen = [], set()
+    for row in return_doc.items:
+        if row.item_code in items and row.item_code not in seen:
+            kept.append(row)
+            seen.add(row.item_code)
+    return_doc.items = kept
+    if not return_doc.items:
+        frappe.throw(_("Selected items were not found on the original sale"))
+    sold = _sold_serials(original)
+    # Serials already returned on a previous credit note (our own record. See
+    # _returned_serials on why Serial No.status can't be trusted on v15).
+    prior_returns = frappe.get_all(
+        sale_doctype,
+        filters={"return_against": invoice, "docstatus": 1, "is_return": 1},
+        pluck="name",
+    )
+    already_returned = _returned_serials(sale_doctype, prior_returns)
+    for row in return_doc.items:
+        # Lines carry the ORIGINAL outlet's warehouse / cost center too, stock
+        # would come back into the selling branch instead of the one taking it.
+        if handling_profile.get("warehouse"):
+            row.warehouse = handling_profile.warehouse
+        if handling_profile.get("cost_center"):
+            row.cost_center = handling_profile.cost_center
+        row.qty = -items[row.item_code]
+        if row.get("stock_qty"):
+            row.stock_qty = row.qty * flt(row.conversion_factor or 1)
+        row_serials = _validate_return_serials(
+            row.item_code,
+            items[row.item_code],
+            (serials or {}).get(row.item_code),
+            sold,
+            already_returned,
+        )
+        if row_serials:
+            row.serial_and_batch_bundle = None
+            row.use_serial_batch_fields = 1
+            row.serial_no = "\n".join(row_serials)
+
+    return_doc.payments = []
+    _set_custom(return_doc, ("lumenpos_session",), session["name"])
+    if (return_reason or "").strip():
+        _set_custom(return_doc, ("lumenpos_return_reason",), return_reason.strip())
+    return_doc.run_method("set_missing_values")
+    return_doc.run_method("calculate_taxes_and_totals")
+    return return_doc, session
+
+
 def _refund_splits(refund_payments, refund_amount, default_mode, allowed_modes):
     """Normalise the refund tenders into [{mode_of_payment, amount(neg), reference_no}].
 
@@ -2029,6 +2114,12 @@ def _allowed_refund_modes(original):
     # because otherwise a credit-paid sale would have no refund method at all.
     if settings.get("allow_store_credit_refund") or store_credit.MODE_OF_PAYMENT in paid:
         allowed.add(store_credit.MODE_OF_PAYMENT)
+    # The exchange clearing tender is never a refund to the customer, it is the
+    # internal leg that the matching new sale pays straight back out. Refund
+    # policy applies to the leftover, which is settled with a real tender.
+    from lumenpos import exchanges
+
+    allowed.add(exchanges.MODE_OF_PAYMENT)
     return sorted(allowed)
 
 
@@ -2111,6 +2202,7 @@ def create_return(
     return_request=None,
     pos_profile=None,
     refund_payments=None,
+    _split_fn=None,
 ):
     """Create a POS return (credit note) against a submitted POS sale.
 
@@ -2124,6 +2216,12 @@ def create_return(
     recorded on the credit note.
     return_request = an approved POS Approval Request (type Return) that
     authorizes a return made AFTER the configured return window has passed.
+
+    _split_fn is internal (Python callers only, it cannot arrive over HTTP):
+    given the credit note's final value it returns the refund tenders. An
+    exchange needs it because the split depends on a figure only ERPNext knows
+    once the document is built, "everything up to the new sale goes to the
+    exchange clearing tender, the rest is a real refund".
     """
     _require_sell()
     from lumenpos.api import permissions
@@ -2207,81 +2305,9 @@ def create_return(
     # Bundle / buy-x-get-y sets must come back together on a regular return.
     _enforce_return_groups(returnable_items, items)
 
-    # The return posts on the outlet HANDLING it, not the one that made the sale.
-    # ERPNext's return builder copies everything from the original, so a branch
-    # returning (say) an online order would post on the E-Commerce profile: the
-    # refund left the branch's drawer but under another outlet's name, and
-    # profile-filtered closings/reports missed it entirely.
-    handling_profile_name = pos_profile or original.pos_profile
-    handling_profile = frappe.get_cached_doc("POS Profile", handling_profile_name)
-    if handling_profile.company != original.company:
-        frappe.throw(
-            _(
-                "{0} was sold by {1}, but this till belongs to {2}. A return must be "
-                "processed by a till in the same company."
-            ).format(invoice, original.company, handling_profile.company)
-        )
-    session = _open_session(handling_profile_name)
-
-    from lumenpos.erpnext_compat import make_return_doc
-
-    return_doc = make_return_doc(sale_doctype, invoice)
-    # Re-stamp the copied header onto THIS till.
-    return_doc.pos_profile = handling_profile.name
-    if handling_profile.get("warehouse"):
-        return_doc.set("set_warehouse", handling_profile.warehouse)
-    if handling_profile.get("cost_center"):
-        return_doc.cost_center = handling_profile.cost_center
-    if handling_profile.get("selling_price_list"):
-        return_doc.selling_price_list = handling_profile.selling_price_list
-    # Keep one row per returned item code (a quantity may span duplicate
-    # lines on the original; the aggregate returnable check above still holds)
-    kept, seen = [], set()
-    for row in return_doc.items:
-        if row.item_code in items and row.item_code not in seen:
-            kept.append(row)
-            seen.add(row.item_code)
-    return_doc.items = kept
-    if not return_doc.items:
-        frappe.throw(_("Selected items were not found on the original sale"))
-    sold = _sold_serials(original)
-    # Serials already returned on a previous credit note (our own record. See
-    # _returned_serials on why Serial No.status can't be trusted on v15).
-    prior_returns = frappe.get_all(
-        sale_doctype,
-        filters={"return_against": invoice, "docstatus": 1, "is_return": 1},
-        pluck="name",
+    return_doc, session = _build_return_doc(
+        original, sale_doctype, invoice, items, serials, pos_profile, return_reason
     )
-    already_returned = _returned_serials(sale_doctype, prior_returns)
-    for row in return_doc.items:
-        # Lines carry the ORIGINAL outlet's warehouse / cost center too, stock
-        # would come back into the selling branch instead of the one taking it.
-        if handling_profile.get("warehouse"):
-            row.warehouse = handling_profile.warehouse
-        if handling_profile.get("cost_center"):
-            row.cost_center = handling_profile.cost_center
-        row.qty = -items[row.item_code]
-        if row.get("stock_qty"):
-            row.stock_qty = row.qty * flt(row.conversion_factor or 1)
-        row_serials = _validate_return_serials(
-            row.item_code,
-            items[row.item_code],
-            serials.get(row.item_code),
-            sold,
-            already_returned,
-        )
-        if row_serials:
-            row.serial_and_batch_bundle = None
-            row.use_serial_batch_fields = 1
-            row.serial_no = "\n".join(row_serials)
-
-    return_doc.payments = []
-    _set_custom(return_doc, ("lumenpos_session",), session["name"])
-    if (return_reason or "").strip():
-        _set_custom(return_doc, ("lumenpos_return_reason",), return_reason.strip())
-    return_doc.run_method("set_missing_values")
-    return_doc.run_method("calculate_taxes_and_totals")
-
     # Refund EXACTLY what ERPNext validates a return against. POS Invoice's
     # validate_pos checks `abs(paid) + abs(write_off) - abs(rounded_total or
     # grand_total)`; it uses rounded_total when rounding is on (POS Invoice has
@@ -2291,6 +2317,8 @@ def create_return(
     # not be greater than Grand Total".
     invoice_total = return_doc.rounded_total or return_doc.grand_total
     refund_amount = flt(invoice_total, return_doc.precision("grand_total"))  # negative
+    if _split_fn:
+        refund_payments = _split_fn(abs(refund_amount))
     splits = _refund_splits(refund_payments, refund_amount, refund_mode, allowed_modes)
     if any(r["mode_of_payment"] == store_credit.MODE_OF_PAYMENT for r in splits):
         store_credit.ensure_mode_of_payment(original.company)

@@ -30,6 +30,15 @@
         >
           {{ t('Refund…') }}
         </button>
+        <!-- Swap goods in one step: the same picker as a refund, then the sell
+             screen for what the customer takes instead. -->
+        <button
+          v-if="!receipt.is_return && !receipt.offline && canExchange"
+          class="btn btn-outline"
+          @click="$emit('exchange', receipt.name)"
+        >
+          <Icon name="exchange" /> {{ t('Exchange…') }}
+        </button>
         <!-- Refunds live in History (one money-flow path), jump there with
              this sale already open rather than duplicating the flow here. -->
         <button
@@ -71,8 +80,9 @@ const props = defineProps({
   showOpenInHistory: { type: Boolean, default: false },
   receipt: Object,
   canRefund: { type: Boolean, default: false },
+  canExchange: { type: Boolean, default: false },
 })
-defineEmits(['close', 'refund', 'open-in-history'])
+defineEmits(['close', 'refund', 'exchange', 'open-in-history'])
 
 const session = useSessionStore()
 const printing = ref(false)

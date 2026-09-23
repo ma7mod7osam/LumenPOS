@@ -46,6 +46,7 @@
   "price_edit_role",
   "return_role",
   "return_exceed_role",
+  "exchange_role",
   "payment_rules_section",
   "payment_method_rules",
   "channels_section",
@@ -302,6 +303,13 @@
    "fieldname": "return_exceed_role",
    "fieldtype": "Link",
    "label": "Exceed return window role",
+   "options": "Role"
+  },
+  {
+   "description": "Only this role (plus managers) may exchange goods in one step. Blank = anyone who may make returns. An exchange always needs return permission too.",
+   "fieldname": "exchange_role",
+   "fieldtype": "Link",
+   "label": "Exchange role",
    "options": "Role"
   },
   {

@@ -1751,6 +1751,10 @@
             <span>{{ t('Exceed return window role') }}</span>
             <LinkPicker doctype="Role" v-model="generalForm.return_exceed_role" :placeholder="t('Nobody (use requests)')" />
           </label>
+          <label class="field">
+            <span>{{ t('Exchange role') }}</span>
+            <LinkPicker doctype="Role" v-model="generalForm.exchange_role" :placeholder="t('Anyone who may return')" />
+          </label>
         </div>
         <p class="muted hint-row">
           {{ t('Exceed return window: this role (plus managers) can return a sale past the window directly, everyone else uses the approval request flow.') }}
@@ -1983,6 +1987,7 @@ const generalForm = ref({
   price_edit_role: '',
   return_role: '',
   return_exceed_role: '',
+  exchange_role: '',
   restrict_returns_to_window: 0,
   return_window_days: 14,
   offline_stock_only: 0,
@@ -2397,6 +2402,7 @@ async function load() {
     price_edit_role: info.price_edit_role || '',
     return_role: info.return_role || '',
     return_exceed_role: info.return_exceed_role || '',
+    exchange_role: info.exchange_role || '',
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,
     offline_stock_only: info.offline_stock_only || 0,

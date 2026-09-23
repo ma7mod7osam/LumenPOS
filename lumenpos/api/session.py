@@ -168,6 +168,7 @@ def get_user_permissions():
         # LumenPOS capability gates (role-configurable in Settings → Permissions).
         "can_edit_price": caps_mod.can_edit_price(),
         "can_return": caps_mod.can_return(),
+        "can_exchange": caps_mod.can_exchange(),
         "can_exceed_return_window": caps_mod.can_exceed_return_window(),
         "open_register": bool(has("POS Opening Entry", "create")),
         "close_register": bool(has("POS Closing Entry", "create")),

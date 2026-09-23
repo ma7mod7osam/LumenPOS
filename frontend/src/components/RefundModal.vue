@@ -5,7 +5,7 @@
   <div class="modal-backdrop" @click.self="$emit('close')">
     <div class="modal" style="width: 520px">
       <div class="modal-header">
-        {{ t('Refund {invoice}', { invoice }) }}
+        {{ isExchange ? t('Exchange {invoice}', { invoice }) : t('Refund {invoice}', { invoice }) }}
         <button class="btn-ghost" @click="$emit('close')"><Icon name="close" /></button>
       </div>
 
@@ -99,7 +99,7 @@
 
           <div v-if="refundTotal > 0" class="refund-summary">
             <div class="refund-amount">
-              {{ t('Refund ≈') }} <strong>{{ money(refundTotal) }}</strong>
+              {{ isExchange ? t('Coming back ≈') : t('Refund ≈') }} <strong>{{ money(refundTotal) }}</strong>
               <span class="muted small">{{ t('(final amount includes taxes, computed on submit)') }}</span>
             </div>
             <label class="field-label">{{ t('Return reason') }}</label>
@@ -117,6 +117,9 @@
               :placeholder="t('Type the reason…')"
               style="width: 100%; margin-top: 6px"
             />
+            <!-- An exchange settles at the payment screen, against the new
+                 items, so there is nothing to allocate here. -->
+            <template v-if="!isExchange">
             <label class="field-label">{{ t('Refund to') }}</label>
             <!-- Split a refund across tenders (the customer may have paid two
                  ways). DIRECTION matters: refunding is limited to the allowed
@@ -149,13 +152,30 @@
             <p v-if="allowedModes" class="muted small refund-rule-note">
               {{ t('Limited to how this sale was paid (Settings → Refunds).') }}
             </p>
+            </template>
+            <p v-else class="muted small refund-rule-note">
+              {{ t('Next you pick what the customer takes instead. Only the difference is paid or refunded.') }}
+            </p>
           </div>
         </template>
       </div>
 
       <div class="modal-footer">
         <button class="btn btn-outline" @click="$emit('close')">{{ t('Cancel') }}</button>
-        <button class="btn btn-danger" :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval || !splitCovered" @click="submit">
+        <button
+          v-if="isExchange"
+          class="btn btn-primary"
+          :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval"
+          @click="continueExchange"
+        >
+          {{ t('Pick the new items') }}
+        </button>
+        <button
+          v-else
+          class="btn btn-danger"
+          :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval || !splitCovered"
+          @click="submit"
+        >
           {{ busy ? t('Refunding…') : t('Refund') }}
         </button>
       </div>
@@ -173,8 +193,13 @@ import { createScanGuard } from '../scanGuard'
 import { money, parseMoney } from '../format'
 import { t } from '../i18n'
 
-const props = defineProps({ invoice: String })
-const emit = defineEmits(['close', 'done'])
+// mode "exchange" reuses everything a return needs (line picking, serials, the
+// restriction and window approvals, the reason) and then hands the selection to
+// the sell screen instead of refunding: the money is settled once the customer
+// has chosen what they are taking instead.
+const props = defineProps({ invoice: String, mode: { type: String, default: 'refund' } })
+const emit = defineEmits(['close', 'done', 'exchange'])
+const isExchange = computed(() => props.mode === 'exchange')
 const session = useSessionStore()
 const scan = createScanGuard()
 const scanOnly = computed(() => Boolean(session.settings?.serial_scan_only))
@@ -455,17 +480,38 @@ function removeSerial(itemCode, serial) {
   quantities.value[itemCode] = list.length
 }
 
+function pickedItems() {
+  const items = {}
+  const serials = {}
+  for (const [code, qty] of Object.entries(quantities.value)) {
+    if (qty > 0) {
+      items[code] = qty
+      if (selectedSerials.value[code]?.length) serials[code] = selectedSerials.value[code]
+    }
+  }
+  return { items, serials }
+}
+
+// Exchange: nothing posts here. The till carries the selection to the sell
+// screen, and the pair (credit note + new sale) posts together at payment.
+function continueExchange() {
+  const { items, serials } = pickedItems()
+  emit('exchange', {
+    invoice: props.invoice,
+    items,
+    serials,
+    reason: reasonValue.value,
+    request: returnRequest.value,
+    value: refundTotal.value,
+    customer: customer.value,
+    customer_name: customerName.value,
+  })
+}
+
 async function submit() {
   busy.value = true
   try {
-    const items = {}
-    const serials = {}
-    for (const [code, qty] of Object.entries(quantities.value)) {
-      if (qty > 0) {
-        items[code] = qty
-        if (selectedSerials.value[code]?.length) serials[code] = selectedSerials.value[code]
-      }
-    }
+    const { items, serials } = pickedItems()
     const receipt = await call('lumenpos.api.sales.create_return', {
       invoice: props.invoice,
       items,

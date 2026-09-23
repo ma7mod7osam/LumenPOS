@@ -524,6 +524,9 @@ const settings = {
   "for a free-text reason.": "لسبب نصي حر.",
   "+ Add reason": "+ أضف سببا",
   User: "المستخدم",
+  "Exchange role": "صلاحية الاستبدال",
+  "Who can exchange": "من يستبدل",
+  "Anyone who may return": "أي شخص يستطيع الاسترجاع",
 }
 
 // Register page + open-register overlay.
@@ -960,6 +963,15 @@ const txn = {
   "Exchange completed": "تم الاستبدال",
   "{mode} can't be used for this sale ({why}).": "لا يمكن استخدام {mode} في هذا البيع ({why}).",
   "Open in History": "افتح في السجل",
+  "New items": "الأصناف الجديدة",
+  "Goods returned on {invoice}": "المرتجع على {invoice}",
+  "To give back": "المبلغ المعاد",
+  "To collect": "المبلغ المستحق",
+  "Give the difference back as": "أعد الفرق بواسطة",
+  "Complete exchange, give back {amount}": "أتمم الاستبدال وأعد {amount}",
+  "Complete exchange {amount}": "أتمم الاستبدال {amount}",
+  "Exchange completed": "تم الاستبدال",
+  "An exchange needs a connection, it cannot be queued offline": "الاستبدال يحتاج اتصالا، ولا يمكن حفظه في الطابور دون اتصال",
 }
 
 // History, receipt, parked sales, passcode, gift-card, serial, nav rail, pickers.
@@ -1145,6 +1157,15 @@ const returns = {
   Split: "تقسيم",
   "Fully covered": "مغطى بالكامل",
   "{amount} left to allocate": "تبقى {amount} للتوزيع",
+  "Exchange…": "استبدال…",
+  "Exchange {invoice}": "استبدال {invoice}",
+  "Next you pick what the customer takes instead. Only the difference is paid or refunded.": "بعدها تختار ما يأخذه العميل بدلا منها. الفرق وحده هو ما يدفع أو يعاد.",
+  "Pick the new items": "اختر الأصناف الجديدة",
+  "Now pick what the customer is taking instead": "الآن اختر ما يأخذه العميل بدلا منها",
+  "Exchange against {invoice}, worth {amount}. Add what the customer is taking instead.": "استبدال على {invoice} بقيمة {amount}. أضف ما يأخذه العميل بدلا منها.",
+  "Cancel exchange": "إلغاء الاستبدال",
+  "You are not allowed to exchange goods": "غير مسموح لك بالاستبدال",
+  "Coming back ≈": "قيمة المرتجع ≈",
 }
 
 // Customers screen (client lookup + per-customer transactions).

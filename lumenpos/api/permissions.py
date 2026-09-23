@@ -25,7 +25,16 @@ def is_manager(user=None):
 
 
 def _role_setting(field):
-    return frappe.db.get_single_value("LumenPOS Settings", field)
+    """A role configured in LumenPOS Settings, or None.
+
+    Tolerates a field the site has not migrated yet: Frappe Cloud sometimes
+    updates a site by pulling the code WITHOUT running migrate, and a capability
+    check that raised "Invalid field name" there would take the whole till down
+    instead of falling back to "nobody is restricted"."""
+    try:
+        return frappe.db.get_single_value("LumenPOS Settings", field)
+    except Exception:
+        return None
 
 
 def can_edit_price(user=None):
@@ -39,6 +48,20 @@ def can_edit_price(user=None):
 def can_return(user=None):
     """Create a return (credit note). Empty role = anyone with sell access."""
     role = _role_setting("return_role")
+    if not role:
+        return True
+    return is_manager(user) or role in _roles(user)
+
+
+def can_exchange(user=None):
+    """Swap goods in one step (a return and a new sale settled together).
+
+    An exchange is a return plus a sale, so whoever may do it must be allowed
+    to make returns first. On top of that a shop can name its own role: blank
+    means anyone who may return may also exchange."""
+    if not can_return(user):
+        return False
+    role = _role_setting("exchange_role")
     if not role:
         return True
     return is_manager(user) or role in _roles(user)

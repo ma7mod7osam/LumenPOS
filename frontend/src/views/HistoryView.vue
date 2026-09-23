@@ -138,14 +138,18 @@
       v-if="receipt"
       :receipt="receipt"
       :can-refund="session.permissions.can_return !== false"
+      :can-exchange="session.permissions.can_exchange !== false"
       @close="receipt = null"
       @refund="startRefund"
+      @exchange="startExchange"
     />
     <RefundModal
       v-if="refundInvoice"
       :invoice="refundInvoice"
+      :mode="refundMode"
       @close="refundInvoice = null"
       @done="onRefundDone"
+      @exchange="onExchangePicked"
     />
   </div>
 </template>
@@ -153,19 +157,23 @@
 <script setup>
 import Icon from '../components/Icon.vue'
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
+import { useCartStore } from '../stores/cart'
 import { money, shortTime } from '../format'
 import { t } from '../i18n'
 import ReceiptModal from '../components/ReceiptModal.vue'
 import RefundModal from '../components/RefundModal.vue'
 
 const session = useSessionStore()
+const cart = useCartStore()
+const router = useRouter()
 const sales = ref([])
 const loading = ref(true)
 const receipt = ref(null)
 const refundInvoice = ref(null)
+const refundMode = ref('refund') // 'refund' | 'exchange'
 const showFilters = ref(false)
 const profileFilter = ref('')
 let timer = null
@@ -283,7 +291,23 @@ async function show(name) {
 
 function startRefund(invoice) {
   receipt.value = null
+  refundMode.value = 'refund'
   refundInvoice.value = invoice
+}
+
+// The same screen picks what comes back, then the till moves to Sell for what
+// the customer takes instead. Nothing has posted at this point.
+function startExchange(invoice) {
+  receipt.value = null
+  refundMode.value = 'exchange'
+  refundInvoice.value = invoice
+}
+
+function onExchangePicked(picked) {
+  refundInvoice.value = null
+  cart.startExchange(picked)
+  session.notify(t('Now pick what the customer is taking instead'))
+  router.push('/')
 }
 
 async function onRefundDone(returnReceipt) {
