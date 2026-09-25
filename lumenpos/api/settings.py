@@ -1928,6 +1928,9 @@ def link_options(doctype, search="", company=None, root_type=None):
         "Account": ["name"],
         "Mode of Payment": ["name"],
         "Role": ["name"],
+        # Other currencies: ERPNext ships most currencies disabled, and saving
+        # the settings switches the chosen one on, so all are offered.
+        "Currency": ["name", "currency_name"],
     }
     if doctype not in allowed:
         frappe.throw(_("Lookup not allowed for {0}").format(doctype))
