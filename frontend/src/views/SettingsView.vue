@@ -3565,6 +3565,7 @@ const filteredBooks = computed(() => {
 }
 .cf-head { font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 0 2px; }
 .cf-line select { width: 100%; min-width: 0; padding: 7px 9px; }
+.cf-line select:disabled { opacity: 0.6; }
 .cf-name { display: flex; flex-direction: column; font-weight: 600; min-width: 0; }
 .cf-name .muted { font-family: var(--mono); font-weight: 400; }
 .cf-add { display: flex; gap: 8px; margin-top: 12px; }

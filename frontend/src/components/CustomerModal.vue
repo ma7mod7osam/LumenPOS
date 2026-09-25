@@ -79,6 +79,7 @@
           :key="field.fieldname"
           v-model="form[field.fieldname]"
           :type="inputType(field)"
+          :inputmode="inputMode(field)"
           :placeholder="placeholder(field)"
         />
         <template v-if="addressFields.length">
@@ -113,7 +114,7 @@
             v-else
             v-model="form[field.fieldname]"
             :type="inputType(field)"
-            :inputmode="['Int', 'Float', 'Currency'].includes(field.fieldtype) ? 'decimal' : undefined"
+            :inputmode="inputMode(field)"
             :placeholder="placeholder(field)"
           />
           <datalist v-if="field.fieldtype === 'Link'" :id="'cf-' + field.fieldname">
@@ -198,11 +199,18 @@ function required(field) {
 function placeholder(field) {
   return t(field.label) + (required(field) ? ' *' : '')
 }
+// A phone number stays type "text" with a phone keypad (inputmode): Chrome
+// draws a type "tel" field left to right, which puts the required star on the
+// wrong side of an Arabic placeholder.
 function inputType(field) {
   if (field.fieldname === 'email_id') return 'email'
   if (field.fieldtype === 'Date') return 'date'
-  if (field.fieldtype === 'Phone' || field.fieldname === 'mobile_no') return 'tel'
   return 'text'
+}
+function inputMode(field) {
+  if (field.fieldtype === 'Phone' || field.fieldname === 'mobile_no') return 'tel'
+  if (['Int', 'Float', 'Currency'].includes(field.fieldtype)) return 'decimal'
+  return undefined
 }
 function filled(value) {
   if (value === null || value === undefined) return false
