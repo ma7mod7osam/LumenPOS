@@ -1,0 +1,58 @@
+{
+ "actions": [],
+ "creation": "2026-09-26 18:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "fieldname",
+  "label",
+  "for_individuals",
+  "for_companies"
+ ],
+ "fields": [
+  {
+   "fieldname": "fieldname",
+   "fieldtype": "Data",
+   "label": "Field",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "A built-in field of the form (mobile_no, email_id, tax_id, building_no, street, district, city, postal_code, additional_no) or any field of Customer."
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "for_individuals",
+   "fieldtype": "Select",
+   "options": "Hidden\nOptional\nRequired",
+   "default": "Hidden",
+   "label": "Individual customers",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "for_companies",
+   "fieldtype": "Select",
+   "options": "Hidden\nOptional\nRequired",
+   "default": "Hidden",
+   "label": "Company customers",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-26 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Customer Form Field",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

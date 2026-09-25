@@ -386,6 +386,12 @@ def _client_settings(profile_name=None):
     # A shop can switch holds off while money is still sitting on open ones, so
     # the till keeps the screen (not the button) until those are settled.
     data["open_holds"] = _open_holds(profile_name)
+    # The shop's new-customer form (lumenpos.customer_form).
+    from lumenpos import customer_form
+
+    data["customer_form"] = customer_form.client_form(
+        frappe.get_cached_value("POS Profile", profile_name, "company") if profile_name else None
+    )
     # Per-outlet receipt: overlay this outlet's override on the global receipt so
     # the sell screen renders the right one (falls back to global when none set).
     if profile_name:

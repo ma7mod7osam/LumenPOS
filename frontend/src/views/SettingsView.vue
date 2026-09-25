@@ -1136,6 +1136,56 @@
         </button>
       </div>
 
+      <!-- The new-customer form (lumenpos.customer_form) -->
+      <div class="sec-card" v-show="generalSection === 'customers'">
+        <div class="sec-title"><Icon name="person" /> {{ t('New customer form') }}</div>
+        <p class="sec-note">{{ t('What the till asks when a cashier adds a customer. Each field can be hidden, optional or required, for individuals and for companies apart. The address is the Saudi national address; a shop elsewhere can keep only the parts it needs.') }}</p>
+        <div class="cf-table">
+          <div class="cf-head">
+            <span>{{ t('Field') }}</span>
+            <span>{{ t('Individual customers') }}</span>
+            <span>{{ t('Company customers') }}</span>
+            <span></span>
+          </div>
+          <div class="cf-line">
+            <span class="cf-name">{{ t('Name') }}</span>
+            <select disabled><option>{{ t('Required') }}</option></select>
+            <select disabled><option>{{ t('Required') }}</option></select>
+            <span></span>
+          </div>
+          <div v-for="(row, i) in generalForm.customer_form_fields" :key="row.fieldname" class="cf-line">
+            <span class="cf-name">
+              {{ t(row.label) }}
+              <span v-if="!row.builtin" class="muted small">{{ row.fieldname }}</span>
+            </span>
+            <select v-model="row.for_individuals">
+              <option v-for="s in FORM_STATES" :key="s" :value="s">{{ t(s) }}</option>
+            </select>
+            <select v-model="row.for_companies">
+              <option v-for="s in FORM_STATES" :key="s" :value="s">{{ t(s) }}</option>
+            </select>
+            <button v-if="!row.builtin" class="btn-ghost" :title="t('Remove')" @click="generalForm.customer_form_fields.splice(i, 1)">
+              <Icon name="close" />
+            </button>
+            <span v-else></span>
+          </div>
+        </div>
+        <div class="cf-add">
+          <select v-model="customerFieldToAdd" @focus="loadCustomerFieldChoices">
+            <option value="">{{ t('Add a field of Customer…') }}</option>
+            <option v-for="f in customerFieldChoicesLeft" :key="f.fieldname" :value="f.fieldname">
+              {{ f.label }} ({{ f.fieldname }})
+            </option>
+          </select>
+          <button class="btn btn-outline" :disabled="!customerFieldToAdd" @click="addCustomerField">
+            <Icon name="plus" /> {{ t('Add') }}
+          </button>
+        </div>
+        <p class="muted small" style="margin-top: 8px">
+          {{ t('Your own Customer fields appear here too, for example a national ID or a commercial registration number. The mobile is how the till finds a customer it already has: without it, the same person can be added twice.') }}
+        </p>
+      </div>
+
       <!-- Other currencies (lumenpos.currency) -->
       <div class="sec-card" v-show="generalSection === 'currencies'">
         <div class="sec-title"><Icon name="cash" /> {{ t('Other currencies') }}</div>
@@ -2100,6 +2150,7 @@ const generalForm = ref({
   enable_layaway: 0,
   enable_multi_currency: 0,
   sale_currencies: [],
+  customer_form_fields: [],
   layaway_reserve_stock: 1,
   deposit_with_tax: 0,
   layaway_days: 30,
@@ -2169,6 +2220,7 @@ const generalSections = [
   { key: 'register', label: 'Register and shifts', icon: 'store' },
   { key: 'payments', label: 'Payments and delivery', icon: 'card' },
   { key: 'currencies', label: 'Other currencies', icon: 'cash' },
+  { key: 'customers', label: 'Customers', icon: 'person' },
   { key: 'returns', label: 'Returns and refunds', icon: 'refresh' },
   { key: 'holds', label: 'Holds and deposits', icon: 'bookmark' },
   { key: 'receipt', label: 'Receipt', icon: 'image' },
@@ -2176,6 +2228,36 @@ const generalSections = [
   { key: 'approvals', label: 'Approvals and access', icon: 'shield' },
 ]
 const generalSection = ref('features')
+
+// ---- the new-customer form: Customer fields a shop can add ----
+const FORM_STATES = ['Hidden', 'Optional', 'Required']
+const customerFieldChoices = ref([])
+const customerFieldToAdd = ref('')
+const customerFieldChoicesLeft = computed(() => {
+  const taken = new Set((generalForm.value.customer_form_fields || []).map((r) => r.fieldname))
+  return customerFieldChoices.value.filter((f) => !taken.has(f.fieldname))
+})
+async function loadCustomerFieldChoices() {
+  if (customerFieldChoices.value.length || session.offline) return
+  try {
+    customerFieldChoices.value = await call('lumenpos.customer_form.field_choices')
+  } catch (e) {
+    session.notify(e.message, true)
+  }
+}
+function addCustomerField() {
+  const f = customerFieldChoices.value.find((x) => x.fieldname === customerFieldToAdd.value)
+  if (!f) return
+  generalForm.value.customer_form_fields.push({
+    fieldname: f.fieldname,
+    label: f.label,
+    builtin: 0,
+    fieldtype: f.fieldtype,
+    for_individuals: 'Optional',
+    for_companies: 'Optional',
+  })
+  customerFieldToAdd.value = ''
+}
 
 // ---- other currencies: today's selling rate of each, per company currency ----
 const rateRows = ref([])
@@ -2570,6 +2652,7 @@ async function load() {
       walk_in_customer: r.walk_in_customer || '',
       cash_mode: r.cash_mode || '',
     })),
+    customer_form_fields: (info.customer_form_fields || []).map((r) => ({ ...r })),
     layaway_reserve_stock: info.layaway_reserve_stock ? 1 : 0,
     deposit_with_tax: info.deposit_with_tax ? 1 : 0,
     layaway_days: info.layaway_days || 0,
@@ -3370,9 +3453,9 @@ async function saveGeneral() {
       cash_mode: r.cash_mode || '',
     }))
     loadRateRows(info)
-    if (info.enable_multi_currency || session.multiCurrency?.enabled) {
-      await session.bootstrap(session.posProfile)
-    }
+    generalForm.value.customer_form_fields = (info.customer_form_fields || []).map((r) => ({ ...r }))
+    // The till picks up the new rules (currencies, the customer form) at once.
+    await session.bootstrap(session.posProfile)
     session.notify(t('Settings saved'))
   } catch (e) {
     session.notify(e.message, true)
@@ -3472,6 +3555,20 @@ const filteredBooks = computed(() => {
 .rc-preview-label { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 6px; }
 .cf-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
 .cf-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.cf-table { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cf-head,
+.cf-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 8px;
+  align-items: center;
+}
+.cf-head { font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 0 2px; }
+.cf-line select { width: 100%; min-width: 0; padding: 7px 9px; }
+.cf-name { display: flex; flex-direction: column; font-weight: 600; min-width: 0; }
+.cf-name .muted { font-family: var(--mono); font-weight: 400; }
+.cf-add { display: flex; gap: 8px; margin-top: 12px; }
+.cf-add select { flex: 1; min-width: 0; }
 .rate-label { font-weight: 700; }
 .rate-in { width: 120px; }
 .cf-in {

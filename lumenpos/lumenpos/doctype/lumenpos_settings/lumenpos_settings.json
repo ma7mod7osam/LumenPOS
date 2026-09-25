@@ -55,6 +55,8 @@
   "currency_section",
   "enable_multi_currency",
   "sale_currencies",
+  "customer_form_section",
+  "customer_form_fields",
   "features_section",
   "enable_order_discount",
   "enable_service_charge",
@@ -361,6 +363,19 @@
    "options": "POS Sale Currency",
    "label": "Currencies the till sells in",
    "depends_on": "enable_multi_currency"
+  },
+  {
+   "fieldname": "customer_form_section",
+   "fieldtype": "Section Break",
+   "label": "New customer form",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "customer_form_fields",
+   "fieldtype": "Table",
+   "options": "POS Customer Form Field",
+   "label": "Fields on the new customer form",
+   "description": "Empty: the built-in form. Name and mobile for everyone; for companies also the tax ID and the Saudi national address."
   },
   {
    "description": "Turn till features on or off. Each control is independent.",
@@ -749,7 +764,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-26 12:00:00.000000",
+ "modified": "2026-09-26 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

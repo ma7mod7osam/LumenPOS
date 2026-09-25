@@ -207,7 +207,26 @@ def get_settings():
         # Other currencies (lumenpos.currency), each with today's selling rate.
         "enable_multi_currency": 1 if doc.get("enable_multi_currency") else 0,
         "sale_currencies": _sale_currencies(doc),
+        # The new-customer form (lumenpos.customer_form): every field, built-in
+        # ones first, with its state for individuals and for companies.
+        "customer_form_fields": _customer_form_fields(),
     }
+
+
+def _customer_form_fields():
+    from lumenpos import customer_form
+
+    return [
+        {
+            "fieldname": f["fieldname"],
+            "label": f["label"],
+            "builtin": f["builtin"],
+            "fieldtype": f["fieldtype"],
+            "for_individuals": f["individual"],
+            "for_companies": f["company"],
+        }
+        for f in customer_form.rules()
+    ]
 
 
 def _sale_currencies(doc):
@@ -442,6 +461,30 @@ def save_settings(payload):
                 },
             )
             frappe.db.set_value("Currency", code, "enabled", 1)
+    # The new-customer form: every row the screen sends, built-in fields
+    # included, each Hidden, Optional or Required per customer type.
+    if "customer_form_fields" in payload:
+        from lumenpos import customer_form
+
+        allowed = {df.fieldname for df in frappe.get_meta("Customer").fields}
+        doc.customer_form_fields = []
+        seen = set()
+        for row in payload.get("customer_form_fields") or []:
+            fieldname = (row.get("fieldname") or "").strip()
+            if not fieldname or fieldname in seen or fieldname in customer_form.NOT_EXTRA:
+                continue
+            if fieldname not in customer_form.BUILT_IN_NAMES and fieldname not in allowed:
+                continue
+            seen.add(fieldname)
+            doc.append(
+                "customer_form_fields",
+                {
+                    "fieldname": fieldname,
+                    "label": (row.get("label") or "").strip() or None,
+                    "for_individuals": row.get("for_individuals") if row.get("for_individuals") in customer_form.STATES else "Hidden",
+                    "for_companies": row.get("for_companies") if row.get("for_companies") in customer_form.STATES else "Hidden",
+                },
+            )
     doc.save()
     if doc.get("enable_multi_currency"):
         from lumenpos import currency

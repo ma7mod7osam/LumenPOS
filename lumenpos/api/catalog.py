@@ -711,25 +711,34 @@ def find_customer_by_mobile(mobile):
 
 @frappe.whitelist()
 def create_customer(payload):
-    """Strict customer creation:
-      Individual -> name + mobile mandatory
-      Company    -> name, mobile, tax id and national address details mandatory
+    """Customer creation by the shop's own form (lumenpos.customer_form): each
+    field Hidden, Optional or Required, for individuals and companies apart.
+    Nothing configured is the form as it always was: name and mobile for
+    everyone, and for a company also the tax ID and the national address.
 
     Match-or-create: an existing customer with this mobile is REUSED rather than
     duplicated (see find_customer_by_mobile)."""
     import json
 
+    from lumenpos import customer_form
+
     if isinstance(payload, str):
         payload = json.loads(payload)
 
-    customer_type = payload.get("customer_type") or "Individual"
+    customer_type = payload.get("customer_type") if payload.get("customer_type") in ("Individual", "Company") else "Individual"
     name = (payload.get("customer_name") or "").strip()
-    mobile = (payload.get("mobile_no") or "").strip()
+
+    def given(fieldname):
+        # A field the form hides for this customer type is ignored, whatever a
+        # client sends for it.
+        if not customer_form.shown(customer_type, fieldname):
+            return ""
+        return (payload.get(fieldname) or "").strip()
 
     if not name:
         frappe.throw(_("Customer name is required"))
-    if not mobile:
-        frappe.throw(_("Mobile number is required"))
+    extras = customer_form.validate(payload, customer_type)
+    mobile = given("mobile_no")
 
     # Match before creating: the site may already know this mobile (possibly in
     # its OWN mobile field). Creating a second record for the same person is how
@@ -740,55 +749,48 @@ def create_customer(payload):
         found["matched"] = True
         return found
 
-    address_fields = {}
-    if customer_type == "Company":
-        if not (payload.get("tax_id") or "").strip():
-            frappe.throw(_("Tax ID is required for company customers"))
-        address_fields = {
-            key: (payload.get(key) or "").strip()
-            for key in ("building_no", "street", "district", "city", "postal_code", "additional_no")
-        }
-        missing = [k for k in ("building_no", "street", "district", "city", "postal_code") if not address_fields[k]]
-        if missing:
-            frappe.throw(
-                _("National address is required for company customers (missing: {0})").format(
-                    ", ".join(m.replace("_", " ") for m in missing)
-                )
-            )
+    address = {key: given(key) for key in customer_form.ADDRESS_FIELDS}
 
     selling = frappe.get_cached_doc("Selling Settings")
     doc = {
+        # The shop's own fields first: the ones LumenPOS sets always win.
+        **extras,
         "doctype": "Customer",
         "customer_name": name,
         "customer_type": customer_type,
-        "customer_group": selling.customer_group,
-        "territory": selling.territory,
-        "mobile_no": mobile,
-        "email_id": (payload.get("email_id") or "").strip() or None,
-        "tax_id": (payload.get("tax_id") or "").strip() or None,
+        "customer_group": extras.get("customer_group") or selling.customer_group,
+        "territory": extras.get("territory") or selling.territory,
+        "mobile_no": mobile or None,
+        "email_id": given("email_id") or None,
+        "tax_id": given("tax_id") or None,
     }
     # Fill the host's own mobile field too, so ITS automation fires (a site that
     # names customers "name - mobile" from its custom field would otherwise
     # create ours bare-named, and the first name collision breaks at the till).
-    for fieldname in _host_mobile_fields():
-        doc.setdefault(fieldname, mobile)
+    if mobile:
+        for fieldname in _host_mobile_fields():
+            doc.setdefault(fieldname, mobile)
     customer = frappe.get_doc(doc).insert()
 
-    if customer_type == "Company":
+    if any(address.values()):
+        # ERPNext's Address needs a first line and a city. A shop that asks for
+        # only part of the address still keeps what was typed: the first line
+        # falls back to the district or postal code, the city to the district.
+        line1 = " ".join(v for v in (address["building_no"], address["street"]) if v)
         frappe.get_doc(
             {
                 "doctype": "Address",
                 "address_title": name,
                 "address_type": "Billing",
-                "address_line1": f"{address_fields['building_no']} {address_fields['street']}",
+                "address_line1": line1 or address["district"] or address["postal_code"] or address["city"],
                 "address_line2": " ".join(
                     v
-                    for v in [address_fields["district"], address_fields["additional_no"]]
+                    for v in [address["district"] if line1 else "", address["additional_no"]]
                     if v
                 )
                 or None,
-                "city": address_fields["city"],
-                "pincode": address_fields["postal_code"],
+                "city": address["city"] or address["district"] or line1 or address["postal_code"],
+                "pincode": address["postal_code"] or None,
                 "country": frappe.db.get_default("country") or "Saudi Arabia",
                 "links": [{"link_doctype": "Customer", "link_name": customer.name}],
             }
@@ -800,8 +802,9 @@ def create_customer(payload):
         "customer_group": customer.customer_group,
         "customer_type": customer_type,
         "mobile_no": mobile,
-        "email_id": payload.get("email_id"),
-        "tax_id": payload.get("tax_id"),
+        "email_id": customer.email_id,
+        "tax_id": customer.tax_id,
+        "default_currency": customer.get("default_currency"),
     }
 
 

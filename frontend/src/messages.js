@@ -1460,7 +1460,28 @@ const currencies = {
   "Cashback needs a connection. Remove it and retry": "الكاش باك يحتاج اتصالا. احذفه وأعد المحاولة",
 }
 
+// The shop's own new-customer form (0.51.0).
+const customerForm = {
+  "New customer form": "نموذج العميل الجديد",
+  "What the till asks when a cashier adds a customer. Each field can be hidden, optional or required, for individuals and for companies apart. The address is the Saudi national address; a shop elsewhere can keep only the parts it needs.":
+    "ما يطلبه الصندوق عند إضافة عميل. كل حقل يمكن إخفاؤه أو جعله اختياريا أو إلزاميا، للأفراد وللشركات كل على حدة. العنوان هو العنوان الوطني السعودي، والمحل خارج المملكة يبقي ما يحتاجه منه فقط.",
+  "Field": "الحقل",
+  "Individual customers": "العملاء الأفراد",
+  "Company customers": "عملاء الشركات",
+  "Name": "الاسم",
+  "Hidden": "مخفي",
+  "Building no.": "رقم المبنى",
+  "Street": "الشارع",
+  "District": "الحي",
+  "City": "المدينة",
+  "Postal code": "الرمز البريدي",
+  "Address": "العنوان",
+  "Add a field of Customer…": "إضافة حقل من حقول العميل…",
+  "Your own Customer fields appear here too, for example a national ID or a commercial registration number. The mobile is how the till finds a customer it already has: without it, the same person can be added twice.":
+    "تظهر هنا أيضا حقول العميل الخاصة بك، مثل رقم الهوية أو السجل التجاري. الجوال هو ما يتعرف به الصندوق على عميل موجود مسبقا، وبدونه قد يضاف الشخص نفسه مرتين.",
+}
+
 export const messages = {
   en: {},
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm },
 }

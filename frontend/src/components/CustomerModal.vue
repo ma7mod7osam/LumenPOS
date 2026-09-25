@@ -71,20 +71,54 @@
         </div>
 
         <input v-model="form.customer_name" :placeholder="form.customer_type === 'Company' ? t('Company name *') : t('Full name *')" />
-        <input v-model="form.mobile_no" :placeholder="t('Mobile *')" />
-        <input v-model="form.email_id" :placeholder="t('Email')" type="email" />
-
-        <template v-if="form.customer_type === 'Company'">
-          <input v-model="form.tax_id" :placeholder="t('Tax ID *')" />
-          <div class="section-label">{{ t('National address') }}</div>
+        <!-- The rest is the shop's own form (Settings, General, Customers):
+             each field hidden, optional or required per customer type. The
+             built-in fields first, then the address, then the shop's own. -->
+        <input
+          v-for="field in topFields"
+          :key="field.fieldname"
+          v-model="form[field.fieldname]"
+          :type="inputType(field)"
+          :placeholder="placeholder(field)"
+        />
+        <template v-if="addressFields.length">
+          <div class="section-label">{{ t(formRules.address_label || 'National address') }}</div>
           <div class="grid-2">
-            <input v-model="form.building_no" :placeholder="t('Building no. *')" />
-            <input v-model="form.street" :placeholder="t('Street *')" />
-            <input v-model="form.district" :placeholder="t('District *')" />
-            <input v-model="form.city" :placeholder="t('City *')" />
-            <input v-model="form.postal_code" :placeholder="t('Postal code *')" />
-            <input v-model="form.additional_no" :placeholder="t('Additional no.')" />
+            <input
+              v-for="field in addressFields"
+              :key="field.fieldname"
+              v-model="form[field.fieldname]"
+              :placeholder="placeholder(field)"
+            />
           </div>
+        </template>
+        <template v-for="field in extraFields" :key="field.fieldname">
+          <label v-if="field.fieldtype === 'Check'" class="check-field">
+            <input type="checkbox" v-model="form[field.fieldname]" :true-value="1" :false-value="0" />
+            {{ placeholder(field) }}
+          </label>
+          <select v-else-if="field.fieldtype === 'Select'" v-model="form[field.fieldname]">
+            <option value="">{{ placeholder(field) }}</option>
+            <option v-for="opt in field.options || []" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
+          <input
+            v-else-if="field.fieldtype === 'Link'"
+            v-model="form[field.fieldname]"
+            :list="'cf-' + field.fieldname"
+            :placeholder="placeholder(field)"
+            @focus="loadLinkValues(field)"
+            @input="loadLinkValues(field)"
+          />
+          <input
+            v-else
+            v-model="form[field.fieldname]"
+            :type="inputType(field)"
+            :inputmode="['Int', 'Float', 'Currency'].includes(field.fieldtype) ? 'decimal' : undefined"
+            :placeholder="placeholder(field)"
+          />
+          <datalist v-if="field.fieldtype === 'Link'" :id="'cf-' + field.fieldname">
+            <option v-for="v in linkValues[field.fieldname] || []" :key="v" :value="v" />
+          </datalist>
         </template>
       </div>
 
@@ -131,20 +165,75 @@ const form = ref({
 })
 let timer = null
 
+// The shop's form (lumenpos.customer_form). Before a till has it (an old
+// cached bootstrap), the built-in form as it always was.
+const BUILT_IN = [
+  ['mobile_no', 'Mobile', 'Required', 'Required'],
+  ['email_id', 'Email', 'Optional', 'Optional'],
+  ['tax_id', 'Tax ID', 'Hidden', 'Required'],
+  ['building_no', 'Building no.', 'Hidden', 'Required'],
+  ['street', 'Street', 'Hidden', 'Required'],
+  ['district', 'District', 'Hidden', 'Required'],
+  ['city', 'City', 'Hidden', 'Required'],
+  ['postal_code', 'Postal code', 'Hidden', 'Required'],
+  ['additional_no', 'Additional no.', 'Hidden', 'Optional'],
+].map(([fieldname, label, individual, company]) => ({
+  fieldname, label, individual, company, builtin: 1, fieldtype: 'Data',
+}))
+const ADDRESS = ['building_no', 'street', 'district', 'city', 'postal_code', 'additional_no']
+const formRules = computed(() => session.settings?.customer_form || { fields: BUILT_IN })
+const column = computed(() => (form.value.customer_type === 'Company' ? 'company' : 'individual'))
+const visibleFields = computed(() =>
+  (formRules.value.fields || []).filter((f) => f[column.value] && f[column.value] !== 'Hidden')
+)
+const topFields = computed(() =>
+  visibleFields.value.filter((f) => f.builtin && !ADDRESS.includes(f.fieldname))
+)
+const addressFields = computed(() => visibleFields.value.filter((f) => ADDRESS.includes(f.fieldname)))
+const extraFields = computed(() => visibleFields.value.filter((f) => !f.builtin))
+
+function required(field) {
+  return field[column.value] === 'Required'
+}
+function placeholder(field) {
+  return t(field.label) + (required(field) ? ' *' : '')
+}
+function inputType(field) {
+  if (field.fieldname === 'email_id') return 'email'
+  if (field.fieldtype === 'Date') return 'date'
+  if (field.fieldtype === 'Phone' || field.fieldname === 'mobile_no') return 'tel'
+  return 'text'
+}
+function filled(value) {
+  if (value === null || value === undefined) return false
+  return typeof value === 'string' ? Boolean(value.trim()) : Boolean(value)
+}
+
+// Values for a Link field the shop put on the form, fetched as the cashier types.
+const linkValues = ref({})
+let linkTimer = null
+function loadLinkValues(field) {
+  if (session.offline) return
+  clearTimeout(linkTimer)
+  linkTimer = setTimeout(async () => {
+    try {
+      linkValues.value = {
+        ...linkValues.value,
+        [field.fieldname]: await call('lumenpos.customer_form.link_values', {
+          fieldname: field.fieldname,
+          search: form.value[field.fieldname] || '',
+        }),
+      }
+    } catch {
+      /* the cashier can still type the value */
+    }
+  }, 200)
+}
+
 const canCreate = computed(() => {
   const f = form.value
-  if (!f.customer_name.trim() || !f.mobile_no.trim()) return false
-  if (f.customer_type === 'Company') {
-    return Boolean(
-      f.tax_id.trim() &&
-        f.building_no.trim() &&
-        f.street.trim() &&
-        f.district.trim() &&
-        f.city.trim() &&
-        f.postal_code.trim()
-    )
-  }
-  return true
+  if (!f.customer_name.trim()) return false
+  return visibleFields.value.every((field) => !required(field) || filled(f[field.fieldname]))
 })
 
 onMounted(async () => {
@@ -230,7 +319,7 @@ async function create() {
   background: rgba(20, 99, 255, 0.1);
   border-radius: 999px;
   padding: 1px 8px;
-  margin-left: 6px;
+  margin-inline-start: 6px;
 }
 .small { font-size: 12px; }
 .empty { padding: 24px; text-align: center; }
@@ -258,9 +347,16 @@ async function create() {
   color: var(--text-muted);
   margin-top: 4px;
 }
+/* minmax(0, 1fr): an input's own minimum width must not push the grid wider
+   than the modal (it did in Arabic, with a scrollbar under the address). */
 .grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
+.grid-2 input { width: 100%; min-width: 0; }
+.form input,
+.form select { width: 100%; min-width: 0; }
+.check-field { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.check-field input { width: auto; }
 </style>
