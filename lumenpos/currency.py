@@ -505,11 +505,20 @@ def client_config(profile, session_name=None):
             rate = shift_rate(session_name, currency, profile.company)
         except Exception:
             rate = 0
+        walk_in = (
+            frappe.db.get_value(
+                "Customer", row.walk_in_customer, ["customer_name", "customer_group"], as_dict=True
+            )
+            if row.walk_in_customer
+            else None
+        ) or {}
         out["currencies"].append(
             {
                 "currency": currency,
                 "symbol": frappe.get_cached_value("Currency", currency, "symbol") or currency,
                 "walk_in_customer": row.walk_in_customer,
+                "walk_in_name": walk_in.get("customer_name") or row.walk_in_customer,
+                "walk_in_group": walk_in.get("customer_group"),
                 "cash_mode": row.cash_mode,
                 "show_equivalent": 1 if cint(row.show_equivalent) else 0,
                 "rate": rate,

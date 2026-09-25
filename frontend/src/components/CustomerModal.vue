@@ -28,6 +28,12 @@
               <div class="result-name">
                 {{ customer.customer_name }}
                 <span v-if="customer.customer_type === 'Company'" class="company-tag">{{ t('Company') }}</span>
+                <!-- Billed in another currency: the sale will be in it. -->
+                <span
+                  v-if="customer.default_currency && customer.default_currency !== (session.multiCurrency.outlet_currency || session.currency)"
+                  class="company-tag"
+                  >{{ customer.default_currency }}</span
+                >
               </div>
               <div class="muted small">
                 {{ customer.customer_group }}<span v-if="customer.mobile_no"> · {{ customer.mobile_no }}</span><span v-if="customer.tax_id"> · {{ customer.tax_id }}</span>

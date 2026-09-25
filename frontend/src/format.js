@@ -19,17 +19,30 @@ export function isolate(text) {
   return s ? `${FSI}${s}${PDI}` : s
 }
 
-export function money(amount) {
+// `code` names the currency when it is not the outlet's: a sale to a customer
+// billed in another currency, or a drawer that holds one (lumenpos.currency).
+export function money(amount, code) {
+  const unit = code || currency
   let formatted
   try {
     formatted = new Intl.NumberFormat(undefined, {
       style: 'currency',
-      currency,
+      currency: unit,
     }).format(amount || 0)
   } catch {
-    formatted = `${currency} ${(amount || 0).toFixed(2)}`
+    formatted = `${unit} ${(amount || 0).toFixed(2)}`
   }
   return isolate(formatted)
+}
+
+export function outletCurrency() {
+  return currency
+}
+
+// An exchange rate for people: up to six decimals, no trailing zeros
+// ("3.6725", "4").
+export function rateText(rate) {
+  return Number(rate || 0).toFixed(6).replace(/\.?0+$/, '')
 }
 
 // Human-friendly warranty length from a number of days.

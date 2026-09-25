@@ -66,7 +66,7 @@
                 {{ restrictions[row.item_code].note || restrictions[row.item_code].title }}
               </div>
               <div class="muted small">
-                {{ t('Sold {qty} × {rate} · {returnable} returnable', { qty: row.qty, rate: money(row.rate), returnable: row.returnable_qty }) }}
+                {{ t('Sold {qty} × {rate} · {returnable} returnable', { qty: row.qty, rate: m(row.rate), returnable: row.returnable_qty }) }}
               </div>
               <div v-if="row.has_serial_no" class="serial-pick">
                 <div class="muted small pick-hint">{{ t('Scan or type each returned serial ({n} returnable)', { n: row.returnable_serials.length }) }}</div>
@@ -99,7 +99,8 @@
 
           <div v-if="refundTotal > 0" class="refund-summary">
             <div class="refund-amount">
-              {{ isExchange ? t('Coming back ≈') : t('Refund ≈') }} <strong>{{ money(refundTotal) }}</strong>
+              {{ isExchange ? t('Coming back ≈') : t('Refund ≈') }} <strong>{{ m(refundTotal) }}</strong>
+              <span v-if="foreign" class="muted small">= {{ money(refundTotal * sold.rate, sold.company_currency) }}</span>
               <span class="muted small">{{ t('(final amount includes taxes, computed on submit)') }}</span>
             </div>
             <label class="field-label">{{ t('Return reason') }}</label>
@@ -129,6 +130,11 @@
                 <option v-for="mode in refundModes" :key="mode" :value="mode">{{ mode }}</option>
               </select>
               <input class="rs-amt" type="text" inputmode="decimal" v-model="row.amount" :placeholder="t('Amount')" />
+              <!-- A sale in another currency is refunded in it; local cash and
+                   card go back at the sale's own rate. -->
+              <span v-if="foreign && localMode(row.mode_of_payment)" class="muted small rs-local">
+                = {{ money((parseMoney(row.amount) || 0) * sold.rate, sold.company_currency) }}
+              </span>
               <input
                 v-if="refRule(row.mode_of_payment)"
                 class="rs-ref"
@@ -146,7 +152,7 @@
               <span class="muted small" :class="{ neg: !splitCovered }">
                 {{ splitCovered
                     ? t('Fully covered')
-                    : t('{amount} left to allocate', { amount: money(Math.max(refundTotal - splitTotal, 0)) }) }}
+                    : t('{amount} left to allocate', { amount: m(Math.max(refundTotal - splitTotal, 0)) }) }}
               </span>
             </div>
             <p v-if="allowedModes" class="muted small refund-rule-note">
@@ -276,12 +282,46 @@ const reasonValue = computed(() =>
   reason.value === '__other__' ? otherReason.value.trim() : reason.value || ''
 )
 
+// The sale being returned: its currency and the rate it was sold at
+// (lumenpos.currency). Everything here is in that currency.
+const sold = ref({ currency: null, company_currency: null, rate: 1 })
+const foreign = computed(
+  () => Boolean(sold.value.currency && sold.value.company_currency) && sold.value.currency !== sold.value.company_currency
+)
+const m = (amount) => money(amount, sold.value.currency)
+
+function modeCurrency(mode) {
+  const found = (session.paymentModes || []).find((x) => x.mode_of_payment === mode)
+  return found?.account_currency || sold.value.company_currency
+}
+function localMode(mode) {
+  return modeCurrency(mode) !== sold.value.currency
+}
+
 const refundModes = computed(() => {
   // When the original sale restricts refund tenders, offer only those;
   // otherwise every payment method (plus store credit).
-  if (allowedModes.value) return allowedModes.value
-  const modes = session.paymentModes.map((m) => m.mode_of_payment)
-  if (!modes.includes(session.storeCreditMode)) modes.push(session.storeCreditMode)
+  let modes = allowedModes.value
+    ? [...allowedModes.value]
+    : session.paymentModes.map((x) => x.mode_of_payment)
+  if (!allowedModes.value && !modes.includes(session.storeCreditMode)) modes.push(session.storeCreditMode)
+  // A sale in another currency goes back through tenders ERPNext accepts for
+  // it (its own currency or the local one), never onto a wallet: their
+  // ledgers hold the outlet's currency only.
+  if (foreign.value) {
+    const wallets = [session.storeCreditMode, session.cashbackMode, session.giftCardMode]
+    modes = modes.filter(
+      (mode) =>
+        !wallets.includes(mode) &&
+        [sold.value.currency, sold.value.company_currency].includes(modeCurrency(mode))
+    )
+  } else {
+    // ...and a local sale never through a drawer in another currency.
+    modes = modes.filter((mode) => {
+      const code = modeCurrency(mode)
+      return !code || code === sold.value.company_currency || code === sold.value.currency
+    })
+  }
   return modes
 })
 
@@ -330,6 +370,11 @@ onMounted(async () => {
     })
     returnable.value = (data.items || []).filter((row) => row.returnable_qty > 0)
     allowedModes.value = data.allowed_refund_modes || null
+    sold.value = {
+      currency: data.currency || session.currency,
+      company_currency: data.company_currency || session.localCurrency,
+      rate: data.conversion_rate || 1,
+    }
     returnWindow.value = data.return_window || null
     restrictions.value = data.restrictions || {}
     customer.value = data.customer || null

@@ -8,6 +8,7 @@
       <div class="customer-meta">
         <div class="customer-name">{{ cart.customer?.customer_name || t('Add a customer') }}</div>
         <div class="muted small" v-if="cart.customer">
+          <span v-if="cart.saleCurrency.foreign" class="ccy-tag">{{ cart.saleCurrency.currency }}</span>
           {{ cart.customer.customer_group }}
           <template v-if="cart.wallet">
             <span v-if="cart.wallet.loyalty_points > 0"> · <Icon name="star" /> {{ cart.wallet.loyalty_points }} {{ t('pts') }}</span>
@@ -19,8 +20,35 @@
       <button v-if="cart.customer" class="btn-ghost" @click.stop="cart.setCustomer(null)"><Icon name="close" /></button>
     </div>
 
+    <!-- The customer is billed in a currency this till can't sell in: say so
+         now, not at payment (the server refuses such a sale). -->
+    <div v-if="cart.saleCurrency.blocked" class="currency-warn">
+      {{
+        session.multiCurrency.enabled
+          ? t('{name} is billed in {currency}, which this till does not sell in. Add it in Settings, General, Other currencies, or choose another customer.', { name: cart.customer?.customer_name, currency: cart.saleCurrency.currency })
+          : t('{name} is billed in {currency}. Switch on Other currencies in Settings, General, or choose another customer.', { name: cart.customer?.customer_name, currency: cart.saleCurrency.currency })
+      }}
+    </div>
+
     <div class="channel-row">
-      <select :value="cart.appType || ''" @change="cart.setChannel($event.target.value || null)">
+      <!-- Sell in another currency: a walk-in paying in dollars is sold to the
+           dollar walk-in customer. A named customer buys in their own. -->
+      <select
+        v-if="session.saleCurrencies.length"
+        class="currency-select"
+        :value="cart.saleCurrency.currency"
+        :disabled="!cart.currencySwitchable"
+        :title="cart.currencySwitchable ? t('Sell in') : t('This customer buys in {currency}', { currency: cart.saleCurrency.currency })"
+        @change="cart.setSaleCurrency($event.target.value)"
+      >
+        <option :value="session.multiCurrency.outlet_currency || session.currency">
+          {{ session.multiCurrency.outlet_currency || session.currency }}
+        </option>
+        <option v-for="c in session.saleCurrencies" :key="c.currency" :value="c.currency">
+          {{ c.currency }}
+        </option>
+      </select>
+      <select :value="cart.appType || ''" :disabled="cart.saleCurrency.foreign" @change="cart.setChannel($event.target.value || null)">
         <option value=""><Icon name="store" /> {{ t('Walk-in') }}</option>
         <option v-for="app in session.settings.delivery_apps" :key="app.app_name" :value="app.app_name">
           <Icon name="bike" /> {{ app.app_name }}
@@ -103,19 +131,19 @@
     <div class="totals">
       <div class="row">
         <span>{{ t('Subtotal') }}</span>
-        <span>{{ money(cart.subtotal) }}</span>
+        <span>{{ cart.show(cart.subtotal) }}</span>
       </div>
       <div v-for="promo in evaluation.applied" :key="promo.name" class="row promo-row">
         <span class="promo-badge"><Icon name="star" /> {{ promo.title }}</span>
-        <span>-{{ money(promo.savings) }}</span>
+        <span>-{{ cart.show(promo.savings) }}</span>
       </div>
       <div v-for="bundle in cart.bundleBreakdown.applied" :key="bundle.key" class="row bundle-row">
         <span class="bundle-badge-sm"><Icon name="gift" /> {{ bundle.title }}</span>
-        <span>-{{ money(bundle.savings) }}</span>
+        <span>-{{ cart.show(bundle.savings) }}</span>
       </div>
       <div v-if="cart.manualDiscountTotal > 0" class="row promo-row">
         <span class="muted">{{ t('Manual discounts') }}</span>
-        <span>-{{ money(cart.manualDiscountTotal) }}</span>
+        <span>-{{ cart.show(cart.manualDiscountTotal) }}</span>
       </div>
       <div
         v-if="session.settings.enable_order_discount && cart.lines.length"
@@ -137,25 +165,31 @@
           />
           <span class="od-pct">%</span>
           <span v-if="cart.orderDiscountTotal > 0" class="od-amt"
-            >-{{ money(cart.orderDiscountTotal) }}</span
+            >-{{ cart.show(cart.orderDiscountTotal) }}</span
           >
         </span>
       </div>
       <div v-for="tax in cart.taxBreakdown.exclusive" :key="'x' + tax.description" class="row">
         <span class="muted">{{ tax.description }}</span>
-        <span>+{{ money(tax.amount) }}</span>
+        <span>+{{ cart.show(tax.amount) }}</span>
       </div>
       <div v-for="tax in cart.taxBreakdown.included" :key="'i' + tax.description" class="row tax-included">
         <span class="muted">{{ t('{description} (included)', { description: tax.description }) }}</span>
-        <span class="muted">{{ money(tax.amount) }}</span>
+        <span class="muted">{{ cart.show(tax.amount) }}</span>
       </div>
       <div v-if="cart.serviceCharge > 0" class="row">
         <span class="muted">{{ t('Service charge ({pct}%)', { pct: session.settings.service_charge_percent }) }}</span>
-        <span>+{{ money(cart.serviceCharge) }}</span>
+        <span>+{{ cart.show(cart.serviceCharge) }}</span>
       </div>
       <div class="row grand">
         <span>{{ t('Total') }} <span class="muted small">{{ t('({count} items)', { count: cart.itemCount }) }}</span></span>
-        <span>{{ money(cart.total) }}</span>
+        <span>{{ cart.show(cart.total) }}</span>
+      </div>
+      <!-- The same total in other money: the local value of a sale in another
+           currency, and the equivalents the shop chose to show. -->
+      <div v-for="eq in equivalents" :key="eq.currency" class="row equiv">
+        <span class="muted">{{ eq.label }}</span>
+        <span class="muted">{{ money(eq.amount, eq.currency) }}</span>
       </div>
     </div>
 
@@ -200,7 +234,7 @@
       :title="session.permissions.sell === false ? t('You do not have permission to make sales') : ''"
       @click="$emit('pay')"
     >
-      {{ t('Pay') }}&nbsp;&nbsp;{{ money(cart.total) }}
+      {{ t('Pay') }}&nbsp;&nbsp;{{ cart.show(cart.total) }}
     </button>
 
     <CustomerModal v-if="customerOpen" @close="customerOpen = false" />
@@ -239,6 +273,40 @@ function onGiftCardSold(receipt) {
 }
 
 const evaluation = computed(() => cart.evaluation)
+
+// The total in other money. A sale in another currency always shows what it
+// comes to locally (change and card payments are local). A local sale shows
+// the currencies the shop ticked "Show the equivalent" for.
+const equivalents = computed(() => {
+  const mc = session.multiCurrency || {}
+  if (!mc.enabled || !cart.lines.length) return []
+  const sale = cart.saleCurrency
+  if (sale.blocked) return []
+  const outletRate = mc.outlet_rate || 0
+  if (!outletRate) return []
+  const inCompany = cart.total * outletRate // the total in company currency
+  const out = []
+  if (sale.foreign && sale.currency !== mc.company_currency) {
+    out.push({
+      currency: mc.company_currency,
+      amount: round2(inCompany),
+      label: t('In {currency}', { currency: mc.company_currency }),
+    })
+  }
+  for (const c of session.saleCurrencies) {
+    if (!c.show_equivalent || c.currency === sale.currency || c.currency === mc.company_currency) continue
+    out.push({
+      currency: c.currency,
+      amount: round2(inCompany / c.rate),
+      label: t('In {currency}', { currency: c.currency }),
+    })
+  }
+  return out
+})
+
+function round2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
 const spQuery = ref('')
 
 function spLabel(sp) {
@@ -341,6 +409,26 @@ function discard() {
   border-bottom: 1px solid var(--border);
 }
 .channel-row select { flex: 1; padding: 6px 10px; font-size: 13px; min-width: 0; }
+.channel-row .currency-select { flex: 0 0 auto; width: auto; font-weight: 700; }
+.ccy-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--brand-dark);
+  background: rgba(20, 99, 255, 0.1);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-inline-end: 4px;
+}
+.currency-warn {
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--red);
+  background: rgba(226, 48, 48, 0.08);
+  border-bottom: 1px solid var(--border);
+}
+.equiv { font-size: 13px; padding-top: 0; }
 .order-id { width: 110px; padding: 6px 10px; font-size: 13px; }
 .exchange-btn {
   font-size: 12px;

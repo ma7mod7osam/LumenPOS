@@ -45,6 +45,16 @@
               v-model="openingFloat"
               :disabled="busy"
             />
+            <label v-for="d in foreignDrawers" :key="d.mode_of_payment" class="field-label">
+              {{ t('{drawer} float ({currency})', { drawer: d.mode_of_payment, currency: d.account_currency }) }}
+              <input
+                class="float-input"
+                type="text"
+                inputmode="decimal"
+                v-model="floats[d.mode_of_payment]"
+                :disabled="busy"
+              />
+            </label>
             <button class="btn btn-primary choice-btn" :disabled="busy" @click="forceNew">
               <Icon name="play" /> {{ busy ? t('Opening…') : t('Open a new shift') }}
               <span class="choice-hint"
@@ -101,6 +111,19 @@
             :disabled="!canOpen"
             @keydown.enter="open"
           />
+          <!-- A drawer in another currency (Settings, General, Other
+               currencies) starts with its own float, in its own money. -->
+          <label v-for="d in foreignDrawers" :key="d.mode_of_payment" class="field-label">
+            {{ t('{drawer} float ({currency})', { drawer: d.mode_of_payment, currency: d.account_currency }) }}
+            <input
+              type="text"
+              inputmode="decimal"
+              v-model="floats[d.mode_of_payment]"
+              style="width: 100%"
+              :disabled="!canOpen"
+              @keydown.enter="open"
+            />
+          </label>
         </div>
         <div class="modal-footer">
           <button
@@ -138,6 +161,24 @@ const floatInput = ref(null)
 const pending = ref(session.pendingClosing)
 let poll = null
 
+// Cash drawers in another currency ("Cash USD"): each counts its own money.
+const foreignDrawers = computed(() =>
+  (session.paymentModes || []).filter(
+    (m) => m.type === 'Cash' && m.account_currency && m.account_currency !== session.localCurrency
+  )
+)
+const floats = ref({})
+
+// {drawer: amount} for the drawers in another currency, as the server takes it.
+function foreignFloats() {
+  const out = {}
+  for (const d of foreignDrawers.value) {
+    const value = parseMoney(floats.value[d.mode_of_payment])
+    if (value && value > 0) out[d.mode_of_payment] = value
+  }
+  return JSON.stringify(out)
+}
+
 const canOpen = computed(() => session.permissions.open_register !== false)
 const canClose = computed(() => session.permissions.close_register !== false)
 
@@ -157,13 +198,14 @@ async function onSwitchOutlet(name) {
   catalog.cacheCustomers()
   pending.value = session.pendingClosing
   openingFloat.value = '0'
+  floats.value = {}
 }
 
 async function open() {
   busy.value = true
   try {
     // Opening is always a fresh shift, there is no resume/retry branch.
-    await session.openRegister(openingFloat.value || 0)
+    await session.openRegister(openingFloat.value || 0, { floats: foreignFloats() })
     session.notify(t('Register opened'))
   } catch (e) {
     session.notify(e.message, true)
@@ -175,7 +217,7 @@ async function open() {
 async function forceNew() {
   busy.value = true
   try {
-    await session.openRegister(openingFloat.value || 0)
+    await session.openRegister(openingFloat.value || 0, { floats: foreignFloats() })
     session.notify(t('New shift opened, the previous one keeps finalising in the background'))
   } catch (e) {
     session.notify(e.message, true)

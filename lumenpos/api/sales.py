@@ -1569,6 +1569,20 @@ def get_receipt(invoice):
             barcode_map.setdefault(b.parent, b.barcode)
     from lumenpos.api.settings import resolve_receipt_custom_fields
 
+    # A sale in another currency (lumenpos.currency): the receipt is in it, and
+    # also carries the local side, the rate, each tender in its own money and
+    # the change, which always comes back in local money.
+    company_currency = currency.company_currency(doc.company)
+    foreign = bool(doc.currency and doc.currency != company_currency)
+
+    def tender(p):
+        row = {"mode_of_payment": p.mode_of_payment, "amount": p.amount}
+        if foreign:
+            code = currency.mode_currency(p.mode_of_payment, doc.company)
+            row["currency"] = code
+            row["tendered"] = flt(p.amount) if code == doc.currency else flt(p.base_amount)
+        return row
+
     return {
         "name": doc.name,
         "doctype": doc.doctype,  # so the client prints the right doc via a Print Format
@@ -1589,6 +1603,10 @@ def get_receipt(invoice):
         "customer_name": doc.customer_name,
         "company": doc.company,
         "currency": doc.currency,
+        "company_currency": company_currency,
+        "conversion_rate": flt(doc.conversion_rate) if foreign else 1,
+        "base_grand_total": doc.base_rounded_total or doc.base_grand_total if foreign else None,
+        "base_change_amount": doc.get("base_change_amount") if foreign else None,
         "items": [
             {
                 "item_code": row.item_code,
@@ -1615,11 +1633,7 @@ def get_receipt(invoice):
         "rounded_total": doc.rounded_total,
         "paid_amount": doc.paid_amount,
         "change_amount": doc.change_amount,
-        "payments": [
-            {"mode_of_payment": p.mode_of_payment, "amount": p.amount}
-            for p in (doc.payments or [])
-            if p.amount
-        ],
+        "payments": [tender(p) for p in (doc.payments or []) if p.amount],
         "applied_promotions": json.loads(
             _get_custom(doc, ("lumenpos_promotions",)) or "[]"
         ),
@@ -2013,6 +2027,11 @@ def get_returnable(invoice, pos_profile=None):
         "items": items,
         "customer": doc.customer,
         "customer_name": doc.customer_name,
+        # A sale in another currency is refunded in it, at its own rate
+        # (lumenpos.currency).
+        "currency": doc.currency,
+        "company_currency": currency.company_currency(doc.company),
+        "conversion_rate": flt(doc.conversion_rate) or 1,
         "allowed_refund_modes": _allowed_refund_modes(doc),
         "return_window": _return_window(doc),
         "restrictions": return_restrictions.blocked_items(

@@ -632,7 +632,7 @@ def recent_customers(pos_profile, limit=2000):
             filters={"name": ["in", ordered], "disabled": 0},
             fields=[
                 "name", "customer_name", "customer_group", "customer_type",
-                "mobile_no", "email_id", "tax_id",
+                "mobile_no", "email_id", "tax_id", "default_currency",
             ],
         )
     }
@@ -655,7 +655,7 @@ def search_customers(search=""):
         or_filters=or_filters,
         fields=[
             "name", "customer_name", "customer_group", "customer_type",
-            "mobile_no", "email_id", "tax_id",
+            "mobile_no", "email_id", "tax_id", "default_currency",
         ],
         order_by="customer_name asc",
         limit_page_length=20,
@@ -664,7 +664,7 @@ def search_customers(search=""):
 
 CUSTOMER_FIELDS = [
     "name", "customer_name", "customer_group", "customer_type",
-    "mobile_no", "email_id", "tax_id",
+    "mobile_no", "email_id", "tax_id", "default_currency",
 ]
 
 # Mobile fields a HOST site may define on Customer in addition to the standard

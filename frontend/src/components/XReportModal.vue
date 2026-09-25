@@ -31,24 +31,36 @@
 
           <div class="xr-section">
             <div class="row"><span>{{ t('Sales') }}</span><span>{{ s.sales_count }}</span></div>
-            <div class="row"><span>{{ t('Takings') }}</span><span>{{ money(s.total_sales) }}</span></div>
-            <div class="row"><span>{{ t('Discounts given') }}</span><span>{{ money(s.total_discounts) }}</span></div>
+            <div class="row"><span>{{ t('Takings') }}</span><span>{{ money(s.total_sales, local) }}</span></div>
+            <div class="row"><span>{{ t('Discounts given') }}</span><span>{{ money(s.total_discounts, local) }}</span></div>
           </div>
 
           <div class="xr-section">
             <div class="xr-sub">{{ t('Expected by payment') }}</div>
             <div v-for="row in s.expected" :key="row.mode_of_payment" class="row">
               <span>{{ row.mode_of_payment }}<span v-if="row.is_cash" class="muted"> ({{ t('drawer') }})</span></span>
-              <span>{{ money(row.expected_amount) }}</span>
+              <span>{{ money(row.expected_amount, row.currency || local) }}</span>
             </div>
             <div v-if="!s.expected.length" class="muted small">{{ t('No takings recorded yet.') }}</div>
           </div>
 
+          <!-- The rates this shift sells other currencies at (fixed at its
+               first sale in each). -->
+          <div v-if="rates.length" class="xr-section">
+            <div class="xr-sub">{{ t('Exchange rates') }}</div>
+            <div v-for="r in rates" :key="r.currency" class="row">
+              <span>1 {{ r.currency }}</span><span>{{ r.rate }} {{ local }}</span>
+            </div>
+          </div>
+
           <div class="xr-section">
             <div class="xr-sub">{{ t('Cash drawer') }}</div>
-            <div class="row"><span>{{ t('Opening float') }}</span><span>{{ money(s.opening_float) }}</span></div>
-            <div class="row"><span>{{ t('Cash in') }}</span><span>{{ money(s.cash_in) }}</span></div>
-            <div class="row"><span>{{ t('Cash out') }}</span><span>-{{ money(s.cash_out) }}</span></div>
+            <div class="row"><span>{{ t('Opening float') }}</span><span>{{ money(s.opening_float, local) }}</span></div>
+            <div v-for="(amount, drawer) in s.foreign_floats || {}" :key="drawer" class="row">
+              <span>{{ t('{drawer} float', { drawer }) }}</span><span>{{ money(amount, drawerCurrency(drawer)) }}</span>
+            </div>
+            <div class="row"><span>{{ t('Cash in') }}</span><span>{{ money(s.cash_in, local) }}</span></div>
+            <div class="row"><span>{{ t('Cash out') }}</span><span>-{{ money(s.cash_out, local) }}</span></div>
           </div>
 
           <div class="xr-foot muted small">{{ t('Continues, not a Z-report.') }}</div>
@@ -66,7 +78,7 @@
 import Icon from './Icon.vue'
 import { computed } from 'vue'
 import { t } from '../i18n'
-import { money } from '../format'
+import { money, rateText } from '../format'
 import { useSessionStore } from '../stores/session'
 
 const props = defineProps({ summary: { type: Object, required: true } })
@@ -74,6 +86,19 @@ defineEmits(['close'])
 
 const session = useSessionStore()
 const s = computed(() => props.summary)
+// Totals are in the company currency; each drawer in its own (lumenpos.currency).
+const local = computed(() => props.summary.company_currency || session.localCurrency)
+const rates = computed(() =>
+  Object.entries(props.summary.rates || {}).map(([currency, rate]) => ({
+    currency,
+    rate: rateText(rate),
+  }))
+)
+function drawerCurrency(drawer) {
+  const row = (props.summary.expected || []).find((r) => r.mode_of_payment === drawer)
+  const mode = (session.paymentModes || []).find((m) => m.mode_of_payment === drawer)
+  return row?.currency || mode?.account_currency || local.value
+}
 const printedAt = new Date().toLocaleString()
 
 function print() {

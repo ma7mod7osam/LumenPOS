@@ -13,7 +13,12 @@
           {{ t('Saved offline, it will post to ERPNext automatically when the connection returns.') }}
         </div>
         <div v-if="receipt.change_amount > 0" class="change-banner">
-          {{ t('Change due:') }} <strong>{{ money(receipt.change_amount) }}</strong>
+          {{ t('Change due:') }}
+          <strong>{{
+            receipt.base_change_amount != null && receipt.company_currency && receipt.currency !== receipt.company_currency
+              ? money(receipt.base_change_amount, receipt.company_currency)
+              : money(receipt.change_amount, receipt.currency)
+          }}</strong>
         </div>
         <div v-if="receipt.gift_card_no" class="giftcard-banner">
           <Icon name="gift" /> {{ t('Gift card') }} <strong>{{ receipt.gift_card_no }}</strong>,
@@ -33,7 +38,7 @@
         <!-- Swap goods in one step: the same picker as a refund, then the sell
              screen for what the customer takes instead. -->
         <button
-          v-if="!receipt.is_return && !receipt.offline && canExchange"
+          v-if="!receipt.is_return && !receipt.offline && canExchange && !soldInOtherCurrency"
           class="btn btn-outline"
           @click="$emit('exchange', receipt.name)"
         >
@@ -70,7 +75,7 @@
 <script setup>
 import Icon from './Icon.vue'
 import ReceiptView from './ReceiptView.vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
 import { money } from '../format'
@@ -87,6 +92,15 @@ defineEmits(['close', 'refund', 'exchange', 'open-in-history'])
 const session = useSessionStore()
 const printing = ref(false)
 const emailing = ref(false)
+
+// Exchanges stay in the outlet's currency (lumenpos.currency): a sale in
+// another currency is refunded and the new goods rung up as a new sale.
+const soldInOtherCurrency = computed(
+  () =>
+    Boolean(props.receipt?.company_currency) &&
+    Boolean(props.receipt?.currency) &&
+    props.receipt.currency !== props.receipt.company_currency
+)
 
 async function emailReceipt() {
   emailing.value = true

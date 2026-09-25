@@ -700,6 +700,7 @@ def _close_result(doc, queued):
         "counts": [
             {
                 "mode_of_payment": r.mode_of_payment,
+                "currency": r.get("currency"),
                 "expected_amount": r.expected_amount,
                 "counted_amount": r.counted_amount,
                 "difference": r.difference,

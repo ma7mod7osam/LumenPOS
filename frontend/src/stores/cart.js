@@ -5,6 +5,7 @@ import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
 import { queueSale, queueCount, getCatalogItems, newId, logSale } from '../offline'
 import { evaluatePromotions, suggestOffers } from '../promotions'
+import { money } from '../format'
 import { useCatalogStore } from './catalog'
 import { useSessionStore } from './session'
 
@@ -278,6 +279,66 @@ export const useCartStore = defineStore('cart', {
         (app) => app.app_name === state.appType
       )
     },
+
+    // What this sale is in (lumenpos.currency). A customer billed in another
+    // currency buys in it, at the rate the shift sells at. The cart keeps
+    // adding up in the outlet's currency, exactly as before, and `factor`
+    // converts for display; the server's quote is the authority at payment.
+    // `blocked`: the customer is billed in a currency this till can't sell in
+    // (the server refuses the sale, the cart says why up front).
+    saleCurrency(state) {
+      const session = useSessionStore()
+      const mc = session.multiCurrency || {}
+      const outlet = mc.outlet_currency || session.currency
+      const local = {
+        currency: outlet,
+        foreign: false,
+        blocked: false,
+        factor: 1,
+        rate: mc.outlet_rate || 1,
+        row: null,
+      }
+      const billed = state.customer?.default_currency
+      if (!billed || billed === outlet) return local
+      const row = (mc.currencies || []).find((c) => c.currency === billed)
+      if (!mc.enabled || !row || !row.rate || !mc.outlet_rate) {
+        return { ...local, currency: billed, foreign: true, blocked: true }
+      }
+      return {
+        currency: billed,
+        foreign: true,
+        blocked: false,
+        factor: mc.outlet_rate / row.rate,
+        rate: row.rate,
+        row,
+      }
+    },
+
+    // An amount the cart added up (outlet currency), in the sale's currency.
+    inSale() {
+      const factor = this.saleCurrency.blocked ? 1 : this.saleCurrency.factor
+      return (amount) => round2((amount || 0) * factor)
+    },
+
+    // ...and formatted, for the screen.
+    show() {
+      const sale = this.saleCurrency
+      const code = sale.blocked ? null : sale.currency
+      return (amount) => money(this.inSale(amount), code)
+    },
+
+    // Only a walk-in can be switched to another currency: a named customer
+    // buys in their own Billing Currency (ERPNext, Customer).
+    currencySwitchable(state) {
+      const session = useSessionStore()
+      if (!session.saleCurrencies.length || state.appType || state.exchange) return false
+      const name = state.customer?.name
+      return (
+        !name ||
+        name === session.defaultCustomer ||
+        session.saleCurrencies.some((c) => c.walk_in_customer === name)
+      )
+    },
   },
 
   actions: {
@@ -380,6 +441,20 @@ export const useCartStore = defineStore('cart', {
 
     removeBundle(key) {
       this.lines = this.lines.filter((line) => line.bundle_key !== key)
+    },
+
+    // "Sell in dollars": the sale goes to that currency's walk-in customer,
+    // who is billed in it; back to the outlet's currency clears it again.
+    async setSaleCurrency(code) {
+      const session = useSessionStore()
+      const row = session.saleCurrencies.find((c) => c.currency === code)
+      if (!row) return this.setCustomer(null)
+      return this.setCustomer({
+        name: row.walk_in_customer,
+        customer_name: row.walk_in_name || row.walk_in_customer,
+        customer_group: row.walk_in_group || null,
+        default_currency: row.currency,
+      })
     },
 
     async setChannel(appName) {
@@ -649,6 +724,11 @@ export const useCartStore = defineStore('cart', {
 
     async _queueOffline(payload, payments) {
       const session = useSessionStore()
+      // The rate a sale in another currency posts at is fixed by the server
+      // for the shift, so the till never guesses it offline.
+      if (this.saleCurrency.foreign) {
+        throw new Error('A sale in another currency needs a connection, it cannot be queued offline')
+      }
       if (payload.items.some((i) => (i.serial_nos || []).length)) {
         throw new Error('Serialized items need a connection, they cannot be queued offline')
       }

@@ -94,13 +94,27 @@ def build_receipt_bytes(receipt, open_drawer=0):
     total = receipt.get("rounded_total") or receipt["grand_total"]
     out += _text(_pad("TOTAL", f"{receipt['currency']} {_num(total)}")) + b"\n"
     out += BOLD_OFF
+    # A sale in another currency (lumenpos.currency): its local value and rate,
+    # each tender in its own money, and the change, given in local money.
+    local = receipt.get("company_currency")
+    foreign = bool(local and receipt.get("currency") != local and receipt.get("base_grand_total") is not None)
+    if foreign:
+        out += _text(_pad(f"= {local}", _num(receipt["base_grand_total"]))) + b"\n"
+        out += _text(f"1 {receipt['currency']} = {flt(receipt.get('conversion_rate')):g} {local}") + b"\n"
 
     for payment in receipt.get("payments", []):
-        out += _text(_pad(payment["mode_of_payment"], _num(payment["amount"]))) + b"\n"
+        if foreign and payment.get("currency"):
+            shown = f"{payment['currency']} {_num(payment.get('tendered'))}"
+        else:
+            shown = _num(payment["amount"])
+        out += _text(_pad(payment["mode_of_payment"], shown)) + b"\n"
     if receipt.get("loyalty_amount"):
         out += _text(_pad("Loyalty points", _num(receipt["loyalty_amount"]))) + b"\n"
     if receipt.get("change_amount"):
-        out += _text(_pad("Change", _num(receipt["change_amount"]))) + b"\n"
+        change = (
+            f"{local} {_num(receipt.get('base_change_amount'))}" if foreign else _num(receipt["change_amount"])
+        )
+        out += _text(_pad("Change", change)) + b"\n"
 
     promos = receipt.get("applied_promotions") or []
     if promos:

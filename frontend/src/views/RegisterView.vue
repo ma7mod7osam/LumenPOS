@@ -93,10 +93,10 @@
           <tbody>
             <tr v-for="row in closedResult.counts" :key="row.mode_of_payment">
               <td>{{ row.mode_of_payment }}</td>
-              <td class="right">{{ money(row.expected_amount) }}</td>
-              <td class="right">{{ money(row.counted_amount) }}</td>
+              <td class="right">{{ money(row.expected_amount, row.currency) }}</td>
+              <td class="right">{{ money(row.counted_amount, row.currency) }}</td>
               <td class="right" :class="row.difference < -0.005 ? 'neg' : row.difference > 0.005 ? 'pos' : ''">
-                {{ money(row.difference) }}
+                {{ money(row.difference, row.currency) }}
               </td>
             </tr>
           </tbody>
@@ -131,15 +131,18 @@
             </div>
             <div class="stat">
               <div class="stat-label">{{ t('Takings') }}</div>
-              <div class="stat-value">{{ money(summary.total_sales) }}</div>
+              <div class="stat-value">{{ money(summary.total_sales, local) }}</div>
             </div>
             <div class="stat">
               <div class="stat-label">{{ t('Discounts given') }}</div>
-              <div class="stat-value">{{ money(summary.total_discounts) }}</div>
+              <div class="stat-value">{{ money(summary.total_discounts, local) }}</div>
             </div>
             <div class="stat">
               <div class="stat-label">{{ t('Opening float') }}</div>
-              <div class="stat-value">{{ money(summary.opening_float) }}</div>
+              <div class="stat-value">{{ money(summary.opening_float, local) }}</div>
+              <div v-for="(amount, drawer) in summary.foreign_floats || {}" :key="drawer" class="muted small">
+                {{ drawer }}: {{ money(amount, drawerCurrency(drawer)) }}
+              </div>
             </div>
           </div>
         </div>
@@ -153,14 +156,21 @@
               <option value="Cash In">{{ t('Cash In') }}</option>
               <option value="Cash Out">{{ t('Cash Out') }}</option>
             </select>
+            <!-- A drawer in another currency keeps its own cash in and out. -->
+            <select v-if="foreignDrawers.length" v-model="movement.mode_of_payment">
+              <option :value="null">{{ t('Main drawer ({currency})', { currency: local }) }}</option>
+              <option v-for="d in foreignDrawers" :key="d.mode_of_payment" :value="d.mode_of_payment">
+                {{ d.mode_of_payment }} ({{ d.account_currency }})
+              </option>
+            </select>
             <input type="text" inputmode="decimal" v-model="movement.amount" :placeholder="t('Amount')" />
             <input v-model="movement.reason" :placeholder="t('Reason')" />
             <button class="btn btn-outline" :disabled="!movement.amount" @click="addMovement">{{ t('Add') }}</button>
           </div>
           <div v-for="(m, i) in summary?.cash_movements || []" :key="i" class="movement-row">
             <span :class="m.movement_type === 'Cash In' ? 'in' : 'out'">{{ m.movement_type }}</span>
-            <span class="muted">{{ m.reason }}</span>
-            <span class="right">{{ money(m.amount) }}</span>
+            <span class="muted">{{ m.reason }}<template v-if="m.currency && m.currency !== local"> · {{ m.mode_of_payment }}</template></span>
+            <span class="right">{{ money(m.amount, m.currency || local) }}</span>
           </div>
         </div>
       </div>
@@ -199,8 +209,11 @@
             </thead>
             <tbody>
               <tr v-for="row in countRows" :key="row.mode_of_payment">
-                <td>{{ row.mode_of_payment }}</td>
-                <td class="right">{{ row.expected_amount != null ? money(row.expected_amount) : '-' }}</td>
+                <td>
+                  {{ row.mode_of_payment }}
+                  <span v-if="row.currency && row.currency !== local" class="ccy-tag">{{ row.currency }}</span>
+                </td>
+                <td class="right">{{ row.expected_amount != null ? money(row.expected_amount, row.currency || local) : '-' }}</td>
                 <td class="right">
                   <input
                     type="text"
@@ -209,7 +222,7 @@
                     v-model="counted[row.mode_of_payment]"
                   />
                 </td>
-                <td class="right" :class="diffClass(row)">{{ money(diff(row)) }}</td>
+                <td class="right" :class="diffClass(row)">{{ money(diff(row), row.currency || local) }}</td>
               </tr>
               <tr v-if="!countRows.length">
                 <td colspan="4" class="muted" style="text-align: center; padding: 14px">
@@ -244,10 +257,10 @@
             </span>
           </div>
           <div class="muted small">
-            {{ past.sales_count }} {{ t('sales') }} · {{ t('takings') }} {{ money(past.total_sales) }} ·
-            {{ t('discounts') }} {{ money(past.total_discounts) }} ·
+            {{ past.sales_count }} {{ t('sales') }} · {{ t('takings') }} {{ money(past.total_sales, local) }} ·
+            {{ t('discounts') }} {{ money(past.total_discounts, local) }} ·
             <span :class="past.total_difference < -0.005 ? 'neg' : past.total_difference > 0.005 ? 'pos' : ''">
-              {{ t('difference') }} {{ money(past.total_difference) }}
+              {{ t('difference') }} {{ money(past.total_difference, local) }}
             </span>
           </div>
           <div class="muted small">
@@ -289,7 +302,21 @@ const counted = ref({})
 const closingNote = ref('')
 const closing = ref(false)
 const uploading = ref(false)
-const movement = ref({ movement_type: 'Cash In', amount: null, reason: '' })
+const movement = ref({ movement_type: 'Cash In', amount: null, reason: '', mode_of_payment: null })
+
+// Shift figures are in the company currency; each drawer in another currency
+// ("Cash USD") keeps its own float, movements and count (lumenpos.currency).
+const local = computed(() => summary.value?.company_currency || session.localCurrency)
+const foreignDrawers = computed(() =>
+  (session.paymentModes || []).filter(
+    (m) => m.type === 'Cash' && m.account_currency && m.account_currency !== session.localCurrency
+  )
+)
+function drawerCurrency(drawer) {
+  const row = (summary.value?.expected || []).find((r) => r.mode_of_payment === drawer)
+  const mode = (session.paymentModes || []).find((m) => m.mode_of_payment === drawer)
+  return row?.currency || mode?.account_currency || local.value
+}
 const history = ref([])
 const closedResult = ref(null)
 const closeState = ref({ status: 'Closing', closing_status: 'Pending', pos_closing_entry: null, closing_error: null })
@@ -461,8 +488,9 @@ async function addMovement() {
       movement_type: movement.value.movement_type,
       amount,
       reason: movement.value.reason,
+      mode_of_payment: movement.value.mode_of_payment || null,
     })
-    movement.value = { movement_type: 'Cash In', amount: null, reason: '' }
+    movement.value = { movement_type: 'Cash In', amount: null, reason: '', mode_of_payment: null }
     await load()
   } catch (e) {
     session.notify(e.message, true)
@@ -549,6 +577,16 @@ async function close() {
   margin-bottom: 12px;
 }
 .queued-block > div { flex: 1; min-width: 220px; }
+.ccy-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--brand-dark);
+  background: rgba(20, 99, 255, 0.1);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-inline-start: 6px;
+}
 .register {
   flex: 1;
   padding: 16px;

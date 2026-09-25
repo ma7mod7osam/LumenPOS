@@ -77,7 +77,9 @@
       </main>
     </div>
     <div v-if="session.toast" class="toast" :class="{ error: session.toast.isError }">
-      {{ session.toast.message }}
+      <!-- The store raises its own messages in English ("Back online"); a
+           known one shows in the till's language, anything else as it came. -->
+      {{ t(session.toast.message) }}
     </div>
     <LockOverlay v-if="session.locked" />
     <XReportModal v-if="xreportOpen && xreportSummary" :summary="xreportSummary" @close="xreportOpen = false" />
@@ -170,6 +172,13 @@ function publishDisplaySnapshot() {
   if (!session.settings?.enable_customer_display) return
   const saved =
     cart.promoSavings + cart.bundleSavings + cart.manualDiscountTotal + cart.orderDiscountTotal
+  // A sale in another currency is shown in it, with its local value under it.
+  const sale = cart.saleCurrency
+  const mc = session.multiCurrency || {}
+  const equivalent =
+    sale.foreign && !sale.blocked && mc.outlet_rate && sale.currency !== mc.company_currency
+      ? money(Math.round(cart.total * mc.outlet_rate * 100) / 100, mc.company_currency)
+      : ''
   publishCart({
     company: session.company,
     logo: session.settings?.receipt_logo || '',
@@ -177,13 +186,14 @@ function publishDisplaySnapshot() {
     items: cart.lines.map((l) => ({
       name: l.item_name,
       qty: l.qty,
-      rate: money(l.price),
-      amount: money(l.price * l.qty),
+      rate: cart.show(l.price),
+      amount: cart.show(l.price * l.qty),
     })),
     count: cart.itemCount,
-    subtotal: money(cart.subtotal),
-    total: money(cart.total),
-    savings: saved > 0.005 ? money(saved) : '',
+    subtotal: cart.show(cart.subtotal),
+    total: cart.show(cart.total),
+    equivalent,
+    savings: saved > 0.005 ? cart.show(saved) : '',
   })
 }
 

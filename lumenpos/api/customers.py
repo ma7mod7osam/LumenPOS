@@ -13,7 +13,7 @@ from frappe.utils import cint, flt
 
 CUSTOMER_FIELDS = [
     "name", "customer_name", "customer_group", "customer_type",
-    "mobile_no", "email_id", "tax_id",
+    "mobile_no", "email_id", "tax_id", "default_currency",
 ]
 
 
@@ -75,7 +75,9 @@ def customer_groups():
 def customer_detail(customer):
     """Profile + balances + lifetime POS stats for one customer. The stats are a
     single grouped query scoped to this customer (the `customer` column is
-    indexed), so it stays cheap regardless of total invoice volume."""
+    indexed), so it stays cheap regardless of total invoice volume. They add up
+    the company-currency values: a customer may have bought in more than one
+    currency (lumenpos.currency)."""
     _require_read()
     if not frappe.db.exists("Customer", customer):
         frappe.throw(_("Customer {0} not found").format(customer))
@@ -87,8 +89,8 @@ def customer_detail(customer):
         select
             sum(case when is_return = 0 then 1 else 0 end) as sales_count,
             sum(case when is_return = 1 then 1 else 0 end) as returns_count,
-            sum(case when is_return = 0 then grand_total else 0 end) as total_spent,
-            sum(case when is_return = 1 then abs(grand_total) else 0 end) as total_refunded,
+            sum(case when is_return = 0 then base_grand_total else 0 end) as total_spent,
+            sum(case when is_return = 1 then abs(base_grand_total) else 0 end) as total_refunded,
             max(posting_date) as last_purchase
         from `tabPOS Invoice`
         where customer = %(customer)s and docstatus = 1
@@ -132,5 +134,7 @@ def customer_detail(customer):
             "loyalty_points": wallet.get("loyalty_points") or 0,
             "store_credit": wallet.get("store_credit") or 0,
         },
-        "currency": frappe.db.get_default("currency"),
+        "currency": (frappe.get_cached_value("Company", company, "default_currency") if company else None)
+        or frappe.db.get_default("currency"),
+        "billing_currency": doc.get("default_currency"),
     }

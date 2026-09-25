@@ -26,6 +26,9 @@
         <div class="cd-row cd-grand">
           <span>{{ t('Total') }}</span><span>{{ snap.total }}</span>
         </div>
+        <div v-if="snap.equivalent" class="cd-row cd-equiv">
+          <span></span><span>= {{ snap.equivalent }}</span>
+        </div>
         <div class="cd-count">{{ t('{count} items', { count: snap.count }) }}</div>
       </div>
     </div>
@@ -43,12 +46,12 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { t } from '../i18n'
 import { onCart } from '../customerDisplay'
 
-const snap = ref({ company: '', logo: '', items: [], count: 0, total: '', savings: '', customer: '' })
+const snap = ref({ company: '', logo: '', items: [], count: 0, total: '', equivalent: '', savings: '', customer: '' })
 let stop = null
 
 onMounted(() => {
   stop = onCart((s) => {
-    snap.value = { items: [], count: 0, total: '', savings: '', customer: '', company: '', logo: '', ...s }
+    snap.value = { items: [], count: 0, total: '', equivalent: '', savings: '', customer: '', company: '', logo: '', ...s }
   })
 })
 onBeforeUnmount(() => stop && stop())
@@ -90,6 +93,7 @@ onBeforeUnmount(() => stop && stop())
 .cd-row { display: flex; justify-content: space-between; }
 .cd-save { color: var(--brand, #1463ff); font-size: 2.6vh; font-weight: 700; margin-bottom: 1vh; }
 .cd-grand { font-size: 5.5vh; font-weight: 900; }
+.cd-equiv { font-size: 2.6vh; font-weight: 700; color: var(--text-muted, #9aa4bf); }
 .cd-count { text-align: right; font-size: 2vh; color: var(--text-muted, #9aa4bf); margin-top: 1vh; }
 .cd-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh; }
 .cd-welcome-mark {

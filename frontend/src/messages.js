@@ -1402,9 +1402,8 @@ const generalLayout = {
   "These items come back only with approval: {items}": "هذه الأصناف تسترجع باعتماد فقط: {items}",
 }
 
-export const messages = {
-  en: {},
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout },
+// Keys added after the area maps above.
+const late = {
   "{n} offline sales still need to upload. Press Upload now before closing.":
     "لا تزال {n} من المبيعات دون اتصال بحاجة إلى الرفع، اضغط \"الرفع الآن\" قبل الإغلاق.",
   "{n} offline sales are still waiting to upload.": "لا تزال {n} من المبيعات دون اتصال بانتظار الرفع.",
@@ -1471,4 +1470,67 @@ export const messages = {
   "Split": "تقسيم",
   "Fully covered": "مغطى بالكامل",
   "{amount} left to allocate": "متبق {amount} للتوزيع",
+}
+
+// Other currencies (0.51.0): the sale's currency at the till, the payment
+// screen, receipts, the register and Settings.
+const currencies = {
+  "Sell in": "البيع بـ",
+  "This customer buys in {currency}": "هذا العميل يشتري بـ {currency}",
+  "In {currency}": "بـ {currency}",
+  "{name} is billed in {currency}, which this till does not sell in. Add it in Settings, General, Other currencies, or choose another customer.":
+    "فوترة {name} بعملة {currency}، وهذا الصندوق لا يبيع بها. أضفها من الإعدادات، عام، العملات الأخرى، أو اختر عميلا آخر.",
+  "{name} is billed in {currency}. Switch on Other currencies in Settings, General, or choose another customer.":
+    "فوترة {name} بعملة {currency}. فعل العملات الأخرى من الإعدادات، عام، أو اختر عميلا آخر.",
+  "{amount} given back in {currency}": "{amount} يرد بـ {currency}",
+  "Rate for this shift: 1 {currency} = {rate} {local}": "سعر هذه الوردية: 1 {currency} = {rate} {local}",
+  "Amount in": "المبلغ بـ",
+  "A sale in another currency needs a connection, it cannot be queued offline":
+    "البيع بعملة أخرى يحتاج اتصالا، ولا يمكن حفظه للرفع لاحقا.",
+  "Rate": "السعر",
+  "Buys in": "يشتري بـ",
+  "{drawer} float ({currency})": "رصيد افتتاح {drawer} ({currency})",
+  "{drawer} float": "رصيد افتتاح {drawer}",
+  "Exchange rates": "أسعار الصرف",
+  "Main drawer ({currency})": "الدرج الرئيسي ({currency})",
+  "Other currencies": "العملات الأخرى",
+  "Sell to customers who pay in another currency. A customer whose Billing Currency in ERPNext is another currency buys in it, and a walk-in can be switched to it at the till. Prices, offers and discounts stay in the outlet currency and are converted at the rate of the shift.":
+    "البيع لعملاء يدفعون بعملة أخرى. العميل الذي عملة فوترته في ERPNext عملة أخرى يشتري بها، ويمكن تحويل العميل النقدي إليها من الصندوق. تبقى الأسعار والعروض والخصومات بعملة الفرع، وتحول بسعر الوردية.",
+  "Sell in other currencies": "البيع بعملات أخرى",
+  "Off: a customer billed in another currency is refused at the till, with the reason.":
+    "عند الإيقاف: يرفض الصندوق العميل المفوتر بعملة أخرى ويوضح السبب.",
+  "Currencies the till sells in": "العملات التي يبيع بها الصندوق",
+  "Each currency gets, on saving, a walk-in customer billed in it, a receivable account and a cash drawer (\"Cash USD\") on every outlet. Change is always given in the local currency, from the main drawer.":
+    "عند الحفظ تحصل كل عملة على عميل نقدي مفوتر بها، وحساب مدينين، ودرج نقد (\"Cash USD\") في كل فرع. الباقي يرد دائما بالعملة المحلية من الدرج الرئيسي.",
+  "Currency, e.g. USD": "العملة، مثل USD",
+  "Show the equivalent at the till": "عرض المعادل في الصندوق",
+  "Set up when you save": "تجهز عند الحفظ",
+  "Add a currency": "إضافة عملة",
+  "The selling rate from today on, kept in ERPNext (Currency Exchange). A shift keeps the rate it started selling at; the next shift takes the new one.":
+    "سعر البيع من اليوم، ويحفظ في ERPNext (Currency Exchange). تحتفظ الوردية بالسعر الذي بدأت البيع به، والوردية التالية تأخذ السعر الجديد.",
+  "Save the currencies first, then set their rates here.": "احفظ العملات أولا، ثم حدد أسعارها هنا.",
+  "No rate yet: the till cannot sell in it": "لا يوجد سعر بعد: لا يستطيع الصندوق البيع بها",
+  "Save rate": "حفظ السعر",
+  "Enter the rate as a number, e.g. 3.6725": "أدخل السعر كرقم، مثل 3.6725",
+  "Rate saved. A shift that already sold in {currency} keeps its rate.":
+    "تم حفظ السعر. الوردية التي باعت بـ {currency} تحتفظ بسعرها.",
+  // Toasts the till raises itself (App.vue shows them through t()).
+  "Back online": "عاد الاتصال",
+  "Connection lost, sales will be queued": "انقطع الاتصال، ستحفظ المبيعات للرفع لاحقا",
+  "Offline, using cached data": "دون اتصال، يعمل بالبيانات المحفوظة",
+  "Serialized items need a connection, they cannot be queued offline":
+    "الأصناف ذات الأرقام التسلسلية تحتاج اتصالا، ولا يمكن حفظها للرفع لاحقا.",
+  "Delivery-app sales need a connection, they cannot be queued offline":
+    "مبيعات تطبيقات التوصيل تحتاج اتصالا، ولا يمكن حفظها للرفع لاحقا.",
+  "Gift card payments need a connection. Remove them and retry":
+    "الدفع ببطاقة الهدايا يحتاج اتصالا. احذفها وأعد المحاولة",
+  "Loyalty redemption needs a connection. Remove it and retry":
+    "استبدال النقاط يحتاج اتصالا. احذفه وأعد المحاولة",
+  "Store credit needs a connection. Remove it and retry": "رصيد العميل يحتاج اتصالا. احذفه وأعد المحاولة",
+  "Cashback needs a connection. Remove it and retry": "الكاش باك يحتاج اتصالا. احذفه وأعد المحاولة",
+}
+
+export const messages = {
+  en: {},
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...late, ...currencies },
 }

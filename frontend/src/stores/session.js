@@ -46,6 +46,12 @@ export const useSessionStore = defineStore('session', {
     giftCardMode: 'Gift Card',
     salesPersons: [],
     allowNegativeStock: false,
+    // Other currencies (LumenPOS Settings, General): which ones this till sells
+    // in, each with its walk-in customer, cash drawer and the rate the shift
+    // sells at. {enabled, company_currency, outlet_currency, outlet_rate,
+    // currencies: [{currency, symbol, walk_in_customer, walk_in_name,
+    // walk_in_group, cash_mode, show_equivalent, rate}]}
+    multiCurrency: { enabled: 0, currencies: [] },
     settings: {
       delivery_apps: [],
       discount_limit_percent: 0,
@@ -95,6 +101,12 @@ export const useSessionStore = defineStore('session', {
 
   getters: {
     registerOpen: (s) => Boolean(s.registerSession),
+    // The money the main drawer holds, and that change is given in: the
+    // company currency (lumenpos.currency).
+    localCurrency: (s) => s.multiCurrency?.company_currency || s.currency,
+    // The currencies a sale can be switched to, besides the outlet's own.
+    saleCurrencies: (s) =>
+      s.multiCurrency?.enabled ? (s.multiCurrency.currencies || []).filter((c) => c.rate > 0) : [],
     // "Per cashier" scope: the takings land in the drawer of whoever OPENED the
     // shift, so only they may ring one up (no manager bypass, handover is
     // close + reopen). Empty when the shift is the outlet's.
@@ -216,6 +228,7 @@ export const useSessionStore = defineStore('session', {
       this.giftCardMode = data.gift_card_mode || 'Gift Card'
       this.salesPersons = data.sales_persons || []
       this.allowNegativeStock = Boolean(data.allow_negative_stock)
+      this.multiCurrency = data.multi_currency || { enabled: 0, currencies: [] }
       this.settings = data.settings || { delivery_apps: [], discount_limit_percent: 0 }
       this.bundles = data.bundles || []
       this.permissions = data.permissions || {}
@@ -279,10 +292,24 @@ export const useSessionStore = defineStore('session', {
         if (!this.offline) {
           this.stopHeartbeat()
           this.notify('Back online')
+          this.refreshStockAfterOutage()
         }
       } catch {
         /* still offline, the heartbeat keeps trying */
       }
+    },
+
+    // Every till takes a fresh copy of the whole catalogue as soon as it is
+    // back, so the stock it shows includes what the OTHER tills sold while the
+    // connection was down. Once now, and once more a minute later: another
+    // till may still be uploading its own queued sales when this one returns.
+    refreshStockAfterOutage() {
+      const catalog = useCatalogStore()
+      catalog.cacheFullCatalog()
+      clearTimeout(this._stockRefreshTimer)
+      this._stockRefreshTimer = setTimeout(() => {
+        if (!this.offline) catalog.cacheFullCatalog()
+      }, 60000)
     },
 
     async flushQueue() {

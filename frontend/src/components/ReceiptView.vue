@@ -47,28 +47,40 @@
               {{ t('SN') }}: {{ String(item.serial_no).split('\n').join(', ') }}
             </div>
             <div v-if="s.receipt_show_unit_price" class="muted small">
-              {{ item.qty }} × {{ money(item.rate) }}
+              {{ item.qty }} × {{ m(item.rate) }}
             </div>
             <div v-else class="muted small">{{ t('Qty') }} {{ item.qty }}</div>
           </td>
-          <td class="right">{{ money(item.amount) }}</td>
+          <td class="right">{{ m(item.amount) }}</td>
         </tr>
       </tbody>
     </table>
 
     <div class="receipt-totals">
       <div v-if="receipt.discount_amount" class="row">
-        <span>{{ t('Discount') }}</span><span>-{{ money(receipt.discount_amount) }}</span>
+        <span>{{ t('Discount') }}</span><span>-{{ m(receipt.discount_amount) }}</span>
       </div>
       <div v-for="tax in receipt.taxes" :key="tax.description" class="row">
-        <span>{{ tax.description }}</span><span>{{ money(tax.tax_amount) }}</span>
+        <span>{{ tax.description }}</span><span>{{ m(tax.tax_amount) }}</span>
       </div>
       <div class="row total">
-        <span>{{ t('Total') }}</span><span>{{ money(receipt.rounded_total || receipt.grand_total) }}</span>
+        <span>{{ t('Total') }}</span><span>{{ m(receipt.rounded_total || receipt.grand_total) }}</span>
       </div>
+      <!-- A sale in another currency: its local value and the rate it was sold at. -->
+      <template v-if="foreign">
+        <div class="row muted small">
+          <span>{{ t('In {currency}', { currency: receipt.company_currency }) }}</span>
+          <span>{{ money(receipt.base_grand_total, receipt.company_currency) }}</span>
+        </div>
+        <div class="row muted small">
+          <span>{{ t('Rate') }}</span>
+          <span>1 {{ receipt.currency }} = {{ rateLabel }} {{ receipt.company_currency }}</span>
+        </div>
+      </template>
       <template v-if="s.receipt_show_payments">
         <div v-for="payment in receipt.payments" :key="payment.mode_of_payment" class="row">
-          <span>{{ payment.mode_of_payment }}</span><span>{{ money(payment.amount) }}</span>
+          <span>{{ payment.mode_of_payment }}</span>
+          <span>{{ foreign && payment.currency ? money(payment.tendered, payment.currency) : m(payment.amount) }}</span>
         </div>
       </template>
       <div v-if="receipt.loyalty_amount" class="row">
@@ -76,13 +88,14 @@
         <span>{{ money(receipt.loyalty_amount) }}</span>
       </div>
       <div v-if="receipt.change_amount" class="row">
-        <span>{{ t('Change') }}</span><span>{{ money(receipt.change_amount) }}</span>
+        <span>{{ t('Change') }}</span>
+        <span>{{ foreign ? money(receipt.base_change_amount, receipt.company_currency) : m(receipt.change_amount) }}</span>
       </div>
     </div>
 
     <div v-if="receipt.applied_promotions?.length" class="receipt-promos">
       <div v-for="promo in receipt.applied_promotions" :key="promo.name" class="muted small">
-        ★ {{ promo.title }} ({{ t('saved') }} {{ money(promo.savings) }})
+        ★ {{ promo.title }} ({{ t('saved') }} {{ m(promo.savings) }})
       </div>
     </div>
     <div v-if="receipt.loyalty_points_earned" class="receipt-promos muted small">
@@ -115,7 +128,7 @@
 <script setup>
 import { computed } from 'vue'
 import { t } from '../i18n'
-import { money } from '../format'
+import { money, rateText } from '../format'
 import { useSessionStore } from '../stores/session'
 
 const props = defineProps({
@@ -130,6 +143,18 @@ const props = defineProps({
 
 const session = useSessionStore()
 const s = computed(() => props.settings || session.settings || {})
+
+// Amounts print in the sale's own currency (lumenpos.currency). A sale in
+// another currency also shows its local value, the rate, each tender in its own
+// money and the change in local money (it always comes out of the main drawer).
+const m = (amount) => money(amount, props.receipt.currency)
+const foreign = computed(
+  () =>
+    Boolean(props.receipt.company_currency) &&
+    props.receipt.currency !== props.receipt.company_currency &&
+    props.receipt.base_grand_total != null
+)
+const rateLabel = computed(() => rateText(props.receipt.conversion_rate))
 const tpl = computed(() => (s.value.receipt_template || 'Standard').toLowerCase())
 
 // Dynamic custom fields resolved by the server (get_receipt), each is

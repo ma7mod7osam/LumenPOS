@@ -62,13 +62,16 @@
           <div v-if="detail.email_id"><span class="lbl">{{ t('Email') }}</span>{{ detail.email_id }}</div>
           <div v-if="detail.tax_id"><span class="lbl">{{ t('Tax ID') }}</span>{{ detail.tax_id }}</div>
           <div v-if="detail.customer_type"><span class="lbl">{{ t('Type') }}</span>{{ detail.customer_type }}</div>
+          <div v-if="detail.billing_currency && detail.billing_currency !== detail.currency">
+            <span class="lbl">{{ t('Buys in') }}</span>{{ detail.billing_currency }}
+          </div>
           <div v-if="detail.member_since"><span class="lbl">{{ t('Member since') }}</span>{{ detail.member_since }}</div>
           <div v-if="detail.stats.last_purchase"><span class="lbl">{{ t('Last purchase') }}</span>{{ detail.stats.last_purchase }}</div>
         </div>
 
         <div class="stat-cards">
           <div class="stat"><div class="stat-v">{{ detail.stats.sales_count }}</div><div class="stat-l">{{ t('Sales') }}</div></div>
-          <div class="stat"><div class="stat-v">{{ money(detail.stats.net_spent) }}</div><div class="stat-l">{{ t('Net spent') }}</div></div>
+          <div class="stat"><div class="stat-v">{{ money(detail.stats.net_spent, detail.currency) }}</div><div class="stat-l">{{ t('Net spent') }}</div></div>
           <div class="stat"><div class="stat-v">{{ detail.stats.returns_count }}</div><div class="stat-l">{{ t('Returns') }}</div></div>
           <div class="stat"><div class="stat-v">{{ detail.wallet.loyalty_points }}</div><div class="stat-l">{{ t('Loyalty points') }}</div></div>
           <div class="stat"><div class="stat-v">{{ money(detail.wallet.store_credit) }}</div><div class="stat-l">{{ t('Store credit') }}</div></div>
@@ -105,7 +108,7 @@
                 <span v-else-if="tx.is_exchange" class="badge amber">{{ t('Exchange') }}</span>
                 <span v-else class="badge">{{ t('Sale') }}</span>
               </td>
-              <td class="right">{{ money(tx.grand_total) }}</td>
+              <td class="right">{{ money(tx.grand_total, tx.currency) }}</td>
               <td class="muted small">{{ tx.payment_modes }}</td>
             </tr>
           </tbody>

@@ -127,7 +127,7 @@
           </div>
         </div>
         <div class="sale-right">
-          <div class="sale-amount" :class="{ neg: sale.grand_total < 0 }">{{ money(sale.grand_total) }}</div>
+          <div class="sale-amount" :class="{ neg: sale.grand_total < 0 }">{{ money(sale.grand_total, sale.currency) }}</div>
           <div class="muted small status-line">{{ sale.status }}</div>
           <div v-if="sale.payment_modes" class="muted small pay-line"><Icon name="card" /> {{ sale.payment_modes }}</div>
         </div>

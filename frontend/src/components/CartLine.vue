@@ -39,9 +39,9 @@
       </div>
       <div class="line-qty">×{{ line.qty }}</div>
       <div class="line-amount">
-        <div :class="{ struck: totalDiscount > 0 }">{{ money(line.price * line.qty) }}</div>
+        <div :class="{ struck: totalDiscount > 0 }">{{ cart.show(line.price * line.qty) }}</div>
         <div v-if="totalDiscount > 0" class="discounted" :class="{ 'bundle-color': line.bundle_key }">
-          {{ money(line.price * line.qty - totalDiscount) }}
+          {{ cart.show(line.price * line.qty - totalDiscount) }}
         </div>
       </div>
     </button>
@@ -104,7 +104,7 @@ import { ref } from 'vue'
 import { t } from '../i18n'
 import { useCartStore } from '../stores/cart'
 import { useSessionStore } from '../stores/session'
-import { money, warrantyLabel } from '../format'
+import { warrantyLabel } from '../format'
 import SerialModal from './SerialModal.vue'
 
 import { computed } from 'vue'

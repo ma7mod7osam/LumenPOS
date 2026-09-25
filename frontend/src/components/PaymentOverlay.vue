@@ -10,10 +10,37 @@
     </header>
 
     <div class="pay-body">
+      <!-- A walk-in who wants to pay in another currency: switch the sale to
+           it here, where the question is usually asked. -->
+      <div v-if="canSwitchCurrency" class="sell-in">
+        <span class="muted small">{{ t('Sell in') }}</span>
+        <div class="segmented">
+          <button
+            v-for="code in currencyChoices"
+            :key="code"
+            class="seg-btn"
+            :class="{ on: code === sale.currency }"
+            :disabled="switching || cart.submitting"
+            @click="switchCurrency(code)"
+          >
+            {{ code }}
+          </button>
+        </div>
+      </div>
+
       <div class="amount-due">
         <div class="due-label">{{ remaining > 0 ? t('Remaining') : t('Change') }}</div>
         <div class="due-value" :class="{ change: remaining < 0 }">
-          {{ money(Math.abs(remaining)) }}
+          {{ remaining < 0 && sale.foreign ? money(localChange, local) : money(Math.abs(remaining), sale.currency) }}
+        </div>
+        <!-- A sale in another currency: what is left in local money, and the
+             change, which always comes back in local money (lumenpos.currency). -->
+        <div v-if="sale.foreign" class="due-sub">
+          <template v-if="remaining >= 0">= {{ money(fromSale(remaining, local), local) }}</template>
+          <template v-else>{{ t('{amount} given back in {currency}', { amount: money(-remaining, sale.currency), currency: local }) }}</template>
+        </div>
+        <div v-if="sale.foreign" class="rate-note">
+          {{ t('Rate for this shift: 1 {currency} = {rate} {local}', { currency: sale.currency, rate: rateLabel, local }) }}
         </div>
       </div>
 
@@ -57,6 +84,22 @@
       </div>
 
       <div class="tender">
+        <!-- Each amount is typed in the money actually handed over: dollars, or
+             local cash and card. The till converts at the shift's rate. -->
+        <div v-if="sale.foreign" class="tender-ccy">
+          <span class="muted small">{{ t('Amount in') }}</span>
+          <div class="segmented">
+            <button
+              v-for="code in tenderChoices"
+              :key="code"
+              class="seg-btn"
+              :class="{ on: code === typedIn }"
+              @click="setTenderCurrency(code)"
+            >
+              {{ code }}
+            </button>
+          </div>
+        </div>
         <input
           ref="amountInput"
           type="number"
@@ -68,7 +111,7 @@
         />
         <div class="quick-cash">
           <button v-for="value in quickAmounts" :key="value" class="btn btn-outline" @click="amount = value">
-            {{ money(value) }}
+            {{ money(value, typedIn) }}
           </button>
         </div>
       </div>
@@ -85,8 +128,9 @@
         >
           <PaymentBrand :brand="mode.brand" :type="mode.type" :size="mode.brand ? 30 : 22" />
           <span v-if="!mode.brand">{{ mode.mode_of_payment }}</span>
+          <span v-if="sale.foreign" class="mode-ccy">{{ mode.currency }}</span>
         </button>
-        <button v-if="!session.offline" class="method card" @click="giftCardOpen = !giftCardOpen">
+        <button v-if="!session.offline && !sale.foreign" class="method card" @click="giftCardOpen = !giftCardOpen">
           <Icon class="method-icon" name="gift" :size="24" />
           {{ t('Gift Card') }}
         </button>
@@ -122,7 +166,12 @@
         </div>
         <div v-for="(payment, i) in payments" :key="i" class="split-row">
           <span>{{ payment.mode_of_payment }}<span v-if="payment.card_no" class="muted"> ({{ payment.card_no }})</span></span>
-          <span>{{ money(payment.amount) }}</span>
+          <span class="split-amount">
+            {{ money(payment.tender_amount, payment.tender_currency) }}
+            <span v-if="payment.tender_currency !== sale.currency" class="muted small">
+              = {{ money(payment.amount, sale.currency) }}
+            </span>
+          </span>
           <button class="btn-ghost" @click="payments.splice(i, 1)"><Icon name="close" /></button>
           <!-- Terminal / transfer reference, so a disputed card payment can be
                traced back later. Required when the shop configured it. -->
@@ -142,7 +191,7 @@
 
       <button
         class="btn btn-primary btn-lg complete"
-        :disabled="!canComplete || cart.submitting"
+        :disabled="!canComplete || cart.submitting || switching"
         @click="complete"
       >
         {{
@@ -152,11 +201,15 @@
               ? exchangeRefund > 0
                 ? t('Complete exchange, give back {amount}', { amount: money(exchangeRefund) })
                 : t('Complete exchange {amount}', { amount: money(payable) })
-              : t('Complete Sale {amount}', { amount: money(total) })
+              : t('Complete Sale {amount}', { amount: money(total, sale.currency) })
         }}
       </button>
       <p v-if="session.offline" class="muted offline-note">
-        {{ t('Offline, this sale will be queued and synced automatically.') }}
+        {{
+          sale.foreign
+            ? t('A sale in another currency needs a connection, it cannot be queued offline')
+            : t('Offline, this sale will be queued and synced automatically.')
+        }}
       </p>
     </div>
   </div>
@@ -169,7 +222,7 @@ import { ref, computed, onMounted } from 'vue'
 import { call } from '../api'
 import { useCartStore } from '../stores/cart'
 import { useSessionStore } from '../stores/session'
-import { money } from '../format'
+import { money, rateText } from '../format'
 import { t } from '../i18n'
 
 const emit = defineEmits(['close', 'done'])
@@ -185,7 +238,27 @@ const giftCardNo = ref('')
 const giftCardInfo = ref(null)
 const giftCardChecking = ref(false)
 
-const wallet = computed(() => (session.offline ? null : cart.wallet))
+// What the sale is in (lumenpos.currency). The server's quote has the final
+// word (currency and the rate the shift sells at); until it answers, the
+// cart's own estimate. `rate` turns the sale's currency into local money.
+const quoted = ref(null)
+const sale = computed(() => {
+  if (quoted.value) return quoted.value
+  const c = cart.saleCurrency
+  const foreign = c.foreign && !c.blocked
+  return {
+    currency: foreign ? c.currency : session.multiCurrency?.outlet_currency || session.currency,
+    rate: foreign ? c.rate : 1,
+    foreign,
+  }
+})
+// The money the main drawer holds, and that change is given in.
+const local = computed(() => session.localCurrency)
+const rateLabel = computed(() => rateText(sale.value.rate))
+
+// A sale in another currency takes no wallets: their ledgers are in the
+// outlet's currency only.
+const wallet = computed(() => (session.offline || sale.value.foreign ? null : cart.wallet))
 const cashbackEarn = ref(0)
 
 // Amount to collect. Authoritative from the SERVER (same math as submit), so the
@@ -193,7 +266,7 @@ const cashbackEarn = ref(0)
 // "change" on VAT-inclusive promo lines. Falls back to the client cart total
 // offline or until the quote returns.
 const serverTotal = ref(null)
-const total = computed(() => (serverTotal.value != null ? serverTotal.value : cart.total))
+const total = computed(() => (serverTotal.value != null ? serverTotal.value : cart.inSale(cart.total)))
 
 const loyaltyAmount = computed(() => {
   if (!wallet.value || redeemPoints.value <= 0) return 0
@@ -218,8 +291,20 @@ const refundModes = ref([])
 const refundMode = ref(null)
 const payable = computed(() => round2(Math.max(total.value - exchangeCredit.value, 0)))
 
+// Every payment row carries `amount` in the SALE's currency (what the server
+// posts) and what the tender really took, in its own money, for the screen.
 const paid = computed(() => payments.value.reduce((sum, p) => sum + p.amount, 0))
 const remaining = computed(() => round2(payable.value - paid.value - loyaltyAmount.value))
+
+// Change always comes back in local money, from the main drawer. This is the
+// figure ERPNext books for it: the tenders' local value less the sale's.
+const localChange = computed(() => {
+  if (remaining.value >= 0) return 0
+  const rate = sale.value.rate || 1
+  const paidLocal = payments.value.reduce((sum, p) => sum + round2(p.amount * rate), 0)
+  return round2(paidLocal - round2(payable.value * rate))
+})
+
 const canComplete = computed(() => {
   if (!referencesOk.value) return false
   if (exchange.value) {
@@ -233,13 +318,78 @@ const canComplete = computed(() => {
   )
 })
 
+// --- currencies -------------------------------------------------------------
+function modeCurrency(mode) {
+  const found = (session.paymentModes || []).find((m) => m.mode_of_payment === mode)
+  return found?.account_currency || local.value
+}
+
+// Money typed in `code`, in the sale's currency, and back. Only the sale's own
+// currency and the local one ever meet here.
+function toSale(value, code) {
+  if (!sale.value.foreign || code === sale.value.currency) return round2(value)
+  return round2(value / (sale.value.rate || 1))
+}
+function fromSale(value, code) {
+  if (!sale.value.foreign || code === sale.value.currency) return round2(value)
+  return round2(value * (sale.value.rate || 1))
+}
+
+const tenderCurrency = ref(null)
+const typedIn = computed(() => (sale.value.foreign && tenderCurrency.value) || sale.value.currency)
+const tenderChoices = computed(() => [...new Set([sale.value.currency, local.value])])
+
+function setTenderCurrency(code) {
+  tenderCurrency.value = code
+  refillAmount()
+}
+
+// The rest still to pay, in the money the cashier is typing.
+function refillAmount() {
+  amount.value = Math.max(fromSale(total.value - paid.value - loyaltyAmount.value, typedIn.value), 0)
+}
+
+const canSwitchCurrency = computed(
+  () => !cart.exchange && cart.currencySwitchable && session.saleCurrencies.length > 0
+)
+const currencyChoices = computed(() => [
+  session.multiCurrency?.outlet_currency || session.currency,
+  ...session.saleCurrencies.map((c) => c.currency),
+])
+const switching = ref(false)
+
+async function switchCurrency(code) {
+  if (switching.value || code === sale.value.currency) return
+  switching.value = true
+  try {
+    await cart.setSaleCurrency(code)
+    payments.value = []
+    redeemPoints.value = 0
+    tenderCurrency.value = null
+    giftCardOpen.value = false
+    await loadQuote()
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    switching.value = false
+  }
+}
+
+// A tender ERPNext accepts for this sale at the close: one whose account is in
+// the company currency or in the sale's own (lumenpos.currency). So a dollar
+// drawer is offered on a dollar sale only.
 const visibleModes = computed(() =>
-  session.paymentModes.filter(
-    (m) =>
-      m.mode_of_payment !== session.storeCreditMode &&
-      m.mode_of_payment !== session.cashbackMode &&
-      m.mode_of_payment !== session.giftCardMode
-  )
+  session.paymentModes.filter((m) => {
+    if (
+      m.mode_of_payment === session.storeCreditMode ||
+      m.mode_of_payment === session.cashbackMode ||
+      m.mode_of_payment === session.giftCardMode
+    ) {
+      return false
+    }
+    const code = m.account_currency || local.value
+    return code === local.value || code === sale.value.currency
+  })
 )
 
 // Detect the card scheme / wallet from the Mode of Payment name so the tile
@@ -260,11 +410,15 @@ function brandKey(name) {
 }
 
 const methodTiles = computed(() =>
-  visibleModes.value.map((m) => ({ ...m, brand: brandKey(m.mode_of_payment) }))
+  visibleModes.value.map((m) => ({
+    ...m,
+    brand: brandKey(m.mode_of_payment),
+    currency: m.account_currency || local.value,
+  }))
 )
 
 const quickAmounts = computed(() => {
-  const due = Math.max(remaining.value, 0)
+  const due = Math.max(fromSale(remaining.value, typedIn.value), 0)
   if (due <= 0) return []
   const exact = round2(due)
   const next5 = Math.ceil(due / 5) * 5
@@ -274,25 +428,36 @@ const quickAmounts = computed(() => {
 })
 
 onMounted(async () => {
-  amount.value = round2(Math.max(cart.total, 0))
+  amount.value = round2(Math.max(cart.inSale(cart.total), 0))
   amountInput.value?.focus()
   amountInput.value?.select()
   if (cart.exchange) return loadExchange()
-  // Pull the authoritative payable from the server (same math as submit). If it
-  // differs from the client total by a rounding halfcent, snap the suggested
-  // amount to it, but only while nothing has been entered yet. The same quote
-  // carries the cashback this sale will earn and the tenders this basket may
-  // not be paid with, so opening this screen costs one request, not two. The
-  // cart usually has the answer waiting already (it quotes ahead).
+  await loadQuote()
+})
+
+// Pull the authoritative payable from the server (same math as submit). If it
+// differs from the client total by a rounding halfcent, snap the suggested
+// amount to it, but only while nothing has been entered yet. The same quote
+// carries the sale's currency and rate, the cashback this sale will earn and
+// the tenders this basket may not be paid with, so opening this screen costs
+// one request, not two. The cart usually has the answer waiting already (it
+// quotes ahead).
+async function loadQuote() {
   const q = await cart.quote()
   if (q && typeof q.payable === 'number') {
     serverTotal.value = q.payable
-    if (!payments.value.length) amount.value = round2(Math.max(q.payable, 0))
+    quoted.value = q.currency
+      ? { currency: q.currency, rate: q.rate || 1, foreign: Boolean(q.foreign) }
+      : null
+    if (!payments.value.length) refillAmount()
+  } else {
+    serverTotal.value = null
+    quoted.value = null
   }
   cashbackEarn.value = q && typeof q.cashback_earn === 'number' ? q.cashback_earn : 0
   if (q && q.blocked_modes) blockedModes.value = q.blocked_modes
   else loadBlockedModes() // quote failed (offline), ask on its own
-})
+}
 
 const blockedModes = ref({})
 
@@ -322,6 +487,18 @@ async function loadBlockedModes() {
   }
 }
 
+// A payment row: `amount` in the sale's currency, plus what the tender took in
+// its own money (the same figure on a sale in the outlet's currency).
+function pushPayment(mode, saleAmount, extra = {}) {
+  payments.value.push({
+    mode_of_payment: mode,
+    amount: saleAmount,
+    tender_currency: sale.value.currency,
+    tender_amount: saleAmount,
+    ...extra,
+  })
+}
+
 function addPayment(mode) {
   if (blockedModes.value[mode]) {
     session.notify(
@@ -333,14 +510,20 @@ function addPayment(mode) {
     )
     return
   }
-  const value = round2(Number(amount.value) || 0)
-  if (value <= 0) return
+  const typed = round2(Number(amount.value) || 0)
+  if (typed <= 0) return
+  const code = typedIn.value
+  const value = toSale(typed, code)
   const isCash = session.paymentModes.find((m) => m.mode_of_payment === mode)?.type === 'Cash'
   // Only cash can over-tender (change is given back)
   const capped = isCash ? value : Math.min(value, Math.max(remaining.value, 0))
   if (capped <= 0) return
-  payments.value.push({ mode_of_payment: mode, amount: capped })
-  amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
+  // What the tender took in its own money: exactly what was typed when it was
+  // typed in that money, else the sale amount at the shift's rate.
+  const modeCode = sale.value.foreign ? modeCurrency(mode) : sale.value.currency
+  const tenderAmount = capped === value && modeCode === code ? typed : fromSale(capped, modeCode)
+  pushPayment(mode, capped, { tender_currency: modeCode, tender_amount: tenderAmount })
+  refillAmount()
 }
 
 function addStoreCredit() {
@@ -350,8 +533,8 @@ function addStoreCredit() {
   const available = round2((wallet.value?.store_credit || 0) - used)
   const capped = round2(Math.min(available, Math.max(remaining.value, 0)))
   if (capped <= 0) return
-  payments.value.push({ mode_of_payment: session.storeCreditMode, amount: capped })
-  amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
+  pushPayment(session.storeCreditMode, capped)
+  refillAmount()
 }
 
 function addCashback() {
@@ -361,12 +544,13 @@ function addCashback() {
   const available = round2((wallet.value?.cashback || 0) - used)
   const capped = round2(Math.min(available, Math.max(remaining.value, 0)))
   if (capped <= 0) return
-  payments.value.push({ mode_of_payment: session.cashbackMode, amount: capped })
-  amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
+  pushPayment(session.cashbackMode, capped)
+  refillAmount()
 }
 
 function payWithDefault() {
-  const def = session.paymentModes.find((m) => m.default) || session.paymentModes[0]
+  const modes = visibleModes.value
+  const def = modes.find((m) => m.default) || modes[0]
   if (def) addPayment(def.mode_of_payment)
 }
 
@@ -402,15 +586,11 @@ function applyGiftCard() {
   const info = giftCardInfo.value
   const capped = round2(Math.min(info.balance, Math.max(remaining.value, 0)))
   if (capped <= 0) return
-  payments.value.push({
-    mode_of_payment: session.giftCardMode,
-    amount: capped,
-    card_no: info.card_no,
-  })
+  pushPayment(session.giftCardMode, capped, { card_no: info.card_no })
   giftCardInfo.value = null
   giftCardNo.value = ''
   giftCardOpen.value = false
-  amount.value = Math.max(round2(total.value - paid.value - loyaltyAmount.value), 0)
+  refillAmount()
 }
 
 // Both sides valued by the server, with the same code that will post them, so
@@ -510,6 +690,31 @@ function round2(n) {
   flex-direction: column;
   gap: 18px;
 }
+.sell-in,
+.tender-ccy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.segmented {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+.seg-btn {
+  border-radius: calc(var(--radius) - 2px);
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.seg-btn:hover:not(:disabled) { color: var(--text); }
+.seg-btn.on { background: var(--brand); color: #fff; }
+.seg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .amount-due { text-align: center; }
 .due-label {
   text-transform: uppercase;
@@ -520,6 +725,8 @@ function round2(n) {
 }
 .due-value { font-size: 52px; font-weight: 800; }
 .due-value.change { color: var(--brand); }
+.due-sub { font-size: 17px; font-weight: 700; color: var(--text-muted); }
+.rate-note { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
 .exchange-box { padding: 12px 16px; margin-bottom: 12px; }
 .ex-row {
   display: flex;
@@ -591,10 +798,22 @@ function round2(n) {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--border);
+  position: relative;
 }
 .method:hover { border-color: var(--brand); }
 .method.branded { justify-content: center; padding: 16px 14px; }
 .method-icon { font-size: 20px; }
+.mode-ccy {
+  position: absolute;
+  top: 6px;
+  inset-inline-end: 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--brand-dark);
+  background: rgba(20, 99, 255, 0.1);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
 .giftcard-box { padding: 12px 16px; }
 .giftcard-row { display: flex; gap: 8px; }
 .giftcard-row input { flex: 1; text-transform: uppercase; }
@@ -615,9 +834,12 @@ function round2(n) {
   padding: 9px 0;
   border-bottom: 1px solid var(--border);
   font-weight: 600;
+  flex-wrap: wrap;
 }
 .split-row:last-child { border-bottom: none; }
 .split-row span:first-child { flex: 1; }
+.split-amount { display: inline-flex; align-items: baseline; gap: 6px; }
+.small { font-size: 12px; }
 .complete { margin-top: 6px; }
 .offline-note { text-align: center; margin: 0; }
 </style>

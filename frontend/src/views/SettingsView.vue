@@ -1136,6 +1136,53 @@
         </button>
       </div>
 
+      <!-- Other currencies (lumenpos.currency) -->
+      <div class="sec-card" v-show="generalSection === 'currencies'">
+        <div class="sec-title"><Icon name="cash" /> {{ t('Other currencies') }}</div>
+        <p class="sec-note">{{ t('Sell to customers who pay in another currency. A customer whose Billing Currency in ERPNext is another currency buys in it, and a walk-in can be switched to it at the till. Prices, offers and discounts stay in the outlet currency and are converted at the rate of the shift.') }}</p>
+        <div class="setting-list">
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.enable_multi_currency" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Sell in other currencies') }}</span>
+              <span class="setting-desc">{{ t('Off: a customer billed in another currency is refused at the till, with the reason.') }}</span>
+            </span>
+          </label>
+        </div>
+        <template v-if="generalForm.enable_multi_currency">
+          <div class="sub-label">{{ t('Currencies the till sells in') }}</div>
+          <p class="muted small" style="margin: 0 0 8px">
+            {{ t('Each currency gets, on saving, a walk-in customer billed in it, a receivable account and a cash drawer ("Cash USD") on every outlet. Change is always given in the local currency, from the main drawer.') }}
+          </p>
+          <div v-for="(row, i) in generalForm.sale_currencies" :key="'cur' + i" class="cf-row">
+            <LinkPicker doctype="Currency" v-model="row.currency" :placeholder="t('Currency, e.g. USD')" />
+            <label class="inline-check">
+              <input type="checkbox" v-model="row.show_equivalent" :true-value="1" :false-value="0" />
+              {{ t('Show the equivalent at the till') }}
+            </label>
+            <span v-if="row.walk_in_customer" class="muted small">{{ row.walk_in_customer }} · {{ row.cash_mode }}</span>
+            <span v-else class="muted small">{{ t('Set up when you save') }}</span>
+            <button class="btn-ghost" @click="generalForm.sale_currencies.splice(i, 1)"><Icon name="close" /></button>
+          </div>
+          <button class="btn btn-outline add-row" @click="generalForm.sale_currencies.push({ currency: '', show_equivalent: 1 })">
+            <Icon name="plus" /> {{ t('Add a currency') }}
+          </button>
+
+          <div class="sub-label">{{ t('Exchange rates') }}</div>
+          <p class="muted small" style="margin: 0 0 8px">
+            {{ t('The selling rate from today on, kept in ERPNext (Currency Exchange). A shift keeps the rate it started selling at; the next shift takes the new one.') }}
+          </p>
+          <div v-if="!rateRows.length" class="muted small">{{ t('Save the currencies first, then set their rates here.') }}</div>
+          <div v-for="r in rateRows" :key="r.currency + r.company_currency" class="cf-row">
+            <span class="rate-label">1 {{ r.currency }} =</span>
+            <input class="cf-in rate-in" type="text" inputmode="decimal" v-model="r.draft" />
+            <span>{{ r.company_currency }}</span>
+            <span v-if="!r.rate" class="neg small">{{ t('No rate yet: the till cannot sell in it') }}</span>
+            <button class="btn btn-outline" :disabled="r.busy" @click="saveRate(r)">{{ t('Save rate') }}</button>
+          </div>
+        </template>
+      </div>
+
       <!-- Register & Offline -->
       <div class="sec-card" v-show="generalSection === 'register'">
         <div class="sec-title"><Icon name="store" /> {{ t('Register & Offline') }}</div>
@@ -1928,7 +1975,7 @@ import Icon from '../components/Icon.vue'
 import OfflineLogModal from '../components/OfflineLogModal.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { call } from '../api'
-import { money, shortTime } from '../format'
+import { money, shortTime, parseMoney } from '../format'
 import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { catalogCount, storagePersisted, customerCount } from '../offline'
@@ -2051,6 +2098,8 @@ const generalForm = ref({
   return_exceed_role: '',
   exchange_role: '',
   enable_layaway: 0,
+  enable_multi_currency: 0,
+  sale_currencies: [],
   layaway_reserve_stock: 1,
   deposit_with_tax: 0,
   layaway_days: 30,
@@ -2119,6 +2168,7 @@ const generalSections = [
   { key: 'features', label: 'Features', icon: 'bulb' },
   { key: 'register', label: 'Register and shifts', icon: 'store' },
   { key: 'payments', label: 'Payments and delivery', icon: 'card' },
+  { key: 'currencies', label: 'Other currencies', icon: 'cash' },
   { key: 'returns', label: 'Returns and refunds', icon: 'refresh' },
   { key: 'holds', label: 'Holds and deposits', icon: 'bookmark' },
   { key: 'receipt', label: 'Receipt', icon: 'image' },
@@ -2126,6 +2176,44 @@ const generalSections = [
   { key: 'approvals', label: 'Approvals and access', icon: 'shield' },
 ]
 const generalSection = ref('features')
+
+// ---- other currencies: today's selling rate of each, per company currency ----
+const rateRows = ref([])
+function loadRateRows(info) {
+  rateRows.value = (info.sale_currencies || []).flatMap((row) =>
+    (row.rates || []).map((r) => ({
+      currency: r.currency,
+      company_currency: r.company_currency,
+      rate: r.rate || 0,
+      draft: r.rate ? String(r.rate) : '',
+      busy: false,
+    }))
+  )
+}
+
+async function saveRate(row) {
+  const rate = parseMoney(row.draft)
+  if (!rate || rate <= 0) {
+    session.notify(t('Enter the rate as a number, e.g. 3.6725'), true)
+    return
+  }
+  row.busy = true
+  try {
+    await call('lumenpos.currency.set_rate', {
+      currency: row.currency,
+      company_currency: row.company_currency,
+      rate,
+    })
+    row.rate = rate
+    session.notify(t('Rate saved. A shift that already sold in {currency} keeps its rate.', { currency: row.currency }))
+    // The till reads the rates at start: pick the new one up now.
+    await session.bootstrap(session.posProfile)
+  } catch (e) {
+    session.notify(e.message, true)
+  } finally {
+    row.busy = false
+  }
+}
 
 // ---- return restrictions (POS Return Restriction) ----
 // Saved one at a time through their own endpoints, not with the General form.
@@ -2462,6 +2550,7 @@ async function load() {
   profileReceiptOverrides.value = info.profile_receipt_overrides || []
   loadFieldOptions('Sale Invoice')
   loadFieldOptions('POS Profile')
+  loadRateRows(info)
   generalForm.value = {
     delivery_apps: JSON.parse(JSON.stringify(info.delivery_apps || [])),
     payment_method_rules: JSON.parse(JSON.stringify(info.payment_method_rules || [])),
@@ -2474,6 +2563,13 @@ async function load() {
     return_exceed_role: info.return_exceed_role || '',
     exchange_role: info.exchange_role || '',
     enable_layaway: info.enable_layaway ? 1 : 0,
+    enable_multi_currency: info.enable_multi_currency ? 1 : 0,
+    sale_currencies: (info.sale_currencies || []).map((r) => ({
+      currency: r.currency,
+      show_equivalent: r.show_equivalent ? 1 : 0,
+      walk_in_customer: r.walk_in_customer || '',
+      cash_mode: r.cash_mode || '',
+    })),
     layaway_reserve_stock: info.layaway_reserve_stock ? 1 : 0,
     deposit_with_tax: info.deposit_with_tax ? 1 : 0,
     layaway_days: info.layaway_days || 0,
@@ -3265,6 +3361,18 @@ async function saveGeneral() {
     for (const k of Object.keys(info)) {
       if (k.startsWith('receipt_')) session.settings[k] = info[k]
     }
+    // Other currencies: a new one was just set up (walk-in customer, drawer on
+    // the outlet), so the till reloads its payment methods and rates.
+    generalForm.value.sale_currencies = (info.sale_currencies || []).map((r) => ({
+      currency: r.currency,
+      show_equivalent: r.show_equivalent ? 1 : 0,
+      walk_in_customer: r.walk_in_customer || '',
+      cash_mode: r.cash_mode || '',
+    }))
+    loadRateRows(info)
+    if (info.enable_multi_currency || session.multiCurrency?.enabled) {
+      await session.bootstrap(session.posProfile)
+    }
     session.notify(t('Settings saved'))
   } catch (e) {
     session.notify(e.message, true)
@@ -3364,6 +3472,8 @@ const filteredBooks = computed(() => {
 .rc-preview-label { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 6px; }
 .cf-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
 .cf-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.rate-label { font-weight: 700; }
+.rate-in { width: 120px; }
 .cf-in {
   padding: 7px 9px;
   border: 1px solid var(--border);
