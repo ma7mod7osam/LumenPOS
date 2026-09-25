@@ -137,7 +137,7 @@ def quote_exchange(payload):
         "new_total": new_total,
         "due": flt(max(new_total - returned_value, 0), 2),
         "refund": flt(max(returned_value - new_total, 0), 2),
-        "allowed_refund_modes": sales._allowed_refund_modes(original),
+        "allowed_refund_modes": sales._cashier_refund_modes(original),
     }
 
 

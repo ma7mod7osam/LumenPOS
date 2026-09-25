@@ -2032,7 +2032,7 @@ def get_returnable(invoice, pos_profile=None):
         "currency": doc.currency,
         "company_currency": currency.company_currency(doc.company),
         "conversion_rate": flt(doc.conversion_rate) or 1,
-        "allowed_refund_modes": _allowed_refund_modes(doc),
+        "allowed_refund_modes": _cashier_refund_modes(doc),
         "return_window": _return_window(doc),
         "restrictions": return_restrictions.blocked_items(
             _restriction_items_for_codes([row["item_code"] for row in items]),
@@ -2171,6 +2171,11 @@ def _refund_splits(refund_payments, refund_amount, default_mode, allowed_modes):
     ]
     if not rows:
         rows = [{"mode_of_payment": default_mode, "amount": abs(refund_amount), "reference_no": None}]
+    elif len(rows) == 1:
+        # One tender takes the whole refund. The figure is ERPNext's, taxes
+        # included, which the till's estimate (the lines at their rate) cannot
+        # know on an outlet whose prices exclude tax.
+        rows[0]["amount"] = abs(refund_amount)
 
     total = flt(sum(r["amount"] for r in rows), 2)
     if abs(total - abs(refund_amount)) > 0.005:
@@ -2191,6 +2196,19 @@ def _refund_splits(refund_payments, refund_amount, default_mode, allowed_modes):
     for r in rows:
         r["amount"] = -r["amount"]
     return rows
+
+
+def _cashier_refund_modes(original):
+    """The refund tenders a cashier may pick: the allowed ones less the
+    exchange clearing tender, which is internal (an exchange posts it and the
+    matching new sale pays it straight back out). Offered on a plain refund it
+    would leave the clearing account holding the refund."""
+    modes = _allowed_refund_modes(original)
+    if modes is None:
+        return None
+    from lumenpos import exchanges
+
+    return [mode for mode in modes if mode != exchanges.MODE_OF_PAYMENT]
 
 
 def _allowed_refund_modes(original):
