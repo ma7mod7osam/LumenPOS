@@ -78,6 +78,9 @@ def ensure_setup():
     sure the LumenPOS roles, their core permissions, and custom fields exist."""
     ensure_roles()
     grant_core_permissions()
+    # Before anything saves a field: while the bad marking exists, Frappe
+    # refuses every change to that doctype's fields (see the function).
+    drop_unindexable_index_marks()
     # Before make_custom_fields: it re-syncs the invoice tables, and that sync is
     # what used to drop these indexes.
     ensure_index_fields()
@@ -275,6 +278,15 @@ INDEX_FIELDS = [
     ("Loyalty Point Entry", "invoice"),
 ]
 
+# Field types Frappe refuses to mark as search_index ("<doctype>:Fieldtype
+# <type> for <label> cannot be indexed"): the same list in v13, v14 and v15
+# (frappe/core/doctype/doctype/doctype.py). Such a field is never marked. It
+# needs no marking either: Frappe's schema sync never adds or drops an index on
+# a text column (frappe/database/schema.py skips "text" and "longtext"), so the
+# index ensure_hot_indexes builds there stays on its own. Sales Invoice's
+# customer_name is Small Text on v13 to v15, POS Invoice's is Data.
+UNINDEXABLE_TYPES = ("Text", "Long Text", "Small Text", "Code", "Text Editor")
+
 
 def _leading_index(doctype, columns):
     """The name of an index on this table whose first columns are exactly
@@ -318,6 +330,10 @@ def ensure_index_fields():
             field = frappe.get_meta(doctype).get_field(fieldname)
             if not field or cint(field.search_index):
                 continue
+            if field.fieldtype in UNINDEXABLE_TYPES:
+                # Frappe would refuse it, and while such a marking exists every
+                # later change to this doctype's fields fails (see above).
+                continue
             make_property_setter(
                 doctype, fieldname, "search_index", 1, "Check",
                 for_doctype=False, validate_fields_for_doctype=False,
@@ -326,6 +342,38 @@ def ensure_index_fields():
         except Exception:
             frappe.log_error(
                 title="LumenPOS index field marking failed",
+                message=f"{doctype}.{fieldname}: {frappe.get_traceback()}",
+            )
+
+
+def drop_unindexable_index_marks():
+    """0.50.2: take back a search_index marking LumenPOS once put on a field
+    Frappe cannot index. Up to 0.50.1 ensure_index_fields marked Sales
+    Invoice.customer_name (Small Text), bypassing Frappe's check, and from then
+    on ANY new field on Sales Invoice (Customize Form, or another app's install)
+    failed with "Fieldtype Small Text for Customer Name cannot be indexed".
+    LumenPOS's own fields escaped it only because it saves them with
+    ignore_validate. Nothing is lost by removing the marking: the index on that
+    text column stays (see UNINDEXABLE_TYPES). Only LumenPOS's own INDEX_FIELDS
+    are touched. Idempotent, never fails a migrate."""
+    for doctype, fieldname in INDEX_FIELDS:
+        try:
+            names = frappe.get_all(
+                "Property Setter",
+                filters={"doc_type": doctype, "field_name": fieldname, "property": "search_index"},
+                pluck="name",
+            )
+            if not names:
+                continue
+            field = frappe.get_meta(doctype).get_field(fieldname)
+            if not field or field.fieldtype not in UNINDEXABLE_TYPES:
+                continue
+            for name in names:
+                frappe.delete_doc("Property Setter", name, ignore_permissions=True, force=True)
+            frappe.clear_cache(doctype=doctype)
+        except Exception:
+            frappe.log_error(
+                title="LumenPOS index marking cleanup failed",
                 message=f"{doctype}.{fieldname}: {frappe.get_traceback()}",
             )
 
