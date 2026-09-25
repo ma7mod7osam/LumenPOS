@@ -151,7 +151,7 @@
       <div v-if="session.permissions.can_move_cash !== false" class="card panel">
         <div class="panel-head">{{ t('Cash in / out') }}</div>
         <div class="panel-body">
-          <div class="cash-form">
+          <div class="cash-form" :class="{ 'with-drawer': foreignDrawers.length }">
             <select v-model="movement.movement_type">
               <option value="Cash In">{{ t('Cash In') }}</option>
               <option value="Cash Out">{{ t('Cash Out') }}</option>
@@ -624,6 +624,8 @@ async function close() {
   gap: 8px;
   margin-bottom: 12px;
 }
+/* With a drawer in another currency the form gains a drawer picker. */
+.cash-form.with-drawer { grid-template-columns: 120px minmax(150px, auto) 110px 1fr auto; }
 .movement-row {
   display: grid;
   grid-template-columns: 90px 1fr auto;

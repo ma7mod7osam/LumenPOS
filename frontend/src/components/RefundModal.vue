@@ -227,28 +227,6 @@ const splitTotal = computed(() =>
 )
 // To the cent, a refund that doesn't add up must not post.
 const splitCovered = computed(() => Math.abs(splitTotal.value - refundTotal.value) < 0.005)
-// Keep ONE row tracking the full refund until the cashier deliberately splits;
-// after that their allocation is left alone.
-watch(
-  () => [refundTotal.value, refundMode.value],
-  () => {
-    if (refundTotal.value <= 0) {
-      refundSplits.value = []
-      return
-    }
-    if (refundSplits.value.length <= 1) {
-      refundSplits.value = [
-        {
-          mode_of_payment: refundMode.value || refundModes.value[0],
-          amount: refundTotal.value.toFixed(2),
-          reference_no: refundSplits.value[0]?.reference_no || '',
-        },
-      ]
-    }
-  },
-  { immediate: true }
-)
-
 function addSplit() {
   const left = Math.max(refundTotal.value - splitTotal.value, 0)
   refundSplits.value.push({
@@ -330,6 +308,31 @@ const refundTotal = computed(() =>
     (sum, row) => sum + (quantities.value[row.item_code] || 0) * row.rate,
     0
   )
+)
+
+// Declared after everything it reads: an immediate watcher runs at setup, and
+// placed above refundTotal it threw on its first read and never tracked
+// anything, so the refund row never filled itself in (since 0.36.0).
+// Keep ONE row tracking the full refund until the cashier deliberately splits;
+// after that their allocation is left alone.
+watch(
+  () => [refundTotal.value, refundMode.value],
+  () => {
+    if (refundTotal.value <= 0) {
+      refundSplits.value = []
+      return
+    }
+    if (refundSplits.value.length <= 1) {
+      refundSplits.value = [
+        {
+          mode_of_payment: refundMode.value || refundModes.value[0],
+          amount: refundTotal.value.toFixed(2),
+          reference_no: refundSplits.value[0]?.reference_no || '',
+        },
+      ]
+    }
+  },
+  { immediate: true }
 )
 
 // Over the regular-return window and not yet approved → the refund is blocked
