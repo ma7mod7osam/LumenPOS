@@ -709,6 +709,20 @@ def find_customer_by_mobile(mobile):
     return None
 
 
+def _customer_group(customer_type, *wanted):
+    """A customer group ERPNext accepts for a new customer. v15 refuses a group
+    node ("Cannot select a Group type Customer Group"), and a fresh site keeps
+    "All Customer Groups", a group, as the Selling Settings default, so a till
+    creating customers there failed. The first leaf wins: the one asked for,
+    the Selling Settings default, ERPNext's own "Individual" / "Commercial",
+    then any leaf."""
+    fallback = "Commercial" if customer_type == "Company" else "Individual"
+    for candidate in (*wanted, fallback):
+        if candidate and frappe.db.get_value("Customer Group", candidate, "is_group") == 0:
+            return candidate
+    return frappe.db.get_value("Customer Group", {"is_group": 0}, "name", order_by="lft asc")
+
+
 @frappe.whitelist()
 def create_customer(payload):
     """Customer creation by the shop's own form (lumenpos.customer_form): each
@@ -758,7 +772,7 @@ def create_customer(payload):
         "doctype": "Customer",
         "customer_name": name,
         "customer_type": customer_type,
-        "customer_group": extras.get("customer_group") or selling.customer_group,
+        "customer_group": _customer_group(customer_type, extras.get("customer_group"), selling.customer_group),
         "territory": extras.get("territory") or selling.territory,
         "mobile_no": mobile or None,
         "email_id": given("email_id") or None,
