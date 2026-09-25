@@ -90,6 +90,29 @@ def _ensure_ignore_pricing_rule(profile):
         frappe.clear_document_cache("POS Profile", profile.name)
 
 
+def assert_single_currency(invoice, price_list):
+    """Refuse a sale whose invoice ERPNext has moved to another currency.
+
+    ERPNext bills a customer in their Billing Currency (Customer, Currency and
+    Price List): on a POS Invoice it switches the invoice to that currency, and
+    does so again on every validate. LumenPOS prices from the outlet's list and
+    does not convert, so such a sale posted the shelf numbers as foreign money:
+    a 100 USD item became 100 EUR, 400 USD in the books at a rate of 4, while
+    the cashier collected dollars (reproduced on v13, v14 and v15). Until the
+    till sells in other currencies, say so instead of posting it."""
+    list_currency = frappe.get_cached_value("Price List", price_list, "currency") if price_list else None
+    if not list_currency or not invoice.get("currency") or invoice.currency == list_currency:
+        return
+    frappe.throw(
+        _(
+            "{0} is billed in {1}, but this till sells in {2}, and it cannot sell in another "
+            "currency yet. Choose another customer, or clear the customer's Billing Currency in "
+            "ERPNext (Customer, Currency and Price List)."
+        ).format(invoice.get("customer_name") or invoice.customer, invoice.currency, list_currency),
+        title=_("Customer currency"),
+    )
+
+
 def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passcode=True):
     """Build a fully-priced, fully-taxed but NOT-yet-inserted POS Invoice from
     the cart. Shared by submit_sale (which then attaches payments and submits)
@@ -227,6 +250,7 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         )
 
     invoice.set_missing_values()
+    assert_single_currency(invoice, price_list)
 
     # Every line keeps the profile's warehouse (set in the row build above), it
     # belongs to the profile's company. Do NOT clear it for non-stock lines:
@@ -579,6 +603,7 @@ def sell_gift_card(payload):
             {"sales_person": payload["sales_person"], "allocated_percentage": 100},
         )
     invoice.set_missing_values()
+    assert_single_currency(invoice, profile.selling_price_list)
     invoice.taxes = []
 
     # Belt-and-suspenders: re-assert the company warehouse in case

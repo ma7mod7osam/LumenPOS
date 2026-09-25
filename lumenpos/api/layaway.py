@@ -97,6 +97,8 @@ def _build_sale(profile, customer, lines, note, with_taxes, tax_included=False):
         row.setdefault("warehouse", warehouse)
         invoice.append("items", row)
     invoice.set_missing_values()
+    # A customer billed in another currency would be posted wrong (see there).
+    sales.assert_single_currency(invoice, profile.selling_price_list)
     if not with_taxes:
         invoice.taxes = []
     elif tax_included:
