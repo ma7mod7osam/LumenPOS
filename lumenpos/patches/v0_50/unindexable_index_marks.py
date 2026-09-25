@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""v0.50.2: new fields can be added to Sales Invoice again.
+"""v0.51.0: new fields can be added to Sales Invoice again.
 
 Up to 0.50.1 LumenPOS marked Sales Invoice.customer_name as an indexed field
 (a search_index Property Setter). That field is Small Text, which Frappe

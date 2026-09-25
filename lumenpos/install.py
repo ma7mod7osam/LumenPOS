@@ -362,7 +362,7 @@ def ensure_index_fields():
 
 
 def drop_unindexable_index_marks():
-    """0.50.2: take back a search_index marking LumenPOS once put on a field
+    """0.51.0: take back a search_index marking LumenPOS once put on a field
     Frappe cannot index. Up to 0.50.1 ensure_index_fields marked Sales
     Invoice.customer_name (Small Text), bypassing Frappe's check, and from then
     on ANY new field on Sales Invoice (Customize Form, or another app's install)

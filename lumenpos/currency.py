@@ -4,7 +4,7 @@
 """Selling in other currencies (LumenPOS Settings, General, Other currencies).
 
 ERPNext bills a customer in their Billing Currency (Customer, Currency and
-Price List): a POS Invoice follows it, on every validate. Until 0.50.2 LumenPOS
+Price List): a POS Invoice follows it, on every validate. Until 0.51.0 LumenPOS
 ignored that and posted the shelf numbers as foreign money. This module makes
 such a sale right instead, the way ERPNext expects it, and keeps the rules
 ERPNext's own code imposes (read in its source and proved on v13, v14 and v15

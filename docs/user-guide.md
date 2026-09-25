@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.50.2. This document is updated with every feature change.*
+*Applies to LumenPOS v0.51.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -194,6 +194,69 @@ The displayed total always equals the invoice grand total.
 Everything the client computed is **re-validated server-side** at submit:
 prices, promotions, serials, balances, passcodes. The client math is
 display-only.
+
+### Selling in other currencies
+
+For a shop whose customers pay in more than one currency: a UAE shop with
+customers billed in dollars, a tourist paying in dollars at a riyal till.
+Switch it on under **Settings → General → Other currencies** (*Sell in other
+currencies*), add the currencies, **Save**, then set each rate.
+
+**What saving sets up.** For each currency, for every company that has an
+outlet, LumenPOS creates ordinary ERPNext records: a receivable account
+(*Debtors USD*), a cash account (*Cash USD*) and a payment method *Cash USD*
+added to every outlet, and a customer *Walk-in USD* billed in that currency.
+
+**Which currency a sale is in.** The customer's **Billing Currency** in ERPNext
+(Customer → Currency and Price List). Pick a customer billed in dollars and the
+whole sale is in dollars, as the customer expects. A walk-in can be switched to
+another currency with the currency picker beside the channel on the cart, or
+with **Sell in** at the top of the payment screen; a named customer always buys
+in their own currency. The customer search shows the currency next to such a
+customer.
+
+**Prices.** Price books, bundles, offers and discounts stay in the outlet's
+currency and are converted at the shift's rate, so nothing has to be priced
+twice. A customer (or customer group) with their own price list in their
+currency is priced from that list. The cart shows the sale in its currency with
+its local value underneath; a local sale can also show its value in the
+currencies ticked *Show the equivalent at the till*.
+
+**Rates.** Kept in ERPNext (*Currency Exchange*, selling). Set them in the same
+Settings card. A shift fixes the rate of a currency at its first sale in it and
+keeps it until it closes, because ERPNext merges each customer's shift into one
+invoice at one rate; a new rate applies from the next shift.
+
+**Paying.** Each payment is typed in the money actually handed over: the
+payment screen asks **Amount in** dollars or riyals, converts at the shift's
+rate and shows what is left in both. Local cash and cards are always offered;
+the *Cash USD* drawer only on a sale in dollars (ERPNext refuses a dollar
+account on a riyal invoice at the close). **Change always comes back in local
+money, from the main drawer**, the way ERPNext's own POS gives it: the close
+books all of a customer's change from one account, so a drawer in another
+currency takes money in and never pays change out.
+
+**The shift.** Each drawer in another currency keeps its own opening float,
+cash in and out, expected amount and count, in its own money; the takings,
+discounts and variance alerts are in the company currency. The X-report lists
+the rates. At the close ERPNext consolidates each customer's sales in their
+currency, and the books balance: a test sale in dollars paid with 20 dollars
+and 70 riyals, refunded in part, closed with both drawers at a zero difference.
+
+**Receipts** show the sale in its currency, its local value and the rate, each
+payment in the money it was made in, and the change in local money.
+**Refunds** go back in the sale's currency at its original rate, through local
+cash and cards or its own drawer.
+
+**What stays in the outlet's currency.** Gift cards, store credit, cashback,
+loyalty redemption, holds and exchanges keep one currency in their ledgers, so
+they are refused for a sale in another currency with a plain message (refund
+it and ring up a new sale instead of an exchange). A sale in another currency
+needs a connection: it is not queued offline.
+
+**Off.** With the switch off, a customer billed in another currency is refused
+at the till, with the reason, instead of being posted wrong. Rates and the
+currency list need permission to change LumenPOS Settings.
 
 ### After the sale
 The receipt modal shows totals, taxes, payments, change, applied promotions
@@ -633,6 +696,12 @@ this also makes everyday search instant. If the connection drops:
   hanging on it, and while the connection is down the till asks the server
   every five seconds and comes back on its own the moment it answers. No
   page reload.
+- **Every till refreshes its stock after an outage.** The moment a till is
+  back online it uploads its queued sales and pulls a fresh copy of the whole
+  catalogue, so its tiles include what the other tills sold while the
+  connection was down, and it does so once more a minute later, for a till that
+  was still uploading its own sales. The server never sells more than it has,
+  whatever a tile showed.
 - Settings → Status shows cache size and queued count; **Refresh offline
   catalog** re-pulls it. The General toggle *Cache only in-stock items*
   keeps the cache to your warehouse's stock.
@@ -664,7 +733,7 @@ behaviour: it sells offline as long as the tab stays open.)
 | **Bundles** | Fixed-price bundles: components, price, outlets. |
 | **Price Books** | Items with special prices for a period (validity + priority + outlets/customer groups); add items or **Excel/CSV import**. No ERPNext price list created, the master is never changed. |
 | **Loyalty & Gift Cards** | Create/view loyalty programs; search/disable gift cards. |
-| **General** | Split into groups, one at a time, each saying what it is for: **Features** (what the till offers, plus the one-tap favourites), **Register and shifts** (shift ownership, variance and overdue alerts, offline cache), **Payments and delivery** (delivery apps with their price lists and per-method rules), **Returns and refunds** (return window, return reasons, **what cannot be returned**, and the refund method rules), **Receipt**, **Accounts and gift cards** (per-company accounts, gift card expiry), **Approvals and access** (discount limit and over-limit method, master passcode, approver PINs, the shared Approver Role, permissions, audit log). One Save button covers them all. |
+| **General** | Split into groups, one at a time, each saying what it is for: **Features** (what the till offers, plus the one-tap favourites), **Register and shifts** (shift ownership, variance and overdue alerts, offline cache), **Payments and delivery** (delivery apps with their price lists and per-method rules), **Other currencies** (the switch, the currencies the till sells in, their rates), **Returns and refunds** (return window, return reasons, **what cannot be returned**, and the refund method rules), **Receipt**, **Accounts and gift cards** (per-company accounts, gift card expiry), **Approvals and access** (discount limit and over-limit method, master passcode, approver PINs, the shared Approver Role, permissions, audit log). One Save button covers them all. |
 | **Status** | Version, outlet, price list, connection, cache size, queue, printer, register state. |
 | **Approvals** | (Approvers only) Live tray of pending **discount and return** requests to Approve / Reject, shown in the left rail when discount requests are enabled or returns are window-limited. |
 
@@ -801,7 +870,7 @@ effect on the Sell flow. The tab needs **Customer → read** (hidden otherwise).
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
-| 0.50.2 | **New fields can be added to Sales Invoice again.** Since 0.49.0 LumenPOS marked the customer name on Sales Invoice as an indexed field, to keep History's search fast. Frappe does not allow that marking on that kind of field, so from then on adding any field to Sales Invoice failed, from Customize Form or from another app, with "Fieldtype Small Text for Customer Name cannot be indexed". The marking is removed on update and is never set on such a field again. Nothing gets slower: the index itself stays, because Frappe never removes an index on that kind of column. LumenPOS's own fields were never affected. **A customer billed in another currency is refused instead of posted wrong.** When a customer has a Billing Currency in ERPNext that differs from the till's, ERPNext moves the sale to that currency, and LumenPOS, which prices from the outlet's list without converting, posted the shelf numbers as foreign money: a 100 USD item became 100 EUR, 400 USD in the books at a rate of 4, while the cashier collected dollars. Such a sale, hold or gift card sale now stops with a plain message (choose another customer, or clear the customer's Billing Currency) until the till can sell in other currencies. |
+| 0.51.0 | **Sell in other currencies.** A customer billed in dollars (ERPNext, Customer, Billing Currency) now buys in dollars: the sale, its receipt and its books are in dollars at the rate of the shift, and ERPNext's shift close merges it in that currency and balances. A walk-in paying in dollars is switched to dollars in one tap, on the cart or on the payment screen. Prices, offers and discounts stay in the outlet's currency and convert; a customer's own list in their currency is used as is. Each payment is typed in the money handed over, so a tourist can pay part in dollars and part in riyals, and change always comes back in local money from the main drawer. Every drawer in another currency keeps its own float, cash in and out and count, and the X-report lists the rates. Switched on and set up (accounts, a *Cash USD* drawer on every outlet, a *Walk-in USD* customer, the rates) in Settings, General, Other currencies. Gift cards, store credit, cashback, loyalty redemption, holds and exchanges stay in the outlet's currency. **After an outage every till refreshes its stock**, once on reconnecting and once a minute later, so the tiles include what the other tills sold meanwhile. **Refunds:** the refund screen fills in its refund line by itself again (since 0.36.0 it stayed empty until the cashier pressed Split), one refund line takes the whole refund ERPNext computes, tax included, instead of the screen's estimate, and the internal *Exchange* tender is no longer offered as a refund method. **New fields can be added to Sales Invoice again.** Since 0.49.0 LumenPOS marked the customer name on Sales Invoice as an indexed field, to keep History's search fast. Frappe does not allow that marking on that kind of field, so from then on adding any field to Sales Invoice failed, from Customize Form or from another app, with "Fieldtype Small Text for Customer Name cannot be indexed". The marking is removed on update and is never set on such a field again. Nothing gets slower: the index itself stays, because Frappe never removes an index on that kind of column. LumenPOS's own fields were never affected. |
 | 0.50.1 | **A hold now quotes the price with tax on it.** At an outlet that adds VAT at the till, a hold used to total the shelf prices and nothing else, so a customer who had paid it "in full" was short by exactly the tax and handing the goods over failed with a mismatch. The tax is worked out on the day of the hold and frozen on it, so the balance on the screen is the money the till will actually take. Open holds are re-costed on update. **Holds are also switched off by default now** (Settings, General, Holds and deposits): a shop that never puts goods aside sees no button and no screen. And the Holds and deposits settings card, which rendered as a wall of run-on text, is laid out like the rest of them. |
 | 0.50.0 | **Holds and deposits.** A customer can leave a deposit and have the goods kept for them. Ring the items up, press **Hold**, take what they are paying today: the goods are reserved with a Sales Order so no other till sells the last one, and the money goes to a **liability** account, not revenue, because the shop is holding it. The new **Holds** screen shows what is held, for whom, paid and still to pay, flags anything past its date, and takes the next instalment, hands the goods over, or cancels and refunds. Handing over sells at the price agreed the day of the hold and collects only the balance. Tax follows the shop: by default the deposit is untaxed and the goods are taxed in full at hand-over, or switch on taxable deposits (as Saudi Arabia requires for an advance against a known supply) and the tax declared on the deposit is deducted at hand-over instead of charged twice. |
 | 0.49.0 | **The till opens with no connection at all, and installs like an app.** Until now an outage was survivable only as long as nobody reloaded the tab: the page itself came from the server, so a reload or a reboot meant a till that could not sell. The app now keeps itself on the device (a service worker holds the page, its script, styles and fonts), so /pos opens offline and the shift carries on with the cached catalogue and the offline queue. Settings → Status shows **Opens without a connection**. It can also be installed from Chrome or Edge, own window, own icon, starting at the till. Nothing about the data changed: no API answer is ever served from a cache, and opening or closing a shift still needs the server. |

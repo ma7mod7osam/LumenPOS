@@ -1402,76 +1402,6 @@ const generalLayout = {
   "These items come back only with approval: {items}": "هذه الأصناف تسترجع باعتماد فقط: {items}",
 }
 
-// Keys added after the area maps above.
-const late = {
-  "{n} offline sales still need to upload. Press Upload now before closing.":
-    "لا تزال {n} من المبيعات دون اتصال بحاجة إلى الرفع، اضغط \"الرفع الآن\" قبل الإغلاق.",
-  "{n} offline sales are still waiting to upload.": "لا تزال {n} من المبيعات دون اتصال بانتظار الرفع.",
-  "They belong to this shift. Upload them before closing, or they land on the next shift.":
-    "تخص هذه الوردية. ارفعها قبل الإغلاق وإلا ستحتسب على الوردية التالية.",
-  "Upload now": "الرفع الآن",
-  "Uploading…": "جار الرفع…",
-  "All offline sales uploaded": "تم رفع جميع المبيعات دون اتصال",
-  "Enter the opening float as a number, e.g. 1500 or 1500.50":
-    "أدخل الرصيد الافتتاحي كرقم، مثل 1500 أو 1500.50",
-  "Open with an opening float of 0.00? Confirm the drawer is empty.":
-    "الفتح برصيد افتتاحي 0.00؟ أكد أن الدرج فارغ.",
-  "Enter the amount as a number, e.g. 250 or 250.50": "أدخل المبلغ كرقم، مثل 250 أو 250.50",
-  "A shift belongs to": "الوردية تخص",
-  "The outlet, one shift per register, any cashier sells on it": "الفرع، وردية واحدة لكل صندوق، ويبيع عليها أي كاشير",
-  "The cashier, each opens their own shift and sells only on it": "الكاشير، يفتح كل واحد ورديته ويبيع عليها فقط",
-  "Per cashier lets several people share one counter, each with their own drawer and Z-report.":
-    "خيار \"الكاشير\" يتيح لعدة أشخاص مشاركة نفس الصندوق، ولكل منهم درجه وتقرير Z الخاص به.",
-  "Email an alert on a large closing variance": "إرسال تنبيه بالبريد عند فرق إغلاق كبير",
-  "Records and notifies, it never blocks the close.": "يسجل وينبه، ولا يمنع الإغلاق أبدا.",
-  "Variance threshold": "حد الفرق",
-  "Notify role": "إشعار الدور",
-  "e.g. LumenPOS Manager": "مثال: LumenPOS Manager",
-  "This shift belongs to {name}. Close it and open your own to sell.":
-    "هذه الوردية تخص {name}. أغلقها وافتح ورديتك للبيع.",
-  "Allow refunding to Store Credit": "السماح بالاسترداد كرصيد للعميل",
-  "Off = money back only. Credit the customer actually spent on that sale can always go back to credit.":
-    "إيقاف = استرداد نقدي فقط. أما الرصيد الذي أنفقه العميل فعليا في تلك الفاتورة فيمكن دائما إعادته كرصيد.",
-  "this store": " (هذا الفرع)",
-  "{qty} reserved": "{qty} محجوز",
-  "No other store has stock.": "لا يوجد مخزون في فرع آخر.",
-  "Reference": "المرجع",
-  "{mode} can't be used for this sale ({why}).": "لا يمكن استخدام {mode} في هذه العملية ({why}).",
-  "Payment Methods": "طرق الدفع",
-  "Require a terminal or transfer reference on a method so a disputed payment can be traced later. Blocking a method for certain products is set up in POS Payment Restriction.":
-    "اطلب مرجع الجهاز أو التحويل لطريقة دفع ليتم تتبع أي عملية متنازع عليها لاحقا. أما منع طريقة دفع لمنتجات معينة فيضبط من POS Payment Restriction.",
-  "Method": "الطريقة",
-  "Require reference": "طلب مرجع",
-  "Label, e.g. Approval code": "التسمية، مثل: رقم الموافقة",
-  "Add a payment rule": "إضافة قاعدة دفع",
-  "Open in History": "فتح في السجل",
-  "Enter your PIN to unlock.": "أدخل رمزك السري لفتح القفل.",
-  "Your PIN": "رمزك السري",
-  "Forgot your PIN?": "نسيت رمزك السري؟",
-  "Create your PIN": "أنشئ رمزك السري",
-  "4 to 8 digits. It unlocks this till for you only.": "من 4 إلى 8 أرقام. يفتح هذا الصندوق لك وحدك.",
-  "New PIN": "رمز جديد",
-  "Repeat PIN": "أعد إدخال الرمز",
-  "Set PIN": "تعيين الرمز",
-  "The two PINs do not match.": "الرمزان غير متطابقين.",
-  "Reset your PIN": "إعادة تعيين رمزك",
-  "We emailed a code to {email}.": "أرسلنا رمزا إلى {email}.",
-  "We will email you a 6-digit code.": "سنرسل لك رمزا من 6 أرقام بالبريد.",
-  "6-digit code": "رمز من 6 أرقام",
-  "Email me a code": "أرسل لي رمزا",
-  "Working…": "جار التنفيذ…",
-  "Saving…": "جار الحفظ…",
-  "Email an alert when a shift is left open": "إرسال تنبيه عند ترك وردية مفتوحة",
-  "A till is never closed automatically, a close without a real cash count is worthless.":
-    "لا يغلق الصندوق تلقائيا أبدا، فالإغلاق بدون جرد نقدي حقيقي بلا قيمة.",
-  "Grace period (minutes)": "مهلة السماح (دقائق)",
-  "Fallback: hours after opening (outlets with no schedule)":
-    "احتياطي: عدد الساعات بعد الفتح (للفروع بدون جدول)",
-  "Split": "تقسيم",
-  "Fully covered": "مغطى بالكامل",
-  "{amount} left to allocate": "متبق {amount} للتوزيع",
-}
-
 // Other currencies (0.51.0): the sale's currency at the till, the payment
 // screen, receipts, the register and Settings.
 const currencies = {
@@ -1532,5 +1462,5 @@ const currencies = {
 
 export const messages = {
   en: {},
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...late, ...currencies },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies },
 }
