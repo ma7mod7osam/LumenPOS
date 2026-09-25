@@ -67,13 +67,78 @@ def _drawer_mode(pos_profile):
         profile = frappe.get_cached_doc("POS Profile", pos_profile)
     except Exception:
         return "Cash" if "Cash" in cash else None
-    rows = [r for r in (profile.payments or []) if r.mode_of_payment in cash]
+    # A drawer in another currency ("Cash USD") is never the main drawer, even
+    # when it sits first on the outlet or is ticked as its default.
+    foreign = _foreign_drawers(pos_profile)
+    rows = [r for r in (profile.payments or []) if r.mode_of_payment in cash and r.mode_of_payment not in foreign]
     for row in rows:
         if row.get("default"):
             return row.mode_of_payment
     if rows:
         return rows[0].mode_of_payment
     return "Cash" if "Cash" in cash else None
+
+
+def _foreign_drawers(pos_profile):
+    """The outlet's cash drawers in another currency, {mode: currency}: a
+    Cash-type tender whose account is not in the company currency ("Cash USD",
+    lumenpos.currency). Each keeps its own float, movements, count and change,
+    in its own money, apart from the main drawer."""
+    from lumenpos import currency
+
+    try:
+        profile = frappe.get_cached_doc("POS Profile", pos_profile)
+    except Exception:
+        return {}
+    ccy = currency.company_currency(profile.company)
+    cash = _cash_modes()
+    out = {}
+    for row in profile.payments or []:
+        if row.mode_of_payment in cash:
+            mode_ccy = currency.mode_currency(row.mode_of_payment, profile.company)
+            if mode_ccy != ccy:
+                out[row.mode_of_payment] = mode_ccy
+    return out
+
+
+def _drawer_movements(session_doc, mode, main_drawer):
+    """(cash in, cash out) of ONE drawer. The main drawer takes every movement
+    recorded without a drawer, which is all of them before drawers had
+    currencies."""
+    cash_in = cash_out = 0.0
+    for m in session_doc.get("cash_movements") or []:
+        if (m.get("mode_of_payment") or main_drawer) != mode:
+            continue
+        if m.movement_type == "Cash In":
+            cash_in += flt(m.amount)
+        elif m.movement_type == "Cash Out":
+            cash_out += flt(m.amount)
+    return cash_in, cash_out
+
+
+def _foreign_floats(session_doc):
+    return {r.mode_of_payment: flt(r.amount) for r in (session_doc.get("foreign_floats") or [])}
+
+
+def _clean_floats(pos_profile, floats):
+    """{mode: amount} for this outlet's drawers in another currency only."""
+    if isinstance(floats, str):
+        floats = json.loads(floats or "{}")
+    foreign = _foreign_drawers(pos_profile)
+    return {mode: flt(amount) for mode, amount in (floats or {}).items() if mode in foreign and flt(amount) > 0}
+
+
+def _float_rows(pos_profile, floats):
+    foreign = _foreign_drawers(pos_profile)
+    return [
+        {"mode_of_payment": mode, "currency": foreign.get(mode), "amount": flt(amount)}
+        for mode, amount in (floats or {}).items()
+    ]
+
+
+def _shift_rates(session_doc):
+    """{currency: rate to company currency} the shift fixed (lumenpos.currency)."""
+    return {r.currency: flt(r.exchange_rate) for r in (session_doc.get("currency_rates") or [])}
 
 
 def _is_manager():
@@ -92,7 +157,7 @@ def _assert_owner_or_manager(session_doc):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force_new=0):
+def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force_new=0, floats=None):
     """Opening is ALWAYS a fresh shift. A shift can never be resumed.
 
     The REGISTER SESSION's status is the only truth. Native POS Opening Entries
@@ -107,6 +172,9 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     """
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
     opening_float = flt(opening_float)
+    # The float of each drawer in another currency ("Cash USD"), in its own
+    # money (lumenpos.currency). Anything else sent is ignored.
+    floats = _clean_floats(pos_profile, floats)
     si_mode = profile.get("lumenpos_invoice_mode") == "Sales Invoice"
     # SI mode normally runs a lightweight cash shift (no POS Opening/Closing
     # Entry). A POS Profile can opt back into the entries for cash supervision, 
@@ -146,7 +214,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
         # must NEVER block the store from opening the next shift, no matter the
         # closing_status (Pending / Queued / Failed). Open a fresh shift now; the
         # stuck close keeps retrying independently, so no invoice is lost.
-        return _force_new_after_failure(profile, opening_float, existing.name)
+        return _force_new_after_failure(profile, opening_float, existing.name, floats)
 
     # Lightweight Sales Invoice cash shift, just the float, no ERPNext POS
     # Opening Entry. Sales post as Sales Invoices directly, so there's nothing to
@@ -161,6 +229,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
                 "opened_at": now_datetime(),
                 "status": "Open",
                 "opening_float": opening_float,
+                "foreign_floats": _float_rows(pos_profile, floats),
             }
         )
         sess.insert()
@@ -170,10 +239,10 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     # 2) Nothing live on this register -> always a brand-new shift. Any stale
     # native "Open" POS Opening Entry left behind by a failed close or by the
     # stock POS is ignored on purpose (see the docstring).
-    return _create_fresh_session(profile, opening_float)
+    return _create_fresh_session(profile, opening_float, floats=floats)
 
 
-def _create_fresh_session(profile, opening_float, bypass_live_guard=False):
+def _create_fresh_session(profile, opening_float, bypass_live_guard=False, floats=None):
     """Build a new POS Opening Entry + Register Session for this register.
 
     `opening_entry.flags.ignore_validate` is set ALWAYS: ERPNext core refuses a
@@ -195,7 +264,9 @@ def _create_fresh_session(profile, opening_float, bypass_live_guard=False):
             "balance_details": [
                 {
                     "mode_of_payment": row.mode_of_payment,
-                    "opening_amount": opening_float if row.mode_of_payment == drawer else 0,
+                    "opening_amount": opening_float
+                    if row.mode_of_payment == drawer
+                    else flt((floats or {}).get(row.mode_of_payment)),
                 }
                 for row in profile.payments
             ],
@@ -213,6 +284,7 @@ def _create_fresh_session(profile, opening_float, bypass_live_guard=False):
             "opened_at": now_datetime(),
             "status": "Open",
             "opening_float": opening_float,
+            "foreign_floats": _float_rows(profile.name, floats),
             "pos_opening_entry": opening_entry.name,
         }
     )
@@ -237,6 +309,24 @@ def _role_emails(role):
     )
 
 
+def _in_company_currency(session_doc, amount, currency_code):
+    """An amount counted in a drawer's own money, valued in the company
+    currency at the rate the shift sold that currency at (or today's)."""
+    from lumenpos import currency
+
+    company = frappe.get_cached_value("POS Profile", session_doc.pos_profile, "company")
+    ccy = currency.company_currency(company)
+    if not currency_code or currency_code == ccy:
+        return flt(amount)
+    rate = _shift_rates(session_doc).get(currency_code)
+    if not rate:
+        try:
+            rate = currency.current_rate(currency_code, ccy)
+        except Exception:
+            rate = 0
+    return flt(amount) * flt(rate or 1)
+
+
 def _maybe_alert_variance(doc):
     """Email a role when a counted drawer differs from expected by more than the
     threshold. RECORD AND NOTIFY, never an approval gate: a close must not be
@@ -251,14 +341,17 @@ def _maybe_alert_variance(doc):
         recipients = _role_emails(role)
         if not recipients:
             return
+        # The threshold is in the company currency; a drawer in another one is
+        # valued at the rate its shift sold at (lumenpos.currency).
         rows = [
             r for r in (doc.get("payment_counts") or [])
-            if abs(flt(r.difference)) > threshold
+            if abs(_in_company_currency(doc, r.difference, r.get("currency"))) > threshold
         ]
         if not rows:
             return
         cells = "".join(
             f"<tr><td>{frappe.utils.escape_html(r.mode_of_payment or '')}</td>"
+            f"<td>{frappe.utils.escape_html(r.get('currency') or '')}</td>"
             f"<td align='right'>{flt(r.expected_amount):,.2f}</td>"
             f"<td align='right'>{flt(r.counted_amount):,.2f}</td>"
             f"<td align='right'><b>{flt(r.difference):,.2f}</b></td></tr>"
@@ -274,7 +367,7 @@ def _maybe_alert_variance(doc):
                 f"<b>{_('Opened by')}:</b> {frappe.utils.escape_html(doc.opened_by or '')}<br>"
                 f"<b>{_('Closed by')}:</b> {frappe.utils.escape_html(frappe.session.user)}</p>"
                 "<table border='1' cellpadding='6' cellspacing='0'>"
-                f"<tr><th>{_('Payment')}</th><th>{_('Expected')}</th>"
+                f"<tr><th>{_('Payment')}</th><th>{_('Currency')}</th><th>{_('Expected')}</th>"
                 f"<th>{_('Counted')}</th><th>{_('Difference')}</th></tr>"
                 f"{cells}</table>"
             ),
@@ -285,7 +378,7 @@ def _maybe_alert_variance(doc):
         )
 
 
-def _force_new_after_failure(profile, opening_float, stuck_session):
+def _force_new_after_failure(profile, opening_float, stuck_session, floats=None):
     """The previous shift is still 'Closing' (consolidation pending, queued or
     failed), let the store keep trading. Open a fresh shift now; the stuck one
     stays in 'Closing' and the self-healer keeps retrying its consolidation, so
@@ -295,7 +388,7 @@ def _force_new_after_failure(profile, opening_float, stuck_session):
     opening the store must never be blocked by a colleague's stuck close."""
     # Nudge the stuck shift to consolidate once more right now.
     _enqueue_consolidation(stuck_session)
-    return _create_fresh_session(profile, opening_float, bypass_live_guard=True)
+    return _create_fresh_session(profile, opening_float, bypass_live_guard=True, floats=floats)
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +396,7 @@ def _force_new_after_failure(profile, opening_float, stuck_session):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def add_cash_movement(session, movement_type, amount, reason=None):
+def add_cash_movement(session, movement_type, amount, reason=None, mode_of_payment=None):
     if not frappe.has_permission("POS Register Session", "write"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
     from lumenpos.api import permissions
@@ -314,10 +407,15 @@ def add_cash_movement(session, movement_type, amount, reason=None):
     _assert_owner_or_manager(doc)
     if doc.status != "Open":
         frappe.throw(_("Register session is not open"))
+    # Empty: the main drawer. Otherwise a drawer in another currency on this
+    # outlet ("Cash USD"), the amount in its money (lumenpos.currency).
+    if mode_of_payment and mode_of_payment not in _foreign_drawers(doc.pos_profile):
+        mode_of_payment = None
     doc.append(
         "cash_movements",
         {
             "movement_type": movement_type,
+            "mode_of_payment": mode_of_payment,
             "amount": flt(amount),
             "reason": reason,
             "recorded_at": now_datetime(),
@@ -344,40 +442,70 @@ def get_session_summary(session):
     # an opening entry exists (an SI shift can now have one for cash control).
     from lumenpos.api.sales import _table_doctype
 
-    sale_doctype = _table_doctype(doc.pos_profile)
-    payments = _payments_by_mode(doc.name, sale_doctype, _drawer_mode(doc.pos_profile))
+    from lumenpos import currency
 
-    # The float and cash in/out belong to the ONE drawer mode. Adding them to
+    sale_doctype = _table_doctype(doc.pos_profile)
+    company = frappe.get_cached_value("POS Profile", doc.pos_profile, "company")
+    ccy = currency.company_currency(company)
+    # The float and cash in/out belong to the ONE main drawer mode, and each
+    # drawer in another currency ("Cash USD") keeps its own. Adding them to
     # every Cash-type tender counted the float once per mode on the X-report and
     # at close (a site with delivery apps typed as Cash saw it 3-4 times over).
     drawer = _drawer_mode(doc.pos_profile)
-    cash_in = sum(m.amount for m in (doc.cash_movements or []) if m.movement_type == "Cash In")
-    cash_out = sum(m.amount for m in (doc.cash_movements or []) if m.movement_type == "Cash Out")
+    foreign = _foreign_drawers(doc.pos_profile)
+    floats = _foreign_floats(doc)
+    payments = _payments_by_mode(doc.name, sale_doctype, drawer)
+    cash_in, cash_out = _drawer_movements(doc, drawer, drawer)
 
-    expected = []
+    expected, seen = [], set()
     for mode, amount in payments.items():
-        row = {"mode_of_payment": mode, "expected_amount": flt(amount, 2)}
+        row = {
+            "mode_of_payment": mode,
+            "expected_amount": flt(amount, 2),
+            "currency": foreign.get(mode) or currency.mode_currency(mode, company),
+        }
         if mode == drawer:
             row["expected_amount"] = flt(amount + (doc.opening_float or 0) + cash_in - cash_out, 2)
             row["is_cash"] = 1
+        elif mode in foreign:
+            f_in, f_out = _drawer_movements(doc, mode, drawer)
+            row["expected_amount"] = flt(amount + floats.get(mode, 0) + f_in - f_out, 2)
+            row["is_cash"] = 1
         expected.append(row)
+        seen.add(mode)
 
-    if not any(r.get("is_cash") for r in expected) and (doc.opening_float or cash_in or cash_out):
+    if drawer not in seen and (doc.opening_float or cash_in or cash_out):
         expected.append(
             {
                 "mode_of_payment": drawer or "Cash",
                 "expected_amount": flt((doc.opening_float or 0) + cash_in - cash_out, 2),
                 "is_cash": 1,
+                "currency": ccy,
             }
         )
+    for mode, mode_ccy in foreign.items():
+        if mode in seen:
+            continue
+        f_in, f_out = _drawer_movements(doc, mode, drawer)
+        if floats.get(mode) or f_in or f_out:
+            expected.append(
+                {
+                    "mode_of_payment": mode,
+                    "expected_amount": flt(floats.get(mode, 0) + f_in - f_out, 2),
+                    "is_cash": 1,
+                    "currency": mode_ccy,
+                }
+            )
 
+    # Totals in the company currency, so a shift that sold in dollars and in
+    # dirhams adds up to one figure the books agree with.
     totals = frappe.get_all(
         sale_doctype,
         filters={"lumenpos_session": doc.name, "docstatus": 1},
         fields=[
             "count(name) as sales_count",
-            "sum(grand_total) as total_sales",
-            "sum(discount_amount) as invoice_discounts",
+            "sum(base_grand_total) as total_sales",
+            "sum(base_discount_amount) as invoice_discounts",
         ],
     )
     # `sale_doctype` is a fixed doctype name (POS Invoice / Sales Invoice from
@@ -385,7 +513,7 @@ def get_session_summary(session):
     # param; the session filter is parameterized. Safe despite the f-string.
     line_discounts = frappe.db.sql(  # nosemgrep
         f"""
-        select coalesce(sum(pii.discount_amount * pii.qty), 0)
+        select coalesce(sum(pii.discount_amount * pii.qty * pi.conversion_rate), 0)
         from `tab{sale_doctype} Item` pii
         join `tab{sale_doctype}` pi on pi.name = pii.parent
         where pi.lumenpos_session = %s and pi.docstatus = 1
@@ -400,6 +528,9 @@ def get_session_summary(session):
         "pos_opening_entry": doc.get("pos_opening_entry"),
         "opened_at": str(doc.opened_at),
         "opening_float": doc.opening_float,
+        "foreign_floats": floats,
+        "company_currency": ccy,
+        "rates": _shift_rates(doc),
         "cash_in": flt(cash_in, 2),
         "cash_out": flt(cash_out, 2),
         "cash_movements": [
@@ -408,6 +539,8 @@ def get_session_summary(session):
                 "amount": m.amount,
                 "reason": m.reason,
                 "recorded_at": str(m.recorded_at),
+                "mode_of_payment": m.get("mode_of_payment") or drawer,
+                "currency": foreign.get(m.get("mode_of_payment")) or ccy,
             }
             for m in (doc.cash_movements or [])
         ],
@@ -475,17 +608,20 @@ def close_register(session, counted, closing_note=None, expected_invoice_count=N
             )
 
     summary = get_session_summary(session)
-    expected_map = {r["mode_of_payment"]: r["expected_amount"] for r in summary["expected"]}
+    expected_map = {r["mode_of_payment"]: r for r in summary["expected"]}
 
     modes = sorted(set(expected_map) | set(counted or {}))
     doc.payment_counts = []
     for mode in modes:
-        expected_amount = flt(expected_map.get(mode))
+        row = expected_map.get(mode) or {}
+        expected_amount = flt(row.get("expected_amount"))
         counted_amount = flt((counted or {}).get(mode))
         doc.append(
             "payment_counts",
             {
                 "mode_of_payment": mode,
+                # Each drawer is counted in its own money (lumenpos.currency).
+                "currency": row.get("currency") or summary.get("company_currency"),
                 "expected_amount": expected_amount,
                 "counted_amount": counted_amount,
                 "difference": flt(counted_amount - expected_amount, 2),
@@ -793,46 +929,55 @@ def _make_closing_entry(session_doc, counted):
         else:
             si_rows.append(inv)
         full = frappe.get_doc(sale_doctype, inv.name)
-        grand_total += flt(full.grand_total)
-        net_total += flt(full.net_total)
+        # Totals in the company currency: a shift may hold sales in several
+        # currencies (lumenpos.currency), and the books add up in one.
+        grand_total += flt(full.base_grand_total)
+        net_total += flt(full.base_net_total)
         qty_total += sum(flt(i.qty) for i in full.items)
         for tax in full.taxes or []:
             _accumulate_tax(closing, tax)
-        for payment in full.payments or []:
-            if payment.amount:
-                _accumulate_payment(closing, payment.mode_of_payment, payment.amount)
-        if full.change_amount:
-            # Change comes OUT OF THE DRAWER, not out of whichever Cash-type
-            # tender happens to sort first (delivery apps are often typed Cash).
-            for row in closing.payment_reconciliation:
-                if row.mode_of_payment == drawer:
-                    row.expected_amount = flt(row.expected_amount) - flt(full.change_amount)
-                    break
+
+    # What each tender took, in ITS OWN account's currency, with change taken
+    # off the drawer it really came out of (see _payments_by_mode). Change comes
+    # OUT OF A DRAWER, never out of whichever Cash-type tender sorts first
+    # (delivery apps are often typed Cash).
+    for mode, amount in _payments_by_mode(session_doc.name, sale_doctype, drawer).items():
+        if amount:
+            _accumulate_payment(closing, mode, amount)
 
     cash_modes = _cash_modes()
-    cash_in = sum(m.amount for m in (session_doc.cash_movements or []) if m.movement_type == "Cash In")
-    cash_out = sum(m.amount for m in (session_doc.cash_movements or []) if m.movement_type == "Cash Out")
+    foreign = _foreign_drawers(session_doc.pos_profile)
+    cash_in, cash_out = _drawer_movements(session_doc, drawer, drawer)
     drawer_applied = False
     for detail in opening.balance_details:
         row = _get_reconciliation_row(closing, detail.mode_of_payment)
         opening_amt = flt(detail.opening_amount)
         # SELF-HEAL a shift opened before the single-drawer fix: the float was
         # written to EVERY Cash-type row back then, so crediting each one would
-        # inflate expected by a multiple of the float. Keep the drawer's copy only.
-        if opening_amt and detail.mode_of_payment != drawer and detail.mode_of_payment in cash_modes:
+        # inflate expected by a multiple of the float. Keep the drawer's copy
+        # only, and each drawer in another currency's own float.
+        if (
+            opening_amt
+            and detail.mode_of_payment != drawer
+            and detail.mode_of_payment in cash_modes
+            and detail.mode_of_payment not in foreign
+        ):
             opening_amt = 0
         row.opening_amount = opening_amt
         row.expected_amount = flt(row.expected_amount) + opening_amt
-        # Net the shift's cash in/out into the drawer row so expected matches
-        # what is physically in the till.
+        # Net the shift's cash in/out into its drawer's row so expected matches
+        # what is physically in each till drawer.
         if detail.mode_of_payment == drawer:
             row.expected_amount = flt(row.expected_amount) + cash_in - cash_out
             drawer_applied = True
+        elif detail.mode_of_payment in foreign:
+            f_in, f_out = _drawer_movements(session_doc, detail.mode_of_payment, drawer)
+            row.expected_amount = flt(row.expected_amount) + f_in - f_out
     if not drawer_applied and (cash_in or cash_out):
         # The drawer mode isn't on this opening entry (profile changed mid-life)
         #, fall back to the first Cash-type row so the movements aren't lost.
         for row in closing.payment_reconciliation:
-            if row.mode_of_payment in cash_modes:
+            if row.mode_of_payment in cash_modes and row.mode_of_payment not in foreign:
                 row.expected_amount = flt(row.expected_amount) + cash_in - cash_out
                 break
 
@@ -897,13 +1042,18 @@ def _declare_cash_movements(closing, session_doc, cash_in, cash_out):
     if not meta.has_field("lumenpos_cash_movements"):
         return
     closing.set("lumenpos_cash_movements", [])
+    main = _drawer_mode(session_doc.pos_profile)
     for m in session_doc.cash_movements or []:
+        # A movement of a drawer in another currency says which drawer, so its
+        # amount is read in that drawer's money (lumenpos.currency).
+        drawer = m.get("mode_of_payment")
+        reason = m.reason if not drawer or drawer == main else f"{drawer}: {m.reason or ''}".strip()
         closing.append(
             "lumenpos_cash_movements",
             {
                 "movement_type": m.movement_type,
                 "amount": m.amount,
-                "reason": m.reason,
+                "reason": reason,
                 "recorded_at": m.recorded_at,
                 "recorded_by": m.recorded_by,
             },
@@ -1080,15 +1230,26 @@ def list_sessions(pos_profile, limit=20):
         order_by="closed_at desc",
         limit_page_length=min(int(limit), 50),
     )
+    from lumenpos import currency
+
+    ccy = currency.company_currency(frappe.get_cached_value("POS Profile", pos_profile, "company"))
     for session in sessions:
         counts = frappe.get_all(
             "POS Register Payment Count",
             filters={"parent": session.name},
-            fields=["mode_of_payment", "expected_amount", "counted_amount", "difference"],
+            fields=["mode_of_payment", "currency", "expected_amount", "counted_amount", "difference"],
             order_by="idx asc",
         )
         session["counts"] = counts
-        session["total_difference"] = flt(sum(flt(c.difference) for c in counts), 2)
+        # One figure in the company currency, however many currencies were
+        # counted (lumenpos.currency). Only a shift with a drawer in another
+        # currency needs its fixed rates read.
+        if any(c.currency and c.currency != ccy for c in counts):
+            doc = frappe.get_doc("POS Register Session", session.name)
+            total = sum(_in_company_currency(doc, c.difference, c.currency) for c in counts)
+        else:
+            total = sum(flt(c.difference) for c in counts)
+        session["total_difference"] = flt(total, 2)
     return sessions
 
 
@@ -1108,56 +1269,93 @@ def _accumulate_payment(closing, mode_of_payment, amount):
 
 
 def _accumulate_tax(closing, tax):
+    # In the company currency, like the closing's other totals: a shift may
+    # hold sales in several currencies (lumenpos.currency).
+    amount = flt(tax.get("base_tax_amount")) if tax.get("base_tax_amount") is not None else flt(tax.tax_amount)
     for row in closing.taxes:
         if row.account_head == tax.account_head:
-            row.amount = flt(row.amount) + flt(tax.tax_amount)
+            row.amount = flt(row.amount) + amount
             return
     closing.append(
         "taxes",
-        {"account_head": tax.account_head, "rate": tax.rate, "amount": flt(tax.tax_amount)},
+        {"account_head": tax.account_head, "rate": tax.rate, "amount": amount},
     )
 
 
 def _payments_by_mode(session, doctype="POS Invoice", drawer=None):
+    """What each tender took in this shift, in ITS OWN account's currency.
+
+    A shift can hold sales in several currencies (lumenpos.currency): dirham
+    cash taken on a dollar sale sits in the dirham drawer at its dirham value
+    (the row's base amount), dollar cash in the dollar drawer at its dollar
+    value. Adding the rows' raw amounts together, as before, mixed the two.
+    Change is taken off the drawer it really came out of (the sale's change
+    account), in that drawer's currency."""
+    from lumenpos import currency
+
+    profile_name = frappe.db.get_value("POS Register Session", session, "pos_profile")
+    company = frappe.get_cached_value("POS Profile", profile_name, "company") if profile_name else None
+    ccy = currency.company_currency(company) if company else None
+    foreign = _foreign_drawers(profile_name) if profile_name else {}
     # Both POS Invoice and Sales Invoice use the Sales Invoice Payment child.
     # `doctype` is a fixed doctype name (POS Invoice / Sales Invoice), not user
     # input, and can't be a bound param as a table identifier; the session filter
     # is parameterized. Safe despite the f-string.
     rows = frappe.db.sql(  # nosemgrep
         f"""
-        select sip.mode_of_payment, sum(sip.amount) as amount
+        select sip.mode_of_payment, pi.currency,
+               sum(sip.amount) as amount, sum(sip.base_amount) as base_amount
         from `tabSales Invoice Payment` sip
         join `tab{doctype}` pi on pi.name = sip.parent and sip.parenttype = '{doctype}'
         where pi.lumenpos_session = %s and pi.docstatus = 1
-        group by sip.mode_of_payment
+        group by sip.mode_of_payment, pi.currency
         """,
         session,
         as_dict=True,
     )
     result = {}
     for row in rows:
-        result[row.mode_of_payment] = flt(row.amount)
+        mode_ccy = currency.mode_currency(row.mode_of_payment, company) if company else row.currency
+        # In the account's own money: the row amount when the account is in the
+        # sale's currency, its company-currency value otherwise.
+        value = flt(row.amount) if (row.currency == mode_ccy or not ccy) else flt(row.base_amount)
+        result[row.mode_of_payment] = flt(result.get(row.mode_of_payment)) + value
 
     # `doctype` is a fixed doctype name (POS Invoice / Sales Invoice), not user
     # input; a table identifier can't be a bound param and the session filter is
     # parameterized. Safe despite the f-string.
-    change = frappe.db.sql(  # nosemgrep
+    change_rows = frappe.db.sql(  # nosemgrep
         f"""
-        select coalesce(sum(change_amount), 0) from `tab{doctype}`
-        where lumenpos_session = %s and docstatus = 1
+        select account_for_change_amount as account, currency,
+               coalesce(sum(change_amount), 0) as change_amount,
+               coalesce(sum(base_change_amount), 0) as base_change_amount
+        from `tab{doctype}`
+        where lumenpos_session = %s and docstatus = 1 and change_amount != 0
+        group by account_for_change_amount, currency
         """,
         session,
-    )[0][0]
-    if change:
-        # Change is given from the DRAWER. Falling back to "first Cash-type mode"
-        # deducted it from whichever tender sorted first (a delivery app typed
-        # as Cash, say) and left the drawer over by that amount.
-        cash_modes = _cash_modes()
-        target = drawer if drawer in result else None
-        if target is None:
-            target = next((m for m in result if m in cash_modes), None)
+        as_dict=True,
+    )
+    cash_modes = _cash_modes()
+    accounts = {
+        mode: frappe.db.get_value("Mode of Payment Account", {"parent": mode, "company": company}, "default_account")
+        for mode in foreign
+    }
+    for row in change_rows:
+        target = next((mode for mode, account in accounts.items() if account and account == row.account), None)
         if target:
-            result[target] = flt(result[target] - change)
+            value = flt(row.change_amount) if row.currency == foreign[target] else flt(row.base_change_amount)
+        else:
+            # Change is given from the DRAWER. Falling back to "first Cash-type
+            # mode" deducted it from whichever tender sorted first (a delivery
+            # app typed as Cash, say) and left the drawer over by that amount.
+            target = drawer if drawer in result else None
+            if target is None:
+                target = next((m for m in result if m in cash_modes and m not in foreign), None)
+            local = row.currency == ccy or not ccy
+            value = flt(row.change_amount) if local else (flt(row.base_change_amount) or flt(row.change_amount))
+        if target:
+            result[target] = flt(flt(result.get(target)) - value)
     return result
 
 # ---------------------------------------------------------------------------

@@ -204,7 +204,31 @@ def get_settings():
             }
             for row in (doc.delivery_apps or [])
         ],
+        # Other currencies (lumenpos.currency), each with today's selling rate.
+        "enable_multi_currency": 1 if doc.get("enable_multi_currency") else 0,
+        "sale_currencies": _sale_currencies(doc),
     }
+
+
+def _sale_currencies(doc):
+    from lumenpos import currency
+
+    rates = {}
+    try:
+        for row in currency.get_rates():
+            rates.setdefault(row["currency"], []).append(row)
+    except Exception:
+        rates = {}
+    return [
+        {
+            "currency": row.currency,
+            "walk_in_customer": row.walk_in_customer or "",
+            "cash_mode": row.cash_mode or "",
+            "show_equivalent": 1 if row.show_equivalent else 0,
+            "rates": rates.get(row.currency, []),
+        }
+        for row in (doc.get("sale_currencies") or [])
+    ]
 
 
 @frappe.whitelist()
@@ -394,7 +418,35 @@ def save_settings(payload):
                 "require_order_id": 1 if row.get("require_order_id") else 0,
             },
         )
+    # Other currencies (lumenpos.currency). A row keeps what was set up for it
+    # (its walk-in customer and drawer); a new one is set up right after saving.
+    if "enable_multi_currency" in payload:
+        doc.enable_multi_currency = 1 if payload.get("enable_multi_currency") else 0
+    if "sale_currencies" in payload:
+        kept = {r.currency: r for r in (doc.get("sale_currencies") or [])}
+        doc.sale_currencies = []
+        seen = set()
+        for row in payload.get("sale_currencies") or []:
+            code = (row.get("currency") or "").strip().upper()
+            if not code or code in seen or not frappe.db.exists("Currency", code):
+                continue
+            seen.add(code)
+            old = kept.get(code)
+            doc.append(
+                "sale_currencies",
+                {
+                    "currency": code,
+                    "walk_in_customer": (old.walk_in_customer if old else None) or row.get("walk_in_customer") or None,
+                    "cash_mode": (old.cash_mode if old else None) or row.get("cash_mode") or None,
+                    "show_equivalent": 1 if row.get("show_equivalent") else 0,
+                },
+            )
+            frappe.db.set_value("Currency", code, "enabled", 1)
     doc.save()
+    if doc.get("enable_multi_currency"):
+        from lumenpos import currency
+
+        currency.ensure_setup()
     from lumenpos.api import audit
 
     audit.log(audit.SETTINGS_CHANGE, detail="LumenPOS Settings updated")

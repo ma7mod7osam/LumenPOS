@@ -33,7 +33,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, now_datetime, nowdate
 
-from lumenpos import deposits, erpnext_compat
+from lumenpos import currency, deposits, erpnext_compat
 from lumenpos.api import permissions, sales
 
 
@@ -76,6 +76,11 @@ def _build_sale(profile, customer, lines, note, with_taxes, tax_included=False):
     Separate from posting it because the same arithmetic has to be run twice:
     once for real at hand-over, and once on the day of the hold just to learn
     what the goods will come to with tax on them."""
+    # A hold's instalments and its liability account are one currency, the
+    # outlet's (lumenpos.currency).
+    currency.assert_local(
+        currency.sale_context(profile, customer, profile.selling_price_list), _("Holds and deposits")
+    )
     warehouse = sales._company_warehouse(profile)
     invoice = erpnext_compat.new_doc(sales._sale_doctype(profile))
     invoice.update(
@@ -97,8 +102,6 @@ def _build_sale(profile, customer, lines, note, with_taxes, tax_included=False):
         row.setdefault("warehouse", warehouse)
         invoice.append("items", row)
     invoice.set_missing_values()
-    # A customer billed in another currency would be posted wrong (see there).
-    sales.assert_single_currency(invoice, profile.selling_price_list)
     if not with_taxes:
         invoice.taxes = []
     elif tax_included:

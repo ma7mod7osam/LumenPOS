@@ -27,13 +27,28 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from lumenpos import exchanges
+from lumenpos import currency, exchanges
 from lumenpos.api import permissions, sales
 
 
 def _require_exchange():
     if not permissions.can_exchange():
         frappe.throw(_("You are not allowed to exchange goods"), frappe.PermissionError)
+
+
+def _assert_outlet_currency(original, profile, customer=None):
+    """An exchange nets two documents through a clearing account in the
+    company currency, each at its own rate, so it stays in the outlet's
+    currency (lumenpos.currency). A sale in another currency is refunded and
+    the new goods rung up as a new sale instead."""
+    ctx = currency.sale_context(profile, customer or original.customer, profile.selling_price_list)
+    if ctx.foreign or (original.get("currency") and original.currency != ctx.outlet_currency):
+        frappe.throw(
+            _(
+                "Exchanges are in {0} only. For a sale in {1}, refund it and ring the new goods up as a new sale."
+            ).format(ctx.outlet_currency, ctx.currency if ctx.foreign else original.currency),
+            title=_("Customer currency"),
+        )
 
 
 def _leftover_rows(leftover, refund_mode, refund_payments):
@@ -101,6 +116,7 @@ def quote_exchange(payload):
     sale_doctype = sales._doctype_of(original_name)
     original = frappe.get_doc(sale_doctype, original_name)
     profile_name = payload.get("pos_profile") or original.get("pos_profile")
+    _assert_outlet_currency(original, frappe.get_cached_doc("POS Profile", profile_name), payload.get("customer"))
     return_doc, _session = sales._build_return_doc(
         original, sale_doctype, original_name, return_items, payload.get("serials"),
         profile_name, None,
@@ -156,6 +172,9 @@ def submit_exchange(payload):
         frappe.throw(_("Add at least one item the customer is taking instead"))
 
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
+    _assert_outlet_currency(
+        frappe.get_doc(sales._doctype_of(original), original), profile, payload.get("customer")
+    )
 
     # A retried exchange (lost answer, double tap) must not post twice. The new
     # sale carries the key, so finding it means the whole pair already posted.

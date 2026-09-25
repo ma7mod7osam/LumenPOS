@@ -47,6 +47,8 @@ def get_bootstrap(pos_profile=None):
 
     profile = frappe.get_doc("POS Profile", profile_name)
 
+    from lumenpos import currency as sale_currency
+
     payment_modes = []
     for row in profile.payments:
         mop_type = frappe.db.get_value("Mode of Payment", row.mode_of_payment, "type")
@@ -55,6 +57,9 @@ def get_bootstrap(pos_profile=None):
             {
                 "mode_of_payment": row.mode_of_payment,
                 "type": mop_type or "General",
+                # Its account's currency: the till offers a tender only on sales
+                # ERPNext will accept it for (lumenpos.currency).
+                "account_currency": sale_currency.mode_currency(row.mode_of_payment, profile.company),
                 "default": row.default,
                 "require_reference": rule.get("require_reference", 0),
                 "reference_label": rule.get("reference_label", ""),
@@ -115,7 +120,21 @@ def get_bootstrap(pos_profile=None):
         "pin_set": _pin_set(),
         "settings": _client_settings(profile_name),
         "bundles": get_bundles(profile_name),
+        # Other currencies: which ones, their walk-in customer and drawer, and
+        # the rate this shift sells at (lumenpos.currency).
+        "multi_currency": _multi_currency(profile, session),
     }
+
+
+def _multi_currency(profile, session):
+    from lumenpos import currency
+
+    try:
+        return currency.client_config(profile, (session or {}).get("name"))
+    except Exception:
+        # Never let this block the till from starting.
+        frappe.log_error(title="LumenPOS: currency setup for the till failed", message=frappe.get_traceback())
+        return {"enabled": 0, "currencies": []}
 
 
 def _payment_rules():

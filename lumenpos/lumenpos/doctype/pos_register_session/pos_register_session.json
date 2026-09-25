@@ -20,6 +20,8 @@
   "closing_error",
   "float_section",
   "opening_float",
+  "foreign_floats",
+  "currency_rates",
   "column_break_2",
   "closing_note",
   "movements_section",
@@ -127,6 +129,18 @@
    "label": "Opening Float"
   },
   {
+   "fieldname": "foreign_floats",
+   "fieldtype": "Table",
+   "options": "POS Session Float",
+   "label": "Other currency floats"
+  },
+  {
+   "fieldname": "currency_rates",
+   "fieldtype": "Table",
+   "options": "POS Session Rate",
+   "label": "Rates fixed for this shift"
+  },
+  {
    "fieldname": "column_break_2",
    "fieldtype": "Column Break"
   },
@@ -201,7 +215,7 @@
    "link_fieldname": "lumenpos_session"
   }
  ],
- "modified": "2026-06-10 00:00:00.000000",
+ "modified": "2026-09-26 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Register Session",

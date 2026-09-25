@@ -52,6 +52,9 @@
   "payment_method_rules",
   "channels_section",
   "delivery_apps",
+  "currency_section",
+  "enable_multi_currency",
+  "sale_currencies",
   "features_section",
   "enable_order_discount",
   "enable_service_charge",
@@ -338,6 +341,26 @@
    "fieldtype": "Table",
    "label": "Delivery Apps",
    "options": "POS Delivery App"
+  },
+  {
+   "fieldname": "currency_section",
+   "fieldtype": "Section Break",
+   "label": "Other currencies",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "enable_multi_currency",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Sell in other currencies",
+   "description": "A customer billed in another currency (Customer, Currency and Price List) buys in it: prices, payment and receipt in that currency, at a rate fixed for the shift. Off: such a customer is refused."
+  },
+  {
+   "fieldname": "sale_currencies",
+   "fieldtype": "Table",
+   "options": "POS Sale Currency",
+   "label": "Currencies the till sells in",
+   "depends_on": "enable_multi_currency"
   },
   {
    "description": "Turn till features on or off. Each control is independent.",
@@ -726,7 +749,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-16 00:00:00.000000",
+ "modified": "2026-09-26 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

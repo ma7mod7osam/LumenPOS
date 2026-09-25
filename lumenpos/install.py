@@ -93,7 +93,22 @@ def ensure_setup():
     default_insights_on()
     default_cashback_on()
     recost_open_holds()
+    ensure_currencies()
     ensure_hot_indexes()
+
+
+def ensure_currencies():
+    """Set up any currency in Other currencies that is not set up yet: its
+    accounts, its cash drawer, its walk-in customer (lumenpos.currency). Never
+    blocks a migrate."""
+    from lumenpos import currency
+
+    try:
+        currency.ensure_setup()
+        frappe.db.commit()  # nosemgrep
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(title="LumenPOS: setting up other currencies failed", message=frappe.get_traceback())
 
 
 def recost_open_holds():

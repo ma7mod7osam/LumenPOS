@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "creation": "2026-09-26 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "currency",
+  "walk_in_customer",
+  "cash_mode",
+  "show_equivalent"
+ ],
+ "fields": [
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "options": "Currency",
+   "label": "Currency",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "walk_in_customer",
+   "fieldtype": "Link",
+   "options": "Customer",
+   "label": "Walk-in customer",
+   "in_list_view": 1,
+   "description": "Set up automatically: the customer a walk-in who pays in this currency is billed to."
+  },
+  {
+   "fieldname": "cash_mode",
+   "fieldtype": "Link",
+   "options": "Mode of Payment",
+   "label": "Cash in this currency",
+   "in_list_view": 1,
+   "description": "Set up automatically, with a cash account in this currency."
+  },
+  {
+   "fieldname": "show_equivalent",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Show the equivalent on local sales",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-26 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Sale Currency",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

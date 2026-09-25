@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, now_datetime, nowdate
 
-from lumenpos import cashback, cashback_rules, coupons, gift_cards, store_credit
+from lumenpos import cashback, cashback_rules, coupons, currency, gift_cards, store_credit
 from lumenpos.price_books import effective_prices, resolve_price_list, standard_prices
 from lumenpos.promotions.engine import evaluate
 from lumenpos.promotions.loader import get_active_promotions
@@ -90,37 +90,21 @@ def _ensure_ignore_pricing_rule(profile):
         frappe.clear_document_cache("POS Profile", profile.name)
 
 
-def assert_single_currency(invoice, price_list):
-    """Refuse a sale whose invoice ERPNext has moved to another currency.
-
-    ERPNext bills a customer in their Billing Currency (Customer, Currency and
-    Price List): on a POS Invoice it switches the invoice to that currency, and
-    does so again on every validate. LumenPOS prices from the outlet's list and
-    does not convert, so such a sale posted the shelf numbers as foreign money:
-    a 100 USD item became 100 EUR, 400 USD in the books at a rate of 4, while
-    the cashier collected dollars (reproduced on v13, v14 and v15). Until the
-    till sells in other currencies, say so instead of posting it."""
-    list_currency = frappe.get_cached_value("Price List", price_list, "currency") if price_list else None
-    if not list_currency or not invoice.get("currency") or invoice.currency == list_currency:
-        return
-    frappe.throw(
-        _(
-            "{0} is billed in {1}, but this till sells in {2}, and it cannot sell in another "
-            "currency yet. Choose another customer, or clear the customer's Billing Currency in "
-            "ERPNext (Customer, Currency and Price List)."
-        ).format(invoice.get("customer_name") or invoice.customer, invoice.currency, list_currency),
-        title=_("Customer currency"),
-    )
-
-
-def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passcode=True):
+def _build_sale_invoice(
+    profile, payload, *, validate_serials=True, check_passcode=True, session_name=None, pin=False
+):
     """Build a fully-priced, fully-taxed but NOT-yet-inserted POS Invoice from
     the cart. Shared by submit_sale (which then attaches payments and submits)
     and quote_sale (which only reads the authoritative totals so the till can
     charge exactly what the posted invoice will show, no phantom rounding
     'change'). Prices and promotions are ALWAYS resolved server-side; the
     client's math is display-only. Returns (invoice, customer). Does NOT set
-    lumenpos_session (the caller does that on submit)."""
+    lumenpos_session (the caller does that on submit).
+
+    The sale's currency (lumenpos.currency) rides on invoice.flags.lumenpos_currency.
+    Every price below stays in the outlet's currency, as it always was; only
+    the invoice rows and the service charge are converted, at the rate the
+    shift fixed (`pin` fixes it, on a real sale)."""
     customer = payload.get("customer") or profile.customer
     if not customer:
         frappe.throw(_("Select a customer (or set a default customer on the POS Profile)"))
@@ -130,13 +114,23 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     price_list = resolve_price_list(
         profile, customer_group, app.get("price_list") if app else None
     )
+    ctx = currency.sale_context(profile, customer, price_list, session_name, pin)
     if check_passcode:
         _check_price_edit_permission(payload)
     discount_approver = _check_discount_passcode(payload) if check_passcode else None
 
+    # A customer with their own list in the sale's currency is priced from it
+    # (ERPNext honours it too), brought into the outlet's terms so the offers,
+    # bundles and discounts below keep working on one currency.
     lines = _build_lines(
-        payload["items"], profile, customer_group, app.get("price_list") if app else None
+        payload["items"],
+        profile,
+        customer_group,
+        ctx.own_list or (app.get("price_list") if app else None),
     )
+    if ctx.own_list:
+        for line in lines:
+            line["price"] = flt(line["price"]) / ctx.factor
     bundle_discounts, bundle_applied = _apply_bundles(payload["items"], lines)
 
     # Promotions never touch bundle lines, bundle pricing is final.
@@ -250,7 +244,8 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
         )
 
     invoice.set_missing_values()
-    assert_single_currency(invoice, price_list)
+    currency.apply_to_invoice(invoice, ctx)
+    invoice.flags.lumenpos_currency = ctx
 
     # Every line keeps the profile's warehouse (set in the row build above), it
     # belongs to the profile's company. Do NOT clear it for non-stock lines:
@@ -267,7 +262,9 @@ def _build_sale_invoice(profile, payload, *, validate_serials=True, check_passco
     for i, item_row in enumerate(invoice.items):
         price = flt(lines[i]["price"])
         per_unit = flt(per_unit_discounts[i])
-        item_row.price_list_rate = price
+        # The only conversion: the row's list price in the sale's currency. The
+        # discount below is a percentage, so it carries over unchanged.
+        item_row.price_list_rate = flt(price * ctx.factor, item_row.precision("price_list_rate"))
         item_row.margin_type = ""
         item_row.margin_rate_or_amount = 0
         item_row.rate_with_margin = 0
@@ -309,7 +306,11 @@ def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
         (flt(lines[i]["price"]) - flt(per_unit_discounts[i])) * (lines[i]["qty"] or 0)
         for i in range(len(lines))
     )
-    amount = flt(base * pct / 100.0, invoice.precision("grand_total"))
+    # The lines are in the outlet's currency; the charge goes on the invoice in
+    # the sale's (lumenpos.currency).
+    ctx = invoice.flags.get("lumenpos_currency")
+    factor = ctx.factor if ctx else 1.0
+    amount = flt(base * pct / 100.0 * factor, invoice.precision("grand_total"))
     if amount <= 0:
         return
     from lumenpos.api.settings import company_setting
@@ -333,6 +334,17 @@ def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
     )
 
 
+def _quote_session(pos_profile):
+    """The open shift a quote reads its fixed rates from, if any. A quote never
+    fixes a rate itself; the sale does."""
+    from lumenpos.api.session import get_open_session
+
+    try:
+        return (get_open_session(pos_profile) or {}).get("name")
+    except Exception:
+        return None
+
+
 @frappe.whitelist()
 def quote_sale(payload):
     """Authoritative pre-payment totals for the current cart, the SAME server
@@ -346,7 +358,8 @@ def quote_sale(payload):
     _require_sell()
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
     invoice, _customer = _build_sale_invoice(
-        profile, payload, validate_serials=False, check_passcode=False
+        profile, payload, validate_serials=False, check_passcode=False,
+        session_name=_quote_session(profile.name),
     )
     prec = invoice.precision("grand_total")
     # What the till should collect: ERPNext validates payment against
@@ -355,6 +368,9 @@ def quote_sale(payload):
     from lumenpos.api.catalog import blocked_payment_modes
 
     return {
+        # The sale's currency and the shift's rate (lumenpos.currency); every
+        # amount here is in that currency.
+        **currency.public(invoice.flags.lumenpos_currency),
         "payable": flt(payable, prec),
         "grand_total": flt(invoice.grand_total, prec),
         "rounded_total": flt(invoice.rounded_total, prec),
@@ -403,10 +419,24 @@ def submit_sale(payload):
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
     session = _open_session(profile.name)
 
-    invoice, customer = _build_sale_invoice(profile, payload)
+    # A real sale fixes the shift's rate for its currency (lumenpos.currency).
+    invoice, customer = _build_sale_invoice(profile, payload, session_name=session["name"], pin=True)
+    ctx = invoice.flags.lumenpos_currency
     _set_custom(invoice, ("lumenpos_session",), session["name"])
     if key:
         _set_custom(invoice, ("lumenpos_idempotency_key",), key)
+
+    # Tenders ERPNext will accept for this sale at the close, and the wallets
+    # that hold one currency only (their ledgers are in the outlet's).
+    currency.check_tenders(ctx, profile.company, payload.get("payments"))
+    if ctx.foreign:
+        wallets = {store_credit.MODE_OF_PAYMENT, cashback.MODE_OF_PAYMENT, gift_cards.mode_of_payment()}
+        if (
+            any(flt(p.get("amount")) and p.get("mode_of_payment") in wallets for p in payload.get("payments") or [])
+            or payload.get("gift_cards")
+            or cint(payload.get("redeem_loyalty_points"))
+        ):
+            currency.assert_local(ctx, _("Gift cards, store credit, cashback and loyalty points"))
 
     _apply_loyalty_redemption(invoice, customer, profile.company, payload)
 
@@ -457,6 +487,11 @@ def submit_sale(payload):
 
     _reconcile_payment(invoice, profile)
     _drop_empty_payments(invoice)
+    # A sale in another currency gives change from that currency's drawer when
+    # only its cash was handed over, from the main drawer otherwise.
+    invoice.account_for_change_amount = currency.change_account(
+        ctx, profile.company, payload.get("payments"), invoice.get("account_for_change_amount")
+    )
     # Shop rules on HOW this basket may be paid, re-checked server-side so a
     # stale tab, a queued offline sale or a direct API call can't bypass them.
     from lumenpos import payment_restrictions
@@ -550,6 +585,10 @@ def sell_gift_card(payload):
     customer = payload.get("customer") or profile.customer
     if not customer:
         frappe.throw(_("Select a customer (or set a default customer on the POS Profile)"))
+    # A card's balance is one currency, the outlet's (lumenpos.currency).
+    currency.assert_local(
+        currency.sale_context(profile, customer, profile.selling_price_list), _("Gift cards")
+    )
 
     # A gift card is non-stock, but ERPNext STILL validates the line/default
     # warehouse against the company even for a POS sale. Its warehouse resolver
@@ -603,7 +642,6 @@ def sell_gift_card(payload):
             {"sales_person": payload["sales_person"], "allocated_percentage": 100},
         )
     invoice.set_missing_values()
-    assert_single_currency(invoice, profile.selling_price_list)
     invoice.taxes = []
 
     # Belt-and-suspenders: re-assert the company warehouse in case
@@ -1303,7 +1341,7 @@ def _cashback_earn(invoice, profile, payload, cashback_used):
     if not cashback_rules.enabled():
         return
     customer = payload.get("customer")
-    if not customer:
+    if not customer or _sold_in_other_currency(invoice):
         return
     try:
         rules = cashback_rules.get_active_rules(profile.name, include_coupon=True)
@@ -1362,10 +1400,17 @@ def _cashback_cart(invoice, customer, payload):
     }
 
 
+def _sold_in_other_currency(invoice):
+    """A sale in another currency neither spends nor earns cashback: its ledger
+    is in the outlet's currency, where that customer never buys."""
+    ctx = invoice.flags.get("lumenpos_currency")
+    return bool(ctx and ctx.foreign)
+
+
 def _cashback_estimate(invoice, profile, payload):
     """The cashback this cart would earn, for the till to show before payment.
     Gross (no cashback tender netted off yet), and only for a named customer."""
-    if not (cashback_rules.enabled() and payload.get("customer")):
+    if not (cashback_rules.enabled() and payload.get("customer")) or _sold_in_other_currency(invoice):
         return 0.0
     try:
         rules = cashback_rules.get_active_rules(profile.name, include_coupon=True)
@@ -2071,6 +2116,16 @@ def _build_return_doc(original, sale_doctype, invoice, items, serials, pos_profi
     if (return_reason or "").strip():
         _set_custom(return_doc, ("lumenpos_return_reason",), return_reason.strip())
     return_doc.run_method("set_missing_values")
+    # A sale in another currency comes back in that currency and at ITS rate:
+    # ERPNext refuses a credit note at any other ("Exchange Rate must be same
+    # as ..."), and set_missing_values may have moved the header since.
+    if original.get("currency") and original.currency != currency.company_currency(original.company):
+        for field in (
+            "currency", "conversion_rate", "selling_price_list", "price_list_currency",
+            "plc_conversion_rate", "debit_to",
+        ):
+            if original.get(field):
+                return_doc.set(field, original.get(field))
     return_doc.run_method("calculate_taxes_and_totals")
     return return_doc, session
 
@@ -2345,6 +2400,20 @@ def create_return(
     if _split_fn:
         refund_payments = _split_fn(abs(refund_amount))
     splits = _refund_splits(refund_payments, refund_amount, refund_mode, allowed_modes)
+    # A sale in another currency is refunded through tenders ERPNext accepts
+    # for it (its own currency or the company's), never into store credit,
+    # whose ledger holds the outlet's currency only (lumenpos.currency).
+    ccy = currency.company_currency(original.company)
+    if return_doc.currency != ccy:
+        sale_ctx = frappe._dict(
+            company_currency=ccy, currency=return_doc.currency, foreign=True,
+            outlet_currency=currency.list_currency(
+                frappe.get_cached_value("POS Profile", pos_profile or original.pos_profile, "selling_price_list")
+            ) or ccy,
+        )
+        currency.check_tenders(sale_ctx, original.company, splits)
+        if any(r["mode_of_payment"] == store_credit.MODE_OF_PAYMENT for r in splits):
+            currency.assert_local(sale_ctx, _("Store credit refunds"))
     if any(r["mode_of_payment"] == store_credit.MODE_OF_PAYMENT for r in splits):
         store_credit.ensure_mode_of_payment(original.company)
     for row in return_doc.payments:
