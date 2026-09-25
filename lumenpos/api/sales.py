@@ -487,11 +487,11 @@ def submit_sale(payload):
 
     _reconcile_payment(invoice, profile)
     _drop_empty_payments(invoice)
-    # A sale in another currency gives change from that currency's drawer when
-    # only its cash was handed over, from the main drawer otherwise.
-    invoice.account_for_change_amount = currency.change_account(
-        ctx, profile.company, payload.get("payments"), invoice.get("account_for_change_amount")
-    )
+    # Change always comes back in local money, from the outlet's change account
+    # (the main drawer), on a sale in another currency too. ERPNext merges a
+    # customer's shift into one invoice and books ALL its change from the last
+    # invoice's account, so a change account that varied per sale would split
+    # the cash accounts wrong at the close (lumenpos.currency).
     # Shop rules on HOW this basket may be paid, re-checked server-side so a
     # stale tab, a queued offline sale or a direct API call can't bypass them.
     from lumenpos import payment_restrictions

@@ -27,6 +27,10 @@ before any of this was written):
   cash on a dollar sale) or in the sale's currency (Cash USD). ERPNext refuses
   a dollar account on a dirham invoice at the shift close, so the till never
   offers one.
+- Change always comes back in local money from the outlet's change account,
+  as in ERPNext's own POS: the close merges a customer's invoices and books
+  all their change from ONE account (the last invoice's), so a drawer in
+  another currency takes money in and never pays change out.
 """
 
 import frappe
@@ -267,30 +271,6 @@ def check_tenders(ctx, company, payments):
             ),
             title=_("Payment"),
         )
-
-
-def change_account(ctx, company, payments, default_account):
-    """Where the change of a sale in another currency comes from: that
-    currency's cash drawer when only its cash was handed over, the main drawer
-    otherwise (a tourist paying in dirhams gets dirhams back)."""
-    if not ctx.foreign:
-        return default_account
-    local_cash, foreign_cash = False, None
-    for row in payments or []:
-        if not flt(row.get("amount")):
-            continue
-        mode = row.get("mode_of_payment")
-        if frappe.get_cached_value("Mode of Payment", mode, "type") != "Cash":
-            continue
-        if mode_currency(mode, company) == ctx.currency:
-            foreign_cash = mode
-        else:
-            local_cash = True
-    if foreign_cash and not local_cash:
-        return frappe.db.get_value(
-            "Mode of Payment Account", {"parent": foreign_cash, "company": company}, "default_account"
-        ) or default_account
-    return default_account
 
 
 def amount_in_account_currency(row, invoice, company):
