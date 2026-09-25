@@ -1174,7 +1174,7 @@
           </p>
           <div v-if="!rateRows.length" class="muted small">{{ t('Save the currencies first, then set their rates here.') }}</div>
           <div v-for="r in rateRows" :key="r.currency + r.company_currency" class="cf-row">
-            <span class="rate-label">1 {{ r.currency }} =</span>
+            <span class="rate-label">{{ isolate(`1 ${r.currency} =`) }}</span>
             <input class="cf-in rate-in" type="text" inputmode="decimal" v-model="r.draft" />
             <span>{{ r.company_currency }}</span>
             <span v-if="!r.rate" class="neg small">{{ t('No rate yet: the till cannot sell in it') }}</span>
@@ -1975,7 +1975,7 @@ import Icon from '../components/Icon.vue'
 import OfflineLogModal from '../components/OfflineLogModal.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { call } from '../api'
-import { money, shortTime, parseMoney } from '../format'
+import { money, shortTime, parseMoney, isolate } from '../format'
 import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { catalogCount, storagePersisted, customerCount } from '../offline'

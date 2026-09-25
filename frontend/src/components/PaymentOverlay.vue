@@ -40,7 +40,7 @@
           <template v-else>{{ t('{amount} given back in {currency}', { amount: money(-remaining, sale.currency), currency: local }) }}</template>
         </div>
         <div v-if="sale.foreign" class="rate-note">
-          {{ t('Rate for this shift: 1 {currency} = {rate} {local}', { currency: sale.currency, rate: rateLabel, local }) }}
+          {{ t('Rate for this shift: {rate}', { rate: rateLine(sale.currency, sale.rate, local) }) }}
         </div>
       </div>
 
@@ -222,7 +222,7 @@ import { ref, computed, onMounted } from 'vue'
 import { call } from '../api'
 import { useCartStore } from '../stores/cart'
 import { useSessionStore } from '../stores/session'
-import { money, rateText } from '../format'
+import { money, rateLine } from '../format'
 import { t } from '../i18n'
 
 const emit = defineEmits(['close', 'done'])
@@ -254,7 +254,6 @@ const sale = computed(() => {
 })
 // The money the main drawer holds, and that change is given in.
 const local = computed(() => session.localCurrency)
-const rateLabel = computed(() => rateText(sale.value.rate))
 
 // A sale in another currency takes no wallets: their ledgers are in the
 // outlet's currency only.

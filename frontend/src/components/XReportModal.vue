@@ -49,7 +49,7 @@
           <div v-if="rates.length" class="xr-section">
             <div class="xr-sub">{{ t('Exchange rates') }}</div>
             <div v-for="r in rates" :key="r.currency" class="row">
-              <span>1 {{ r.currency }}</span><span>{{ r.rate }} {{ local }}</span>
+              <span>{{ r.currency }}</span><span>{{ r.line }}</span>
             </div>
           </div>
 
@@ -78,7 +78,7 @@
 import Icon from './Icon.vue'
 import { computed } from 'vue'
 import { t } from '../i18n'
-import { money, rateText } from '../format'
+import { money, rateLine } from '../format'
 import { useSessionStore } from '../stores/session'
 
 const props = defineProps({ summary: { type: Object, required: true } })
@@ -91,7 +91,7 @@ const local = computed(() => props.summary.company_currency || session.localCurr
 const rates = computed(() =>
   Object.entries(props.summary.rates || {}).map(([currency, rate]) => ({
     currency,
-    rate: rateText(rate),
+    line: rateLine(currency, rate, local.value),
   }))
 )
 function drawerCurrency(drawer) {

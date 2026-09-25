@@ -74,7 +74,7 @@
         </div>
         <div class="row muted small">
           <span>{{ t('Rate') }}</span>
-          <span>1 {{ receipt.currency }} = {{ rateLabel }} {{ receipt.company_currency }}</span>
+          <span>{{ rateLine(receipt.currency, receipt.conversion_rate, receipt.company_currency) }}</span>
         </div>
       </template>
       <template v-if="s.receipt_show_payments">
@@ -128,7 +128,7 @@
 <script setup>
 import { computed } from 'vue'
 import { t } from '../i18n'
-import { money, rateText } from '../format'
+import { money, rateLine } from '../format'
 import { useSessionStore } from '../stores/session'
 
 const props = defineProps({
@@ -154,7 +154,6 @@ const foreign = computed(
     props.receipt.currency !== props.receipt.company_currency &&
     props.receipt.base_grand_total != null
 )
-const rateLabel = computed(() => rateText(props.receipt.conversion_rate))
 const tpl = computed(() => (s.value.receipt_template || 'Standard').toLowerCase())
 
 // Dynamic custom fields resolved by the server (get_receipt), each is

@@ -1483,7 +1483,7 @@ const currencies = {
   "{name} is billed in {currency}. Switch on Other currencies in Settings, General, or choose another customer.":
     "فوترة {name} بعملة {currency}. فعل العملات الأخرى من الإعدادات، عام، أو اختر عميلا آخر.",
   "{amount} given back in {currency}": "{amount} يرد بـ {currency}",
-  "Rate for this shift: 1 {currency} = {rate} {local}": "سعر هذه الوردية: 1 {currency} = {rate} {local}",
+  "Rate for this shift: {rate}": "سعر هذه الوردية: {rate}",
   "Amount in": "المبلغ بـ",
   "A sale in another currency needs a connection, it cannot be queued offline":
     "البيع بعملة أخرى يحتاج اتصالا، ولا يمكن حفظه للرفع لاحقا.",

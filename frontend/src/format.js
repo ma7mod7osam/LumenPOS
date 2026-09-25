@@ -45,6 +45,12 @@ export function rateText(rate) {
   return Number(rate || 0).toFixed(6).replace(/\.?0+$/, '')
 }
 
+// "1 USD = 3.75 SAR" as one isolated run: on an Arabic screen the bidi
+// algorithm otherwise moves the leading 1 to the far end.
+export function rateLine(from, rate, to) {
+  return isolate(`1 ${from} = ${rateText(rate)} ${to}`)
+}
+
 // Human-friendly warranty length from a number of days.
 export function warrantyLabel(days) {
   days = Number(days) || 0
