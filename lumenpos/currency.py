@@ -187,13 +187,16 @@ def sale_context(profile, customer, price_list, session_name=None, pin=False):
         )
     rate = shift_rate(session_name, billed, profile.company, pin)
     list_rate = shift_rate(session_name, outlet, profile.company, pin)
+    # A plain dict: v13's frappe._dict.update takes no keyword arguments.
     ctx.update(
-        currency=billed,
-        rate=rate,
-        list_rate=list_rate,
-        factor=list_rate / rate,
-        foreign=True,
-        own_list=own_price_list(customer, billed),
+        {
+            "currency": billed,
+            "rate": rate,
+            "list_rate": list_rate,
+            "factor": list_rate / rate,
+            "foreign": True,
+            "own_list": own_price_list(customer, billed),
+        }
     )
     return ctx
 
