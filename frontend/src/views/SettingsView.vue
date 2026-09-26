@@ -1273,6 +1273,7 @@
               {{ t('Show the equivalent at the till') }}
             </label>
             <span v-if="row.walk_in_customer" class="muted small">{{ row.walk_in_customer }} · {{ row.cash_mode }}</span>
+            <span v-else-if="row.setup_error" class="neg small">{{ t('Could not set up: {reason}', { reason: row.setup_error }) }}</span>
             <span v-else class="muted small">{{ t('Set up when you save') }}</span>
             <button class="btn-ghost" @click="generalForm.sale_currencies.splice(i, 1)"><Icon name="close" /></button>
           </div>
@@ -2772,6 +2773,7 @@ async function load() {
     enable_layaway: info.enable_layaway ? 1 : 0,
     enable_multi_currency: info.enable_multi_currency ? 1 : 0,
     sale_currencies: (info.sale_currencies || []).map((r) => ({
+      setup_error: r.setup_error || '',
       currency: r.currency,
       show_equivalent: r.show_equivalent ? 1 : 0,
       walk_in_customer: r.walk_in_customer || '',
@@ -3584,7 +3586,11 @@ async function saveGeneral() {
     }
     // Other currencies: a new one was just set up (walk-in customer, drawer on
     // the outlet), so the till reloads its payment methods and rates.
+    for (const r of info.sale_currencies || []) {
+      if (r.setup_error) session.notify(t('{code} could not be set up: {reason}', { code: r.currency, reason: r.setup_error }), true)
+    }
     generalForm.value.sale_currencies = (info.sale_currencies || []).map((r) => ({
+      setup_error: r.setup_error || '',
       currency: r.currency,
       show_equivalent: r.show_equivalent ? 1 : 0,
       walk_in_customer: r.walk_in_customer || '',

@@ -1548,6 +1548,8 @@ const prefixedEn = {
   'day:sunday': 'Sun',
 }
 const prefixedAr = {
+  "Could not set up: {reason}": "تعذر الإعداد: {reason}",
+  "{code} could not be set up: {reason}": "تعذر إعداد {code}: {reason}",
   'status:Draft': 'مسودة',
   'status:Return': 'مرتجع',
   'status:Credit Note Issued': 'صدر لها إشعار دائن',

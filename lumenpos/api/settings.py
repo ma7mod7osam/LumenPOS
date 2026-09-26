@@ -239,10 +239,11 @@ def _sale_currencies(doc):
 
     rates = {}
     try:
-        for row in currency.get_rates():
+        for row in currency.rates():
             rates.setdefault(row["currency"], []).append(row)
     except Exception:
         rates = {}
+    problems = currency.setup_errors()
     return [
         {
             "currency": row.currency,
@@ -250,6 +251,8 @@ def _sale_currencies(doc):
             "cash_mode": row.cash_mode or "",
             "show_equivalent": 1 if row.show_equivalent else 0,
             "rates": rates.get(row.currency, []),
+            # Why the last setup of a currency not set up yet failed.
+            "setup_error": "" if row.walk_in_customer else (problems.get(row.currency) or ""),
         }
         for row in (doc.get("sale_currencies") or [])
     ]

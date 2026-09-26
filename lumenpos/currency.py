@@ -416,12 +416,19 @@ def _ensure_walk_in(currency, receivables):
             if default_customer
             else (None, None)
         )
+        # A group v15 accepts: it refuses a group node ("Cannot select a Group
+        # type Customer Group"), and an outlet's default customer often sits in
+        # "All Customer Groups", so the currency was never set up there.
+        from lumenpos.api.catalog import _customer_group
+
         doc = frappe.get_doc(
             {
                 "doctype": "Customer",
                 "customer_name": label,
                 "customer_type": "Individual",
-                "customer_group": group or frappe.db.get_single_value("Selling Settings", "customer_group"),
+                "customer_group": _customer_group(
+                    "Individual", group, frappe.db.get_single_value("Selling Settings", "customer_group")
+                ),
                 "territory": territory or frappe.db.get_single_value("Selling Settings", "territory"),
             }
         )
@@ -465,19 +472,39 @@ def setup_currency(currency):
     return {"walk_in_customer": walk_in, "cash_mode": mode}
 
 
+SETUP_ERRORS = "lumenpos_currency_setup_errors"
+
+
+def setup_errors():
+    """{currency: reason} of the currencies whose last setup failed."""
+    try:
+        found = frappe.cache().hgetall(SETUP_ERRORS) or {}
+    except Exception:
+        return {}
+    # Redis hands the field names back as bytes.
+    return {(k.decode() if isinstance(k, bytes) else k): v for k, v in found.items()}
+
+
 def ensure_setup():
     """After a migrate, and after saving Settings: set up every currency row
-    that is not set up yet. Never blocks a migrate."""
+    that is not set up yet. Never blocks a migrate. A currency is set up whole
+    or not at all (no drawer without its walk-in customer), and why it failed
+    is kept for the Settings screen, which used to say "Set up when you save"
+    forever. Returns {currency: reason} for the ones that failed."""
     if not enabled():
-        return
+        return {}
     doc = frappe.get_single(SETTINGS)
     changed = False
+    failed = {}
     for row in doc.get("sale_currencies") or []:
         if not row.currency or (row.walk_in_customer and row.cash_mode):
             continue
+        frappe.db.savepoint("lumenpos_currency_setup")
         try:
             made = setup_currency(row.currency)
-        except Exception:
+        except Exception as exc:
+            frappe.db.rollback(save_point="lumenpos_currency_setup")
+            failed[row.currency] = frappe.utils.strip_html(str(exc)).strip() or type(exc).__name__
             frappe.log_error(
                 title=f"LumenPOS: setting up {row.currency} failed", message=frappe.get_traceback()
             )
@@ -485,9 +512,17 @@ def ensure_setup():
         row.walk_in_customer = row.walk_in_customer or made["walk_in_customer"]
         row.cash_mode = row.cash_mode or made["cash_mode"]
         changed = True
+    try:
+        cache = frappe.cache()
+        cache.delete_key(SETUP_ERRORS)
+        for code, reason in failed.items():
+            cache.hset(SETUP_ERRORS, code, reason)
+    except Exception:
+        pass
     if changed:
         doc.flags.ignore_permissions = True
         doc.save()
+    return failed
 
 
 # ---------------------------------------------------------------------------
@@ -571,12 +606,26 @@ def get_rates():
     """Today's selling rate of every currency the till sells in, to each
     company currency with a till."""
     _require_settings()
+    return rates()
+
+
+def rates():
+    """get_rates for the Settings screen: anyone who may see Settings sees the
+    rates (only changing one needs the right to manage them; they used to
+    vanish behind "Save the currencies first"). ERPNext's lookup can pop up
+    "Unable to find exchange rate" for a currency it cannot fetch, which is
+    exactly the one to set here, so its message is muted."""
     out = []
-    for currency in currency_rows():
-        for ccy in sorted({company_currency(c) for c in _companies()}):
-            if currency == ccy:
-                continue
-            out.append({"currency": currency, "company_currency": ccy, "rate": current_rate(currency, ccy)})
+    muted = frappe.flags.mute_messages
+    frappe.flags.mute_messages = True
+    try:
+        for currency in currency_rows():
+            for ccy in sorted({company_currency(c) for c in _companies()}):
+                if currency == ccy:
+                    continue
+                out.append({"currency": currency, "company_currency": ccy, "rate": current_rate(currency, ccy)})
+    finally:
+        frappe.flags.mute_messages = muted
     return out
 
 
