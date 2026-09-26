@@ -449,7 +449,7 @@ def submit_sale(payload):
         if flt(c.get("amount")) > 0
     ]
     for card in redeem_cards:
-        gift_cards.check_redeem(card["card_no"], card["amount"])
+        gift_cards.check_redeem(card["card_no"], card["amount"], profile.company)
 
     store_credit_used = 0.0
     cashback_used = 0.0
@@ -463,7 +463,7 @@ def submit_sale(payload):
         if not amount:
             continue
         if payment["mode_of_payment"] == store_credit.MODE_OF_PAYMENT:
-            balance = store_credit.get_balance(customer)
+            balance = store_credit.get_balance(customer, profile.company)
             if store_credit_used + amount > balance + 0.005:
                 frappe.throw(
                     _("Store credit balance is {0}, cannot redeem {1}").format(balance, amount)
@@ -471,7 +471,7 @@ def submit_sale(payload):
             sc_account = store_credit.ensure_mode_of_payment(profile.company)
             store_credit_used += amount
         if payment["mode_of_payment"] == cashback.MODE_OF_PAYMENT:
-            balance = cashback.get_balance(customer)
+            balance = cashback.get_balance(customer, company=profile.company)
             if cashback_used + amount > balance + 0.005:
                 frappe.throw(
                     _("Cashback balance is {0}, cannot redeem {1}").format(balance, amount)
@@ -528,16 +528,11 @@ def submit_sale(payload):
     t_submit = _perf_now()
 
     if store_credit_used:
-        store_credit.add_entry(
-            customer,
-            "Redeem",
-            store_credit_used,
-            invoice.name,
-            profile.company,
-            invoice.doctype,
-        )
+        # Across the group: this company's credit first, another company's
+        # part recorded for settlement (lumenpos.inter_company).
+        store_credit.redeem(customer, store_credit_used, invoice.name, profile.company, invoice.doctype)
     for card in redeem_cards:
-        gift_cards.redeem(card["card_no"], card["amount"], invoice.name)
+        gift_cards.redeem(card["card_no"], card["amount"], invoice.name, profile.company)
     if cashback_used:
         cashback.redeem(
             customer, cashback_used, invoice.name, profile.company, invoice.doctype,
@@ -692,17 +687,23 @@ def sell_gift_card(payload):
 
 
 @frappe.whitelist()
-def gift_card_info(card_no):
-    """Balance lookup for the payment screen."""
+def gift_card_info(card_no, pos_profile=None):
+    """Balance lookup for the payment screen, with who issued the card and
+    whether this outlet may take it (lumenpos.inter_company)."""
+    from lumenpos import inter_company
+
     card_no = (card_no or "").strip().upper()
     if not frappe.db.exists("POS Gift Card", card_no):
         frappe.throw(_("Gift card {0} not found").format(card_no))
     card = frappe.get_doc("POS Gift Card", card_no)
+    company = frappe.get_cached_value("POS Profile", pos_profile, "company") if pos_profile else None
     return {
         "card_no": card.card_no,
         "status": card.status,
         "balance": card.balance,
         "expiry_date": str(card.expiry_date) if card.expiry_date else None,
+        "company": card.get("company"),
+        "usable_here": 1 if inter_company.usable_here(card.get("company"), company) else 0,
     }
 
 

@@ -18,19 +18,70 @@ MODE_OF_PAYMENT = "Store Credit"
 ACCOUNT_NAME = "Store Credit"
 
 
-def get_balance(customer):
+def get_balance(customer, company=None):
+    """What the customer may spend at an outlet of `company`: every company's
+    credit when balances are shared by the group (same currency only), its own
+    when separate (lumenpos.inter_company). No company: all of it."""
     if not customer:
         return 0.0
+    from lumenpos import inter_company
+
+    balance = sum(balances_by_company(customer, company).values())
+    if company and not inter_company.shared():
+        # Separate balances on a site that shared them before: credit issued
+        # here but already spent at another company was recorded THERE, so
+        # this company's own figure can overstate it. Never more than the
+        # customer holds in all.
+        balance = min(balance, sum(balances_by_company(customer).values()))
+    return flt(max(balance, 0) if company else balance, 2)
+
+
+def balances_by_company(customer, company=None):
+    """{company: balance} of the credit an outlet of `company` accepts. An
+    entry without a company (made before companies were recorded) counts as
+    the spending company's own."""
+    from lumenpos import inter_company
+
+    allowed = inter_company.companies_for(company)
     rows = frappe.get_all(
         "POS Store Credit Entry",
         filters={"customer": customer},
-        fields=["entry_type", "sum(amount) as total"],
-        group_by="entry_type",
+        fields=["company", "entry_type", "sum(amount) as total"],
+        group_by="company, entry_type",
     )
-    balance = 0.0
+    out = {}
     for row in rows:
-        balance += flt(row.total) if row.entry_type == "Issue" else -flt(row.total)
-    return flt(balance, 2)
+        owner = row.company or company or ""
+        if allowed is not None and owner not in allowed:
+            continue
+        out[owner] = out.get(owner, 0.0) + (flt(row.total) if row.entry_type == "Issue" else -flt(row.total))
+    return {k: flt(v, 2) for k, v in out.items()}
+
+
+def redeem(customer, amount, reference_invoice=None, company=None, reference_doctype=None):
+    """Spend store credit at an outlet of `company`: its own customers' credit
+    first, then other companies of the group (largest first). Each company's
+    part is its own Redeem entry, and a part issued by another company is
+    recorded for the Inter Company Journal Entry that settles it."""
+    from lumenpos import inter_company
+
+    amount = flt(amount, 2)
+    per = balances_by_company(customer, company)
+    order = sorted(per, key=lambda c: (c != (company or ""), -per[c]))
+    left = amount
+    for owner in order:
+        take = flt(min(max(per[owner], 0), left), 2)
+        if take <= 0:
+            continue
+        add_entry(customer, "Redeem", take, reference_invoice, owner or company, reference_doctype)
+        if company and owner and owner != company:
+            inter_company.record("Store Credit", owner, company, take, customer, reference_doctype, reference_invoice)
+        left = flt(left - take, 2)
+        if left <= 0:
+            break
+    if left > 0.005:
+        frappe.throw(_("Store credit balance is too low to redeem {0}").format(amount))
+    return amount
 
 
 def add_entry(

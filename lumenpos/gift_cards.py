@@ -212,8 +212,11 @@ def issue_card(card_no, amount, company, expiry_date=None, customer=None, invoic
     return card
 
 
-def check_redeem(card_no, amount):
-    """Validate a redemption; returns the card doc or a clear error."""
+def check_redeem(card_no, amount, company=None):
+    """Validate a redemption; returns the card doc or a clear error. At an
+    outlet of `company`, a card issued by another company is accepted only
+    when balances are shared by the group and both keep the same currency
+    (lumenpos.inter_company)."""
     card_no = (card_no or "").strip().upper()
     if not frappe.db.exists("POS Gift Card", card_no):
         frappe.throw(_("Gift card {0} not found").format(card_no))
@@ -228,16 +231,32 @@ def check_redeem(card_no, amount):
                 card_no, card.balance, amount
             )
         )
+    from lumenpos import inter_company
+
+    if company and not inter_company.usable_here(card.get("company"), company):
+        frappe.throw(
+            _("Gift card {0} was issued by {1} and is used at its outlets only.").format(card_no, card.company)
+        )
     return card
 
 
-def redeem(card_no, amount, invoice=None):
-    card = check_redeem(card_no, amount)
+def redeem(card_no, amount, invoice=None, company=None):
+    card = check_redeem(card_no, amount, company)
     new_balance = flt(card.balance) - flt(amount)
     frappe.db.set_value("POS Gift Card", card.name, "balance", new_balance)
     if new_balance <= 0.005:
         frappe.db.set_value("POS Gift Card", card.name, "status", "Used")
     _add_entry(card.name, "Redeem", flt(amount), invoice)
+    # Issued by another company of the group: settled by an Inter Company
+    # Journal Entry pair (lumenpos.inter_company).
+    if company and card.get("company") and card.company != company:
+        from lumenpos import inter_company
+        from lumenpos.api.sales import _doctype_of
+
+        inter_company.record(
+            "Gift Card", card.company, company, amount, card.get("customer"),
+            _doctype_of(invoice) if invoice else None, invoice,
+        )
 
 
 def _add_entry(card, entry_type, amount, invoice=None):

@@ -2,3 +2,4 @@ lumenpos.patches.v0_2.setup
 lumenpos.patches.v0_4.setup
 lumenpos.patches.v0_48.capability_rules
 lumenpos.patches.v0_50.unindexable_index_marks
+lumenpos.patches.v0_51.wallet_companies

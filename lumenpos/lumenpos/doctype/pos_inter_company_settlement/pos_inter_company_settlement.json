@@ -1,0 +1,183 @@
+{
+ "actions": [],
+ "creation": "2026-09-26 21:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "posting_date",
+  "wallet",
+  "from_company",
+  "to_company",
+  "amount",
+  "column_break_1",
+  "customer",
+  "reference_doctype",
+  "reference_invoice",
+  "status",
+  "accounting_section",
+  "to_journal_entry",
+  "from_journal_entry",
+  "error"
+ ],
+ "fields": [
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "wallet",
+   "fieldtype": "Select",
+   "options": "Gift Card\nStore Credit\nCashback",
+   "label": "Balance",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "from_company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Issued by",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "The company that holds the balance: its liability goes down."
+  },
+  {
+   "fieldname": "to_company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Spent at",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "The company whose outlet took the balance as payment and gave the goods."
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "options": "Customer",
+   "label": "Customer"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "options": "DocType",
+   "label": "Sale type"
+  },
+  {
+   "fieldname": "reference_invoice",
+   "fieldtype": "Dynamic Link",
+   "options": "reference_doctype",
+   "label": "Sale"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "options": "Pending\nPosted",
+   "default": "Pending",
+   "label": "Status",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Inter Company Journal Entries"
+  },
+  {
+   "fieldname": "to_journal_entry",
+   "fieldtype": "Link",
+   "options": "Journal Entry",
+   "label": "Entry of the company that spent it",
+   "read_only": 1
+  },
+  {
+   "fieldname": "from_journal_entry",
+   "fieldtype": "Link",
+   "options": "Journal Entry",
+   "label": "Entry of the company that issued it",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Small Text",
+   "label": "Last error",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-26 21:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Inter Company Settlement",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0,
+ "autoname": "hash",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "share": 0
+  },
+  {
+   "role": "LumenPOS Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "share": 0
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "share": 0
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "share": 0
+  }
+ ],
+ "title_field": "customer"
+}

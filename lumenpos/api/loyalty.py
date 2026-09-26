@@ -7,10 +7,10 @@ from frappe.utils import flt
 from lumenpos.store_credit import get_balance
 
 
-def _cashback_balance(customer):
+def _cashback_balance(customer, company=None):
     from lumenpos import cashback
 
-    return cashback.get_balance(customer)
+    return cashback.get_balance(customer, company=company)
 
 
 @frappe.whitelist()
@@ -22,13 +22,20 @@ def get_wallet(customer, company):
         "loyalty_program": None,
         "loyalty_points": 0,
         "conversion_factor": 0,
-        "store_credit": get_balance(customer),
-        "cashback": _cashback_balance(customer),
+        # What this company's outlets accept (lumenpos.inter_company).
+        "store_credit": get_balance(customer, company),
+        "cashback": _cashback_balance(customer, company),
     }
     try:
         from lumenpos.erpnext_compat import loyalty_details
 
         details = loyalty_details(customer, company)
+        # ERPNext redeems a program's points only in the program's company
+        # (validate_loyalty_points): elsewhere the till shows none to spend.
+        if details and details.get("loyalty_program") and frappe.db.get_value(
+            "Loyalty Program", details.loyalty_program, "company"
+        ) not in (None, "", company):
+            details = None
         if details and details.get("loyalty_program"):
             wallet.update(
                 {

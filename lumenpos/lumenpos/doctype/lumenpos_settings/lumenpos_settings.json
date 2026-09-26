@@ -57,6 +57,8 @@
   "sale_currencies",
   "customer_form_section",
   "customer_form_fields",
+  "group_section",
+  "balances_across_companies",
   "features_section",
   "enable_order_discount",
   "enable_service_charge",
@@ -376,6 +378,20 @@
    "options": "POS Customer Form Field",
    "label": "Fields on the new customer form",
    "description": "Empty: the built-in form. Name and mobile for everyone; for companies also the tax ID and the Saudi national address."
+  },
+  {
+   "fieldname": "group_section",
+   "fieldtype": "Section Break",
+   "label": "Companies of the group",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "balances_across_companies",
+   "fieldtype": "Select",
+   "options": "Shared by the group\nSeparate per company",
+   "default": "Shared by the group",
+   "label": "Customer balances across companies",
+   "description": "Gift cards, cashback and store credit. Shared: spendable at any company of the group with the same currency, each company's books kept right by an Inter Company Journal Entry. Separate: spendable only at the company that issued it."
   },
   {
    "description": "Turn till features on or off. Each control is independent.",
@@ -764,7 +780,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-26 18:00:00.000000",
+ "modified": "2026-09-26 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

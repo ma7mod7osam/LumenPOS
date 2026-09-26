@@ -1483,6 +1483,43 @@ const customerForm = {
   "The sale on screen will be cleared. Switch outlet?": "ستمسح عملية البيع الحالية. تغيير الفرع؟",
   "All companies": "كل الشركات",
   "Whole group": "المجموعة كلها",
+  "Companies": "الشركات",
+  "Customer balances across companies": "أرصدة العملاء بين الشركات",
+  "Gift cards, cashback and store credit, on a site with more than one company. Shared: a customer spends their balance at any company of the group that keeps its books in the same currency, and each company's books are kept right by an Inter Company Journal Entry. Separate: a balance is spent only at the company that issued it.":
+    "بطاقات الهدايا والكاش باك ورصيد المتجر، في موقع فيه أكثر من شركة. مشترك: يصرف العميل رصيده في أي شركة من المجموعة بنفس العملة، وتبقى دفاتر كل شركة صحيحة بقيد بين الشركات. منفصل: يصرف الرصيد في الشركة التي أصدرته فقط.",
+  "This site has one company, so this applies once a second company has outlets.":
+    "هذا الموقع فيه شركة واحدة، ويطبق هذا عندما يصبح لشركة ثانية فروع.",
+  "Shared by the group": "مشترك للمجموعة",
+  "Separate per company": "منفصل لكل شركة",
+  "Companies with different currencies never share a balance.": "الشركات مختلفة العملة لا تشترك في الرصيد.",
+  "Entries between companies": "القيود بين الشركات",
+  "When a balance issued by one company is spent at another, the two are settled once a day with one Inter Company Journal Entry pair per pair of companies and kind of balance. The accounts are set per company under Accounts and gift cards.":
+    "عندما يصرف رصيد أصدرته شركة في شركة أخرى، تسوى الشركتان مرة يوميا بقيد بين الشركات لكل شركتين ولكل نوع رصيد. الحسابات تضبط لكل شركة في الحسابات وبطاقات الهدايا.",
+  "Nothing is waiting to be booked.": "لا يوجد شيء بانتظار الترحيل.",
+  "Issued by": "أصدرته",
+  "Spent at": "صرف في",
+  "Balance": "الرصيد",
+  "Amount": "المبلغ",
+  "Since": "منذ",
+  "Booking…": "جار الترحيل…",
+  "Book now": "رحل الآن",
+  "Latest entries": "آخر القيود",
+  "{n} lines booked": "تم ترحيل {n} سطر",
+  "Gift Card": "بطاقة هدايا",
+  "Store Credit": "رصيد المتجر",
+  "Cashback": "كاش باك",
+  "Due from group companies": "مستحق من شركات المجموعة",
+  "Due to group companies": "مستحق لشركات المجموعة",
+  "Asset account, created automatically if empty": "حساب أصول، ينشأ تلقائيا إذا ترك فارغا",
+  "What other companies of the group owe this one for customer balances spent here.":
+    "ما تدين به شركات المجموعة الأخرى لهذه الشركة مقابل أرصدة عملاء صرفت هنا.",
+  "What this company owes others of the group for its customer balances spent there.":
+    "ما تدين به هذه الشركة لغيرها من شركات المجموعة مقابل أرصدة عملائها التي صرفت هناك.",
+  "Redeemed at the outlets of {company}": "يستبدل في فروع {company}",
+  "ERPNext keeps a loyalty program to one company: points are earned at any outlet and redeemed only at this company's. For a reward every company of the group honours, use cashback.":
+    "ERPNext يربط برنامج الولاء بشركة واحدة: تكسب النقاط في أي فرع وتستبدل في فروع هذه الشركة فقط. ولمكافأة تقبلها كل شركات المجموعة استخدم الكاش باك.",
+  "Gift card {card} was issued by {company} and is used at its outlets only.":
+    "بطاقة الهدايا {card} أصدرتها {company}، وتستخدم في فروعها فقط.",
   "One company": "شركة واحدة",
   "Chosen outlets": "فروع محددة",
   "Sold by {company}. It can be returned or exchanged at one of its outlets.":

@@ -49,12 +49,17 @@ LIABILITY_FIELD = "cashback_liability_account"
 EXPENSE_FIELD = "cashback_expense_account"
 
 
-def get_balance(customer, when=None):
+def get_balance(customer, when=None, company=None):
     """The customer's spendable cashback right now: the remaining on every Earn
-    row that has become usable and has not expired."""
+    row that has become usable and has not expired. With a company, only what
+    an outlet of it accepts: the group's when balances are shared (same
+    currency), its own when separate (lumenpos.inter_company)."""
     if not customer:
         return 0.0
+    from lumenpos import inter_company
+
     when = when or now_datetime()
+    allowed = inter_company.companies_for(company)
     row = frappe.db.sql(
         """
         select sum(remaining) from `tabPOS Cashback Entry`
@@ -63,8 +68,9 @@ def get_balance(customer, when=None):
           and remaining > 0
           and (valid_from is null or valid_from <= %(when)s)
           and (expiry_date is null or expiry_date > %(when)s)
+          and (%(all)s or ifnull(company, '') = '' or company in %(allowed)s)
         """,
-        {"customer": customer, "when": when},
+        {"customer": customer, "when": when, "all": 1 if allowed is None else 0, "allowed": tuple(allowed or [""])},
     )
     return flt(row[0][0] if row and row[0][0] else 0.0, 2)
 
@@ -124,9 +130,12 @@ def redeem(customer, amount, reference_invoice=None, company=None, reference_doc
     if amount <= 0:
         return 0.0
     when = now_datetime()
-    if get_balance(customer, when) + 0.005 < amount:
+    if get_balance(customer, when, company) + 0.005 < amount:
         frappe.throw(_("Cashback balance is too low to redeem {0}").format(amount))
 
+    from lumenpos import inter_company
+
+    allowed = inter_company.companies_for(company)
     live = frappe.get_all(
         LEDGER,
         filters={
@@ -134,10 +143,14 @@ def redeem(customer, amount, reference_invoice=None, company=None, reference_doc
             "entry_type": "Earn",
             "remaining": [">", 0],
         },
-        fields=["name", "remaining", "valid_from", "expiry_date"],
+        fields=["name", "remaining", "valid_from", "expiry_date", "company"],
         order_by="ifnull(expiry_date, '2999-12-31') asc, creation asc",
     )
+    # This company's own cashback first, then the group's (soonest to expire
+    # first within each): only another company's part needs settling.
+    live.sort(key=lambda r: bool(company and r.company and r.company != company))
     left = amount
+    taken_from = {}
     for row in live:
         if left <= 0.005:
             break
@@ -145,9 +158,13 @@ def redeem(customer, amount, reference_invoice=None, company=None, reference_doc
             continue
         if row.expiry_date and row.expiry_date <= when:
             continue
+        if allowed is not None and row.company and row.company not in allowed:
+            continue
         take = min(flt(row.remaining), left)
         frappe.db.set_value(LEDGER, row.name, "remaining", flt(row.remaining) - take,
                             update_modified=False)
+        owner = row.company or company
+        taken_from[owner] = flt(taken_from.get(owner, 0) + take, 2)
         left -= take
 
     if reference_invoice and not reference_doctype:
@@ -166,6 +183,11 @@ def redeem(customer, amount, reference_invoice=None, company=None, reference_doc
             "posting_datetime": when,
         }
     ).insert(ignore_permissions=True)
+    # Another company's cashback spent here: settled by an Inter Company
+    # Journal Entry pair (lumenpos.inter_company).
+    for owner, part in taken_from.items():
+        if company and owner and owner != company:
+            inter_company.record("Cashback", owner, company, part, customer, reference_doctype, reference_invoice)
     return amount
 
 
@@ -282,6 +304,15 @@ def account_problem(account, company, kind):
             # A party account needs a customer or supplier on every line, and
             # the cashback postings carry none.
             return _("Account {0} is a {1} account, which cashback cannot post to").format(
+                account, _(row.account_type)
+            )
+    elif kind == "asset":
+        # "Due from group companies" (lumenpos.inter_company): an untyped asset,
+        # since its entries carry no party.
+        if row.root_type != "Asset":
+            return _("Account {0} must be an Asset account, and it is {1}").format(account, _(row.root_type or ""))
+        if row.account_type in ("Receivable", "Payable"):
+            return _("Account {0} is a {1} account, which needs a party on every line").format(
                 account, _(row.account_type)
             )
     elif row.root_type != "Expense":

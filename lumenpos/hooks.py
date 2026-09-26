@@ -37,6 +37,12 @@ scheduler_events = {
         "30 0 * * *": [
             "lumenpos.cashback.nightly",
         ],
+        # Customer balances spent across companies of a group: yesterday's
+        # lines booked as Inter Company Journal Entry pairs (one per day, pair
+        # of companies and kind of balance).
+        "45 0 * * *": [
+            "lumenpos.inter_company.nightly",
+        ],
     },
 }
 

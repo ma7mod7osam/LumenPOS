@@ -10,7 +10,9 @@
   "service_charge_account",
   "cashback_liability_account",
   "cashback_expense_account",
-  "deposit_account"
+  "deposit_account",
+  "group_receivable_account",
+  "group_payable_account"
  ],
  "fields": [
   {
@@ -55,12 +57,26 @@
    "fieldtype": "Link",
    "label": "Customer deposits account",
    "options": "Account"
+  },
+  {
+   "fieldname": "group_receivable_account",
+   "fieldtype": "Link",
+   "options": "Account",
+   "label": "Due from group companies",
+   "description": "Asset account for what other companies of the group owe this one for customer balances spent here. Created automatically when empty."
+  },
+  {
+   "fieldname": "group_payable_account",
+   "fieldtype": "Link",
+   "options": "Account",
+   "label": "Due to group companies",
+   "description": "Liability account for what this company owes others of the group for its customer balances spent there. Created automatically when empty."
   }
  ],
  "istable": 1,
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-17 12:00:00.000000",
+ "modified": "2026-09-26 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Company Setting",

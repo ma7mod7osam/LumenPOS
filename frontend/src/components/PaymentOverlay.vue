@@ -560,7 +560,14 @@ async function checkGiftCard() {
   try {
     const info = await call('lumenpos.api.sales.gift_card_info', {
       card_no: giftCardNo.value,
+      pos_profile: session.posProfile,
     })
+    // Issued by a company whose balances this outlet does not take
+    // (separate per company, or another currency).
+    if (info.usable_here === 0) {
+      session.notify(t('Gift card {card} was issued by {company} and is used at its outlets only.', { card: info.card_no, company: info.company }), true)
+      return
+    }
     if (info.status !== 'Active') {
       session.notify(t('Gift card {card} is {status}', { card: info.card_no, status: info.status }), true)
       return
