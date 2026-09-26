@@ -416,9 +416,17 @@ def save_settings(payload):
         doc.discount_passcode = payload["discount_passcode"]
 
     if "approvers" in payload:
-        existing_pins = {
-            row.approver_name: row.passcode for row in (doc.get("discount_approvers") or [])
-        }
+        # A PIN is kept encrypted under its row's name, and the row itself
+        # holds only asterisks. Rebuilding the table gives every row a new
+        # name, so the PINs are read in clear first: carrying the asterisks
+        # over erased every approver's PIN on any save of these settings.
+        existing_pins = {}
+        for row in doc.get("discount_approvers") or []:
+            pin = get_decrypted_password(
+                "POS Discount Approver", row.name, "passcode", raise_exception=False
+            )
+            if pin:
+                existing_pins[row.approver_name] = pin
         doc.discount_approvers = []
         for row in payload.get("approvers") or []:
             name = (row.get("approver_name") or "").strip()
