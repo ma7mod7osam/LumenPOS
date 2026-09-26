@@ -23,11 +23,16 @@ LumenPOS_ROLES = ["LumenPOS Cashier", "LumenPOS Manager"]
 # cashier, so the role needs create on all three (read opens the Customers
 # screen). Without them a cashier holding only this role was refused a new
 # customer and never saw that screen. Read and create only: editing or deleting
-# customers stays with the roles ERPNext gives it to.
+# customers stays with the roles ERPNext gives it to. ERPNext also reads the
+# customer group and territory trees, as the cashier, to enrol a new customer in
+# an auto opt-in loyalty program aimed at a group or territory (refused on v15
+# without read on both).
 CUSTOMER_GRANTS = {
     "Customer": ["read", "create"],
     "Contact": ["read", "create"],
     "Address": ["read", "create"],
+    "Customer Group": ["read"],
+    "Territory": ["read"],
 }
 CORE_GRANTS = {
     "LumenPOS Cashier": {
