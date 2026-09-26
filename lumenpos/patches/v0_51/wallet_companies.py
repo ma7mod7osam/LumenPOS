@@ -30,7 +30,9 @@ def execute():
             continue
         for row in frappe.get_all(
             ledger,
-            filters={"company": ["in", ["", None]]},
+            # "is not set" matches NULL as well as "": an "in" list never
+            # matches NULL, which is exactly what older entries hold.
+            filters={"company": ["is", "not set"]},
             fields=["name", "reference_doctype", "reference_invoice"],
         ):
             company = _company_of(row.reference_doctype, row.reference_invoice) or only
@@ -38,7 +40,7 @@ def execute():
                 frappe.db.set_value(ledger, row.name, "company", company, update_modified=False)
     if frappe.db.exists("DocType", "POS Gift Card"):
         for card in frappe.get_all(
-            "POS Gift Card", filters={"company": ["in", ["", None]]}, fields=["name", "issued_invoice"]
+            "POS Gift Card", filters={"company": ["is", "not set"]}, fields=["name", "issued_invoice"]
         ):
             sold_on = card.issued_invoice or (
                 frappe.db.get_value(
