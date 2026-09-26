@@ -312,7 +312,7 @@ def status():
     # where is a fixed string, the values are bound.
     pending = frappe.db.sql(  # nosemgrep
         f"""
-        select from_company, to_company, wallet, count(*) as lines, sum(amount) as amount,
+        select from_company, to_company, wallet, count(*) as line_count, sum(amount) as amount,
                min(posting_date) as since, max(error) as error
         from `tabPOS Inter Company Settlement`
         where status = 'Pending'{where}
