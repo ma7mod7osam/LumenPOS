@@ -1905,7 +1905,10 @@ def _search_sales_in(doctype, f):
         conds.append("pi.docstatus = 2")
     # "All" adds no condition
     if doctype == "Sales Invoice":
-        conds.append("pi.is_pos = 1")  # POS sales only, not desk Sales Invoices
+        # POS sales only, not desk Sales Invoices, and not the invoice ERPNext
+        # consolidates a shift into (its POS Invoices are listed already).
+        conds.append("pi.is_pos = 1")
+        conds.append("ifnull(pi.is_consolidated, 0) = 0")
 
     if f.get("customer"):
         conds.append("pi.customer = %(customer)s")

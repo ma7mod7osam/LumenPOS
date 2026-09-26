@@ -94,10 +94,16 @@ def customer_detail(customer, company=None):
     companies = allowed_companies()
     if companies is not None and company not in companies:
         frappe.throw(_("You cannot see {0}'s figures").format(company), frappe.PermissionError)
-    # Both invoice kinds: an outlet may post Sales Invoices directly.
+    # Both invoice kinds: an outlet may post Sales Invoices directly. Not the
+    # Sales Invoice ERPNext consolidates a shift into: it carries is_pos too,
+    # and its POS Invoices are already counted.
     stats = frappe._dict(sales_count=0, returns_count=0, total_spent=0, total_refunded=0, last_purchase=None)
-    for doctype, extra in (("POS Invoice", ""), ("Sales Invoice", " and is_pos = 1")):
-        row = frappe.db.sql(  # nosemgrep: doctype and extra are fixed strings, values are bound
+    for doctype, extra in (
+        ("POS Invoice", ""),
+        ("Sales Invoice", " and is_pos = 1 and ifnull(is_consolidated, 0) = 0"),
+    ):
+        # doctype and extra are fixed strings, the values are bound.
+        row = frappe.db.sql(  # nosemgrep
             f"""
             select
                 sum(case when is_return = 0 then 1 else 0 end) as sales_count,

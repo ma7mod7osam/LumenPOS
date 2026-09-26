@@ -225,11 +225,12 @@ def post_pair(from_company, to_company, wallet, amount, posting_date):
     return at_spender, at_issuer
 
 
-def post_pending(upto=None, commit=True):
+def post_pending(upto=None, commit=True, companies=None):
     """Book every pending line up to a date (all of them when None), grouped
     by day, pair of companies and balance. A group that fails keeps its lines
-    pending with the reason, and the next run tries again. Returns the number
-    of lines booked."""
+    pending with the reason, and the next run tries again. With `companies`,
+    only groups whose two companies are both in it. Returns the number of
+    lines booked."""
     filters = {"status": "Pending"}
     if upto:
         filters["posting_date"] = ["<=", getdate(upto)]
@@ -244,6 +245,8 @@ def post_pending(upto=None, commit=True):
         groups[(line.posting_date, line.from_company, line.to_company, line.wallet)].append(line)
     booked = 0
     for (day, issuer, spender, wallet), rows in groups.items():
+        if companies is not None and not (issuer in companies and spender in companies):
+            continue
         names = [r.name for r in rows]
         amount = flt(sum(flt(r.amount) for r in rows), 2)
         # A savepoint per group: a pair that fails is undone on its own (no
@@ -297,27 +300,39 @@ def status():
     (per pair and balance), and the latest entry pairs."""
     if not frappe.has_permission(SETTLEMENT, "read"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
-    pending = frappe.db.sql(
-        """
+    from lumenpos.api.permissions import allowed_companies
+
+    # A user held to some companies (ERPNext User Permissions) sees only the
+    # lines one of them is part of.
+    companies = allowed_companies()
+    where, values = "", {}
+    if companies is not None:
+        where = " and (from_company in %(companies)s or to_company in %(companies)s)"
+        values["companies"] = tuple(companies)
+    # where is a fixed string, the values are bound.
+    pending = frappe.db.sql(  # nosemgrep
+        f"""
         select from_company, to_company, wallet, count(*) as lines, sum(amount) as amount,
                min(posting_date) as since, max(error) as error
         from `tabPOS Inter Company Settlement`
-        where status = 'Pending'
+        where status = 'Pending'{where}
         group by from_company, to_company, wallet
         order by since asc
         """,
+        values,
         as_dict=True,
     )
-    recent = frappe.db.sql(
-        """
+    recent = frappe.db.sql(  # nosemgrep
+        f"""
         select posting_date, from_company, to_company, wallet, sum(amount) as amount,
                to_journal_entry, from_journal_entry
         from `tabPOS Inter Company Settlement`
-        where status = 'Posted'
+        where status = 'Posted'{where}
         group by posting_date, from_company, to_company, wallet, to_journal_entry, from_journal_entry
         order by posting_date desc
         limit 10
         """,
+        values,
         as_dict=True,
     )
     for row in pending + recent:
@@ -327,6 +342,7 @@ def status():
                 row[key] = str(row[key])
     return {
         "mode": mode(),
+        # Each company's currency, to show an amount in the issuer's money.
         "companies": {c.name: c.default_currency for c in frappe.get_all("Company", fields=["name", "default_currency"])},
         "pending": pending,
         "recent": recent,
@@ -335,7 +351,10 @@ def status():
 
 @frappe.whitelist()
 def post_now():
-    """Book everything waiting, today's lines included."""
+    """Book everything waiting, today's lines included: for a manager held to
+    some companies, only what passes between two of them."""
     _require_manager()
-    booked = post_pending()
+    from lumenpos.api.permissions import allowed_companies
+
+    booked = post_pending(companies=allowed_companies())
     return {"booked": booked, **status()}
