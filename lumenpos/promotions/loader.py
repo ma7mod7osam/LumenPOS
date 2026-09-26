@@ -8,6 +8,7 @@ import datetime
 
 import frappe
 
+from lumenpos import scope
 from lumenpos.promotions.engine import DAYS
 
 
@@ -82,6 +83,7 @@ def serialize(doc):
         "end_time": time_str(doc.end_time),
         "days": {day: doc.get(day) or 0 for day in DAYS},
         "pos_profiles": [row.pos_profile for row in (doc.pos_profiles or [])],
+        "company": doc.get("company"),
         "customer_eligibility": doc.customer_eligibility or "All Customers",
         "customer_groups": [row.customer_group for row in (doc.customer_groups or [])],
         "apply_on_all": doc.apply_on_all or 0,
@@ -133,7 +135,7 @@ def get_active_promotions(pos_profile=None, include_coupon=False, coupon_only=Fa
         # get_doc (not get_cached_doc): a stale cross-worker cache must never
         # serve an outdated promotion to a till
         promo = serialize(frappe.get_doc("POS Promotion", name))
-        if pos_profile and promo["pos_profiles"] and pos_profile not in promo["pos_profiles"]:
+        if not scope.applies_to(promo["company"], promo["pos_profiles"], pos_profile):
             continue
         if promo["requires_coupon"]:
             if not (include_coupon or coupon_only):

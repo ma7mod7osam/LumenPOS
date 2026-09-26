@@ -66,7 +66,21 @@
           >
             {{ session.registerOpen ? t('Register open ▸ close') : t('Register closed') }}
           </button>
-          <span class="topbar-user">{{ session.userFullname }} · {{ session.posProfile }}</span>
+          <!-- The outlet, switchable here too (a manager covering outlets of
+               two companies no longer has to close a shift to change over). -->
+          <span class="topbar-user">
+            {{ session.userFullname }} ·
+            <select
+              v-if="session.availableProfiles.length > 1"
+              class="outlet-switch"
+              :value="session.posProfile"
+              :title="t('Switch outlet')"
+              @change="switchOutlet($event)"
+            >
+              <option v-for="p in session.availableProfiles" :key="p" :value="p">{{ session.outletLabel(p) }}</option>
+            </select>
+            <template v-else>{{ session.outletLabel(session.posProfile) }}</template>
+          </span>
         </div>
       </header>
       <main class="content">
@@ -118,6 +132,22 @@ import OfflineLogModal from './components/OfflineLogModal.vue'
 const session = useSessionStore()
 const catalog = useCatalogStore()
 const cart = useCartStore()
+
+// Switch the outlet this screen works on. The other outlet's shift stays as it
+// is; a sale half rung up here is cleared first, with the cashier's say-so.
+async function switchOutlet(event) {
+  const name = event.target.value
+  if (!name || name === session.posProfile) return
+  if (cart.lines.length && !confirm(t('The sale on screen will be cleared. Switch outlet?'))) {
+    event.target.value = session.posProfile
+    return
+  }
+  cart.clear()
+  await session.switchProfile(name)
+  catalog.fetch()
+  catalog.cacheFullCatalog()
+  catalog.cacheCustomers()
+}
 const route = useRoute()
 const isDisplay = computed(() => route.path === '/display')
 
@@ -301,6 +331,16 @@ function setupAutoLock() {
   font-size: 12.5px;
   opacity: 0.75;
 }
+.outlet-switch {
+  font-size: 12.5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  max-width: 260px;
+}
+.outlet-switch option { color: var(--text); background: var(--card-bg); }
 .register-pill {
   font-size: 11.5px;
   font-weight: 700;

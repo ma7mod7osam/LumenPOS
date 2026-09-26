@@ -55,6 +55,10 @@
             <h2>{{ detail.customer_name }}</h2>
             <div class="muted">{{ detail.name }}<span v-if="detail.customer_group"> · {{ detail.customer_group }}</span></div>
           </div>
+          <!-- Several companies: the figures below are one company's. -->
+          <select v-if="session.multiCompany" v-model="companyView" class="company-view" @change="select(selected)">
+            <option v-for="c in session.companies" :key="c" :value="c">{{ c }}</option>
+          </select>
         </header>
 
         <div class="profile-grid">
@@ -126,6 +130,7 @@
       :receipt="receipt"
       :can-refund="false"
       show-open-in-history
+      reprint
       @open-in-history="openInHistory"
       @close="receipt = null"
     />
@@ -219,12 +224,18 @@ async function loadMore() {
   }
 }
 
+// The company whose figures the profile shows: the till's own by default.
+const companyView = ref(session.company || '')
+
 async function select(c) {
   selected.value = c
   detail.value = null
   loadingDetail.value = true
   try {
-    detail.value = await call('lumenpos.api.customers.customer_detail', { customer: c.name })
+    detail.value = await call('lumenpos.api.customers.customer_detail', {
+      customer: c.name,
+      company: companyView.value || session.company,
+    })
   } catch (e) {
     session.notify(e.message, true)
   } finally {
@@ -239,6 +250,7 @@ function txnFilters(start) {
       customer: selected.value.name,
       all_profiles: 1,
       pos_profile: session.posProfile,
+      company: companyView.value || session.company,
       is_return: txnType.value || null,
       date_from: dateFrom.value || null,
       date_to: dateTo.value || null,
@@ -339,6 +351,8 @@ async function openReceipt(tx) {
   text-align: center;
 }
 .detail-head h2 { margin: 0 0 2px; }
+.detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.company-view { max-width: 240px; padding: 6px 10px; font-size: 13px; }
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

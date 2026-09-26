@@ -34,16 +34,10 @@ def get_bootstrap(pos_profile=None):
     # A user may only operate an outlet they're assigned to (managers/admins:
     # any). The outlet switcher only offers assigned outlets, but guard the API
     # too so a switch to an unassigned outlet is rejected.
-    if pos_profile and pos_profile not in _user_profiles():
+    if pos_profile:
         from lumenpos.api import permissions
 
-        if not permissions.is_manager():
-            frappe.throw(
-                _("You are not assigned to outlet {0}. Ask an administrator to add you under Applicable for Users.").format(
-                    pos_profile
-                ),
-                frappe.PermissionError,
-            )
+        permissions.assert_outlet(pos_profile)
 
     profile = frappe.get_doc("POS Profile", profile_name)
 
@@ -111,6 +105,12 @@ def get_bootstrap(pos_profile=None):
         "pending_closing": _pending_closing(profile_name),
         "permissions": get_user_permissions(),
         "available_profiles": _user_profiles(),
+        # Each outlet's company, so a till on a site with several companies can
+        # say which one an outlet, a sale or a figure belongs to.
+        "profile_companies": {
+            p.name: p.company
+            for p in frappe.get_all("POS Profile", filters={"name": ["in", _user_profiles() or [""]]}, fields=["name", "company"])
+        },
         "printer_configured": bool(profile.get("lumenpos_printer_ip")),
         "print_format": profile.print_format,
         "store_credit_mode": "Store Credit",
@@ -249,7 +249,9 @@ def get_bundles(pos_profile=None):
         if doc.get("valid_to") and getdate(doc.valid_to) < today:
             continue
         profiles = [row.pos_profile for row in (doc.pos_profiles or [])]
-        if pos_profile and profiles and pos_profile not in profiles:
+        from lumenpos import scope
+
+        if not scope.applies_to(doc.get("company"), profiles, pos_profile):
             continue
         bundles.append(
             {
@@ -510,8 +512,10 @@ def _default_pos_profile():
     )
     if name:
         return name
-    # Fall back to any enabled profile (single-store setups often skip user mapping)
-    return frappe.db.get_value("POS Profile", {"disabled": 0}, "name")
+    # Fall back to an outlet this user may use (single-store setups often skip
+    # user mapping; a user held to some companies gets one of theirs).
+    allowed = _user_profiles()
+    return allowed[0] if allowed else None
 
 
 def _other_open_registers(current_profile):
@@ -545,17 +549,20 @@ def _user_profiles():
     user = frappe.session.user
     from lumenpos.api import permissions
 
+    # Only outlets of companies ERPNext's User Permissions allow this user.
+    companies = permissions.allowed_companies(user)
+    enabled = {"disabled": 0}
+    if companies is not None:
+        enabled["company"] = ["in", list(companies)]
     if permissions.is_manager():
-        return sorted(
-            frappe.get_all("POS Profile", filters={"disabled": 0}, pluck="name")
-        )
+        return sorted(frappe.get_all("POS Profile", filters=enabled, pluck="name"))
     names = frappe.get_all(
         "POS Profile User",
         filters={"user": user, "parenttype": "POS Profile"},
         pluck="parent",
     )
-    if not names:
-        names = frappe.get_all(
-            "POS Profile", filters={"disabled": 0}, pluck="name", limit_page_length=20
-        )
+    if names:
+        names = frappe.get_all("POS Profile", filters={**enabled, "name": ["in", names]}, pluck="name")
+    else:
+        names = frappe.get_all("POS Profile", filters=enabled, pluck="name", limit_page_length=20)
     return sorted(set(names))

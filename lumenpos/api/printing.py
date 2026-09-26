@@ -47,7 +47,11 @@ def print_receipt(invoice, open_drawer=0, reprint=0):
     if cint(reprint) and not permissions.can_reprint():
         frappe.throw(_("You are not allowed to reprint a receipt"), frappe.PermissionError)
     receipt = get_receipt(invoice)
-    profile = frappe.db.get_value("POS Invoice", invoice, "pos_profile")
+    # A Sales Invoice outlet prints too: the sale's own doctype, not POS
+    # Invoice only (it found no outlet and refused every such receipt).
+    from lumenpos.api.sales import _doctype_of
+
+    profile = frappe.db.get_value(_doctype_of(invoice), invoice, "pos_profile")
     ip = frappe.db.get_value("POS Profile", profile, "lumenpos_printer_ip")
     port = frappe.db.get_value("POS Profile", profile, "lumenpos_printer_port") or 9100
     if not ip:
@@ -77,6 +81,12 @@ def build_receipt_bytes(receipt, open_drawer=0):
     out += _text(receipt["name"]) + b"\n"
     out += _text(f"{receipt['posting_date']} {str(receipt['posting_time']).split('.')[0]}") + b"\n"
     out += _text(receipt["customer_name"] or "") + b"\n"
+    # The selling company's VAT number (its receipt's, else the company's own),
+    # when the shop shows it on receipts.
+    receipt_settings = receipt.get("receipt_settings") or {}
+    tax_id = receipt_settings.get("receipt_tax_id")
+    if tax_id and receipt_settings.get("receipt_show_tax_id"):
+        out += _text(f"VAT {tax_id}") + b"\n"
     out += ALIGN_LEFT + _line() + b"\n"
 
     for item in receipt["items"]:

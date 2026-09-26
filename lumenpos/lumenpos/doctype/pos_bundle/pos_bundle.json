@@ -15,6 +15,7 @@
   "items_section",
   "items",
   "outlets_section",
+  "company",
   "pos_profiles"
  ],
  "fields": [
@@ -76,6 +77,13 @@
    "label": "Outlets"
   },
   {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Company",
+   "description": "Empty: every company. Set: every outlet of this company, unless outlets are chosen below."
+  },
+  {
    "description": "Leave empty for all outlets",
    "fieldname": "pos_profiles",
    "fieldtype": "Table",
@@ -85,7 +93,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-06-11 00:00:00.000000",
+ "modified": "2026-09-26 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Bundle",

@@ -171,6 +171,9 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
     unexpected argument.
     """
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
+    from lumenpos.api import permissions as outlet_permissions
+
+    outlet_permissions.assert_outlet(pos_profile)
     opening_float = flt(opening_float)
     # The float of each drawer in another currency ("Cash USD"), in its own
     # money (lumenpos.currency). Anything else sent is ignored.
@@ -295,16 +298,30 @@ def _create_fresh_session(profile, opening_float, bypass_live_guard=False, float
     return get_open_session(profile.name)
 
 
-def _role_emails(role):
-    """Enabled users holding a role, with an email address."""
+def _role_emails(role, company=None):
+    """Enabled users holding a role, with an email address. With a company,
+    only those who may see it: ERPNext User Permissions on Company hold a user
+    to the companies listed (no such permission = every company), so one
+    company's cash differences no longer reach another company's managers."""
     if not role:
         return []
-    users = frappe.get_all("Has Role", filters={"role": role}, pluck="parent")
+    users = set(frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent"))
+    if not users:
+        return []
+    if company:
+        allowed = {}
+        for perm in frappe.get_all(
+            "User Permission",
+            filters={"allow": "Company", "user": ["in", list(users)]},
+            fields=["user", "for_value"],
+        ):
+            allowed.setdefault(perm.user, set()).add(perm.for_value)
+        users = {u for u in users if u not in allowed or company in allowed[u]}
     if not users:
         return []
     return frappe.get_all(
         "User",
-        filters={"name": ["in", list(set(users))], "enabled": 1},
+        filters={"name": ["in", list(users)], "enabled": 1},
         pluck="email",
     )
 
@@ -338,7 +355,7 @@ def _maybe_alert_variance(doc):
             return
         threshold = flt(settings.get("variance_alert_threshold"))
         role = settings.get("variance_alert_role")
-        recipients = _role_emails(role)
+        recipients = _role_emails(role, frappe.get_cached_value("POS Profile", doc.pos_profile, "company"))
         if not recipients:
             return
         # The threshold is in the company currency; a drawer in another one is
@@ -1442,8 +1459,7 @@ def notify_overdue_sessions():
         if not settings.get("overdue_alert_enabled"):
             return
         role = settings.get("overdue_alert_role")
-        recipients = _role_emails(role)
-        if not recipients:
+        if not _role_emails(role):
             return
         grace = cint(settings.get("overdue_grace_minutes")) or 60
         fallback_hours = cint(settings.get("overdue_alert_hours")) or 14
@@ -1468,6 +1484,10 @@ def notify_overdue_sessions():
                 else row.opened_at + datetime.timedelta(hours=fallback_hours)
             )
             if now < deadline:
+                continue
+            # This outlet's company's managers only.
+            recipients = _role_emails(role, frappe.get_cached_value("POS Profile", row.pos_profile, "company"))
+            if not recipients:
                 continue
             frappe.sendmail(
                 recipients=recipients,

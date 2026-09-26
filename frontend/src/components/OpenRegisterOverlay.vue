@@ -92,7 +92,7 @@
               :disabled="busy"
               @change="onSwitchOutlet($event.target.value)"
             >
-              <option v-for="p in session.availableProfiles" :key="p" :value="p">{{ p }}</option>
+              <option v-for="p in session.availableProfiles" :key="p" :value="p">{{ session.outletLabel(p) }}</option>
             </select>
             <p class="muted" style="margin-top: 12px">
               {{ t('Enter the opening cash float to start selling.') }}

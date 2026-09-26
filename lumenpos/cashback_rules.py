@@ -38,6 +38,7 @@ def serialize(doc):
         "end_time": time_str(doc.end_time),
         "days": {day: doc.get(day) or 0 for day in DAYS},
         "pos_profiles": [row.pos_profile for row in (doc.pos_profiles or [])],
+        "company": doc.get("company"),
         "customer_eligibility": doc.customer_eligibility or "All Customers",
         "customer_groups": [row.customer_group for row in (doc.customer_groups or [])],
         "requires_coupon": doc.requires_coupon or 0,
@@ -73,7 +74,9 @@ def get_active_rules(pos_profile=None, include_coupon=False):
     rules = []
     for name in names:
         rule = serialize(frappe.get_doc("POS Cashback Rule", name))
-        if pos_profile and rule["pos_profiles"] and pos_profile not in rule["pos_profiles"]:
+        from lumenpos import scope
+
+        if not scope.applies_to(rule["company"], rule["pos_profiles"], pos_profile):
             continue
         if rule["requires_coupon"] and not include_coupon:
             continue

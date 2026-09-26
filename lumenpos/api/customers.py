@@ -72,7 +72,7 @@ def customer_groups():
 
 
 @frappe.whitelist()
-def customer_detail(customer):
+def customer_detail(customer, company=None):
     """Profile + balances + lifetime POS stats for one customer. The stats are a
     single grouped query scoped to this customer (the `customer` column is
     indexed), so it stays cheap regardless of total invoice volume. They add up
@@ -84,24 +84,39 @@ def customer_detail(customer):
     doc = frappe.get_doc("Customer", customer)
     doc.check_permission("read")
 
-    stats = frappe.db.sql(
-        """
-        select
-            sum(case when is_return = 0 then 1 else 0 end) as sales_count,
-            sum(case when is_return = 1 then 1 else 0 end) as returns_count,
-            sum(case when is_return = 0 then base_grand_total else 0 end) as total_spent,
-            sum(case when is_return = 1 then abs(base_grand_total) else 0 end) as total_refunded,
-            max(posting_date) as last_purchase
-        from `tabPOS Invoice`
-        where customer = %(customer)s and docstatus = 1
-        """,
-        {"customer": customer},
-        as_dict=True,
-    )[0]
-
-    company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value(
+    # One company's figures, the till's own by default: adding another
+    # company's sales (in its currency) made a number that meant nothing.
+    company = company or frappe.defaults.get_user_default("company") or frappe.db.get_single_value(
         "Global Defaults", "default_company"
     )
+    from lumenpos.api.permissions import allowed_companies
+
+    companies = allowed_companies()
+    if companies is not None and company not in companies:
+        frappe.throw(_("You cannot see {0}'s figures").format(company), frappe.PermissionError)
+    # Both invoice kinds: an outlet may post Sales Invoices directly.
+    stats = frappe._dict(sales_count=0, returns_count=0, total_spent=0, total_refunded=0, last_purchase=None)
+    for doctype, extra in (("POS Invoice", ""), ("Sales Invoice", " and is_pos = 1")):
+        row = frappe.db.sql(  # nosemgrep: doctype and extra are fixed strings, values are bound
+            f"""
+            select
+                sum(case when is_return = 0 then 1 else 0 end) as sales_count,
+                sum(case when is_return = 1 then 1 else 0 end) as returns_count,
+                sum(case when is_return = 0 then base_grand_total else 0 end) as total_spent,
+                sum(case when is_return = 1 then abs(base_grand_total) else 0 end) as total_refunded,
+                max(posting_date) as last_purchase
+            from `tab{doctype}`
+            where customer = %(customer)s and company = %(company)s and docstatus = 1{extra}
+            """,
+            {"customer": customer, "company": company},
+            as_dict=True,
+        )[0]
+        stats.sales_count += cint(row.sales_count)
+        stats.returns_count += cint(row.returns_count)
+        stats.total_spent += flt(row.total_spent)
+        stats.total_refunded += flt(row.total_refunded)
+        if row.last_purchase and (not stats.last_purchase or row.last_purchase > stats.last_purchase):
+            stats.last_purchase = row.last_purchase
     wallet = {"loyalty_points": 0, "store_credit": 0}
     try:
         from lumenpos.api.loyalty import get_wallet
@@ -134,6 +149,7 @@ def customer_detail(customer):
             "loyalty_points": wallet.get("loyalty_points") or 0,
             "store_credit": wallet.get("store_credit") or 0,
         },
+        "company": company,
         "currency": (frappe.get_cached_value("Company", company, "default_currency") if company else None)
         or frappe.db.get_default("currency"),
         "billing_currency": doc.get("default_currency"),

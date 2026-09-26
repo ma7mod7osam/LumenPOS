@@ -76,9 +76,17 @@
         <label class="f-field">
           <span>{{ t('Outlet') }}</span>
           <select v-model="profileFilter" @change="load">
-            <option value="">{{ session.posProfile }} {{ t('(this register)') }}</option>
+            <option value="">{{ session.outletLabel(session.posProfile) }} {{ t('(this register)') }}</option>
             <option value="__all__">{{ t('All outlets') }}</option>
-            <option v-for="profile in otherProfiles" :key="profile" :value="profile">{{ profile }}</option>
+            <option v-for="profile in otherProfiles" :key="profile" :value="profile">{{ session.outletLabel(profile) }}</option>
+          </select>
+        </label>
+        <!-- Several companies: all outlets of one company, or of all of them. -->
+        <label v-if="session.multiCompany" class="f-field">
+          <span>{{ t('Company') }}</span>
+          <select v-model="companyFilter" @change="load">
+            <option value="">{{ t('All companies') }}</option>
+            <option v-for="c in session.companies" :key="c" :value="c">{{ c }}</option>
           </select>
         </label>
         <label class="f-field">
@@ -123,7 +131,7 @@
             <span v-if="sale.online_order && !sale.app_type" class="tag blue">{{ t('ONLINE') }}</span>
           </div>
           <div class="muted small">
-            {{ sale.name }} · {{ shortTime(sale.posting_date + ' ' + sale.posting_time) }}<span v-if="sale.owner_name"> · <Icon name="person" /> {{ sale.owner_name }}</span><span v-if="sale.mobile_no"> · {{ sale.mobile_no }}</span><span v-if="sale.order_id"> · {{ t('Order') }} {{ sale.order_id }}</span><span v-if="profileFilter"> · {{ sale.pos_profile }}</span>
+            {{ sale.name }} · {{ shortTime(sale.posting_date + ' ' + sale.posting_time) }}<span v-if="sale.owner_name"> · <Icon name="person" /> {{ sale.owner_name }}</span><span v-if="sale.mobile_no"> · {{ sale.mobile_no }}</span><span v-if="sale.order_id"> · {{ t('Order') }} {{ sale.order_id }}</span><span v-if="profileFilter || companyFilter"> · {{ sale.pos_profile }}</span><span v-if="session.multiCompany && (profileFilter === '__all__' || companyFilter)"> · {{ sale.company }}</span>
           </div>
         </div>
         <div class="sale-right">
@@ -139,6 +147,7 @@
       :receipt="receipt"
       :can-refund="session.permissions.can_return !== false"
       :can-exchange="session.permissions.can_exchange !== false"
+      reprint
       @close="receipt = null"
       @refund="startRefund"
       @exchange="startExchange"
@@ -176,6 +185,7 @@ const refundInvoice = ref(null)
 const refundMode = ref('refund') // 'refund' | 'exchange'
 const showFilters = ref(false)
 const profileFilter = ref('')
+const companyFilter = ref('')
 let timer = null
 
 const emptyFilters = () => ({
@@ -222,6 +232,7 @@ const activeFilterCount = computed(() => {
   if (f.total_min != null && f.total_min !== '') count++
   if (f.total_max != null && f.total_max !== '') count++
   if (profileFilter.value) count++
+  if (companyFilter.value) count++
   return count
 })
 
@@ -269,6 +280,11 @@ async function load() {
     } else if (profileFilter.value) {
       payload.pos_profile = profileFilter.value
     }
+    // A company alone means every outlet of that company.
+    if (companyFilter.value) {
+      payload.company = companyFilter.value
+      if (!profileFilter.value) payload.all_profiles = 1
+    }
     const rows = await call('lumenpos.api.sales.search_sales', { filters: payload })
     if (seq !== searchSeq) return // a newer search already answered
     sales.value = rows
@@ -282,6 +298,7 @@ async function load() {
 function clearFilters() {
   filters.value = emptyFilters()
   profileFilter.value = ''
+  companyFilter.value = ''
   load()
 }
 

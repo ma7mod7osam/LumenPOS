@@ -25,11 +25,17 @@
           {{ t('balance') }} {{ money(receipt.gift_card_balance) }}<span v-if="receipt.gift_card_expiry"> · {{ t('expires') }} {{ receipt.gift_card_expiry }}</span>
         </div>
 
+        <!-- A return posts in the company that made the sale, so another
+             company's outlet cannot take it back: say so now, not after the
+             cashier has picked the items. -->
+        <div v-if="otherCompany && !receipt.is_return" class="company-note">
+          {{ t('Sold by {company}. It can be returned or exchanged at one of its outlets.', { company: receipt.company }) }}
+        </div>
         <ReceiptView :receipt="receipt" printable />
       </div>
       <div class="modal-footer">
         <button
-          v-if="!receipt.is_return && !receipt.offline && canRefund"
+          v-if="!receipt.is_return && !receipt.offline && canRefund && !otherCompany"
           class="btn btn-outline refund-btn"
           @click="$emit('refund', receipt.name)"
         >
@@ -38,7 +44,7 @@
         <!-- Swap goods in one step: the same picker as a refund, then the sell
              screen for what the customer takes instead. -->
         <button
-          v-if="!receipt.is_return && !receipt.offline && canExchange && !soldInOtherCurrency"
+          v-if="!receipt.is_return && !receipt.offline && canExchange && !soldInOtherCurrency && !otherCompany"
           class="btn btn-outline"
           @click="$emit('exchange', receipt.name)"
         >
@@ -86,12 +92,19 @@ const props = defineProps({
   receipt: Object,
   canRefund: { type: Boolean, default: false },
   canExchange: { type: Boolean, default: false },
+  // Opened later, from History or Customers: printing it again is a reprint.
+  reprint: { type: Boolean, default: false },
 })
 defineEmits(['close', 'refund', 'exchange', 'open-in-history'])
 
 const session = useSessionStore()
 const printing = ref(false)
 const emailing = ref(false)
+
+// A sale of another company (a manager covering outlets of two companies).
+const otherCompany = computed(
+  () => Boolean(props.receipt?.company && session.company) && props.receipt.company !== session.company
+)
 
 // Exchanges stay in the outlet's currency (lumenpos.currency): a sale in
 // another currency is refunded and the new goods rung up as a new sale.
@@ -136,8 +149,9 @@ async function print() {
     try {
       await call('lumenpos.api.printing.print_receipt', {
         invoice: props.receipt.name,
-        // Opened from History or Customers, so this is a second copy.
-        reprint: props.showOpenInHistory ? 0 : 1,
+        // A copy printed later (History, Customers) is a reprint; the sale's
+        // own receipt, printed right after it, never is.
+        reprint: props.reprint ? 1 : 0,
       })
       session.notify(t('Receipt sent to printer'))
       return
@@ -192,5 +206,15 @@ async function print() {
   text-align: center;
   margin-bottom: 16px;
 }
-.refund-btn { margin-right: auto; color: var(--red); }
+.refund-btn { margin-inline-end: auto; color: var(--red); }
+.company-note {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
 </style>

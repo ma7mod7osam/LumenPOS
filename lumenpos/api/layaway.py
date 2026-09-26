@@ -63,11 +63,31 @@ def _require_layaway_access():
 
 def _load(name):
     doc = frappe.get_doc("POS Layaway", name)
+    # A user held to some companies (ERPNext User Permissions) sees only theirs.
+    companies = permissions.allowed_companies()
+    if companies is not None and doc.company not in companies:
+        frappe.throw(_("Hold {0} belongs to another company").format(name), frappe.PermissionError)
     return doc
 
 
 def _profile(pos_profile):
     return frappe.get_cached_doc("POS Profile", pos_profile)
+
+
+def _acting_profile(doc, pos_profile=None):
+    """The outlet serving a hold now. Any outlet of the hold's company may take
+    an instalment or give the money back, through its own drawer (a customer
+    need not come back to the branch that took the first payment); another
+    company's outlet may not, since the money sits in this company's books."""
+    if pos_profile and pos_profile != doc.pos_profile:
+        if frappe.get_cached_value("POS Profile", pos_profile, "company") != doc.company:
+            frappe.throw(
+                _("Hold {0} belongs to {1}. Serve it at one of its outlets.").format(doc.name, doc.company)
+            )
+        permissions.assert_outlet(pos_profile)
+        return _profile(pos_profile)
+    permissions.assert_outlet(doc.pos_profile)
+    return _profile(doc.pos_profile)
 
 
 def _build_sale(profile, customer, lines, note, with_taxes, tax_included=False):
@@ -325,6 +345,7 @@ def create_layaway(payload):
     _require_layaway()
 
     profile = _profile(payload["pos_profile"])
+    permissions.assert_outlet(profile.name)
     customer = payload.get("customer")
     if not customer:
         frappe.throw(_("A hold needs a customer, so the shop knows whose goods these are"))
@@ -385,15 +406,15 @@ def create_layaway(payload):
 
 
 @frappe.whitelist()
-def add_instalment(layaway, payments):
-    """Take another payment against an open hold."""
+def add_instalment(layaway, payments, pos_profile=None):
+    """Take another payment against an open hold, at any outlet of its company."""
     if isinstance(payments, str):
         payments = json.loads(payments)
     _require_layaway_access()
     doc = _load(layaway)
     if doc.status != "Open":
         frappe.throw(_("This hold is {0}").format(_(doc.status)))
-    profile = _profile(doc.pos_profile)
+    profile = _acting_profile(doc, pos_profile)
     amount = flt(sum(flt(p.get("amount")) for p in payments))
     receipt = _take_deposit(doc, profile, amount, payments)
     doc.save(ignore_permissions=True)
@@ -401,7 +422,7 @@ def add_instalment(layaway, payments):
 
 
 @frappe.whitelist()
-def complete_layaway(layaway, payments=None):
+def complete_layaway(layaway, payments=None, pos_profile=None):
     """Hand the goods over: the real sale, less what is already paid.
 
     The deposit comes off as a negative line of the SAME item that took it, so
@@ -413,6 +434,11 @@ def complete_layaway(layaway, payments=None):
     doc = _load(layaway)
     if doc.status != "Open":
         frappe.throw(_("This hold is {0}").format(_(doc.status)))
+    # The goods are reserved in the hold's own outlet's warehouse, so that is
+    # where they leave from.
+    if pos_profile and pos_profile != doc.pos_profile:
+        frappe.throw(_("Hand these goods over at {0}, where they are kept.").format(doc.pos_profile))
+    permissions.assert_outlet(doc.pos_profile)
     profile = _profile(doc.pos_profile)
 
     lines = [
@@ -458,7 +484,7 @@ def complete_layaway(layaway, payments=None):
 
 
 @frappe.whitelist()
-def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None):
+def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None, pos_profile=None):
     """Give the money back and put the goods on the shelf.
 
     Every instalment is refunded through the ordinary return, so the refund
@@ -469,6 +495,8 @@ def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None)
     doc = _load(layaway)
     if doc.status != "Open":
         frappe.throw(_("This hold is {0}").format(_(doc.status)))
+    # The refund goes out through the drawer of the outlet doing it.
+    acting = _acting_profile(doc, pos_profile)
 
     refunds = []
     for row in doc.payments or []:
@@ -479,7 +507,7 @@ def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None)
             items={deposits.item_code(): 1},
             refund_mode=refund_mode or "Cash",
             return_reason=reason or _("Hold cancelled"),
-            pos_profile=doc.pos_profile,
+            pos_profile=acting.name,
             refund_payments=refund_payments or None,
         )
         row.refunded = 1
@@ -495,6 +523,7 @@ def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None)
 
 @frappe.whitelist()
 def get_layaway(name):
+    _require_layaway_access()
     doc = _load(name)
     return {
         "name": doc.name,
@@ -534,13 +563,23 @@ def get_layaway(name):
 
 
 @frappe.whitelist()
-def list_layaways(pos_profile=None, status="Open", search=None, limit=50):
-    """The holds screen: what this outlet is holding, newest first."""
+def list_layaways(pos_profile=None, status="Open", search=None, limit=50, scope="company"):
+    """The holds screen, newest first: every hold of this outlet's company
+    (any of its outlets can serve one), or this outlet's alone."""
+    _require_layaway_access()
     filters = {}
     if status and status != "All":
         filters["status"] = status
+    companies = permissions.allowed_companies()
     if pos_profile and pos_profile != "__all__":
-        filters["pos_profile"] = pos_profile
+        if scope == "outlet":
+            filters["pos_profile"] = pos_profile
+        else:
+            filters["company"] = frappe.get_cached_value("POS Profile", pos_profile, "company")
+    if companies is not None:
+        if filters.get("company") and filters["company"] not in companies:
+            return {"layaways": []}
+        filters.setdefault("company", ["in", list(companies)])
     or_filters = None
     if (search or "").strip():
         term = f"%{search.strip()}%"

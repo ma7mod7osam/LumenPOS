@@ -131,7 +131,7 @@ def _build_sale_invoice(
     if ctx.own_list:
         for line in lines:
             line["price"] = flt(line["price"]) / ctx.factor
-    bundle_discounts, bundle_applied = _apply_bundles(payload["items"], lines)
+    bundle_discounts, bundle_applied = _apply_bundles(payload["items"], lines, profile.name)
 
     # Promotions never touch bundle lines, bundle pricing is final.
     non_bundle_idx = [
@@ -417,6 +417,9 @@ def submit_sale(payload):
         if existing:
             return get_receipt(existing)
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
+    from lumenpos.api import permissions as outlet_permissions
+
+    outlet_permissions.assert_outlet(profile.name)
     session = _open_session(profile.name)
 
     # A real sale fixes the shift's rate for its currency (lumenpos.currency).
@@ -575,6 +578,9 @@ def sell_gift_card(payload):
 
     _require_sell()
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
+    from lumenpos.api import permissions as outlet_permissions
+
+    outlet_permissions.assert_outlet(profile.name)
     _ensure_ignore_pricing_rule(profile)
     session = _open_session(profile.name)
     amount = flt(payload.get("amount"))
@@ -857,7 +863,7 @@ def _check_discount_passcode(payload):
     )
 
 
-def _apply_bundles(payload_items, lines):
+def _apply_bundles(payload_items, lines, pos_profile=None):
     """Validate and price bundle instances. Items arrive as separate lines
     tagged with bundle_key ('BNDL-0001#2'); each instance must contain
     exactly the bundle's components, and the saving (natural total minus
@@ -878,6 +884,20 @@ def _apply_bundles(payload_items, lines):
         bundle = frappe.get_doc("POS Bundle", bundle_name)
         if bundle.status != "Active":
             frappe.throw(_("Bundle {0} is inactive").format(bundle.title))
+        # Checked here too, not only when the till loaded its bundles: a cart
+        # kept past the end date, queued offline or posted directly must not
+        # get a bundle outside its dates or its outlets.
+        from frappe.utils import getdate, nowdate
+
+        from lumenpos import scope
+
+        today = getdate(nowdate())
+        if (bundle.get("valid_from") and getdate(bundle.valid_from) > today) or (
+            bundle.get("valid_to") and getdate(bundle.valid_to) < today
+        ):
+            frappe.throw(_("Bundle {0} is not valid today").format(bundle.title))
+        if not scope.applies_to(bundle.get("company"), [r.pos_profile for r in (bundle.pos_profiles or [])], pos_profile):
+            frappe.throw(_("Bundle {0} is not offered at {1}").format(bundle.title, pos_profile))
 
         expected = {row.item_code: flt(row.qty) for row in bundle.items}
         actual = {}
@@ -1583,9 +1603,20 @@ def get_receipt(invoice):
             row["tendered"] = flt(p.amount) if code == doc.currency else flt(p.base_amount)
         return row
 
+    # The receipt of the outlet that made the sale, its override included,
+    # with the company's own tax ID when the receipt names none: reprinting
+    # another outlet's sale used to print THIS outlet's tax ID and address.
+    from lumenpos.api.settings import effective_receipt
+
+    receipt_settings = effective_receipt(doc.get("pos_profile")) if doc.get("pos_profile") else {}
+    if not receipt_settings.get("receipt_tax_id"):
+        receipt_settings["receipt_tax_id"] = frappe.get_cached_value("Company", doc.company, "tax_id") or ""
+
     return {
         "name": doc.name,
         "doctype": doc.doctype,  # so the client prints the right doc via a Print Format
+        "pos_profile": doc.get("pos_profile"),
+        "receipt_settings": receipt_settings,
         "custom_fields": resolve_receipt_custom_fields(doc),
         "note": _get_custom(doc, ("lumenpos_note",)) or "",
         "is_return": doc.is_return,
@@ -1794,11 +1825,45 @@ def search_sales(filters=None):
         filters = json.loads(filters)
     f = frappe._dict(filters or {})
     # Which backend's table to read (POS Invoice by default; Sales Invoice when
-    # the profile posts directly). The client always passes pos_profile so the
-    # mode is known even when listing across profiles.
-    doctype = _table_doctype(f.get("pos_profile"))
-    if not frappe.has_permission(doctype, "read"):
+    # the profile posts directly). Across outlets, BOTH when the outlets post
+    # different kinds: reading one table dropped the other outlets' sales.
+    if cint(f.all_profiles):
+        doctypes = [dt for dt in _history_doctypes(f.get("company")) if frappe.has_permission(dt, "read")]
+    else:
+        doctypes = [_table_doctype(f.get("pos_profile"))]
+    if not doctypes or not all(frappe.has_permission(dt, "read") for dt in doctypes):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if len(doctypes) == 1:
+        return _search_sales_in(doctypes[0], f)
+    # Two tables: the newest start+limit of each, merged, is the newest
+    # start+limit of both.
+    start, limit = cint(f.get("start") or 0), min(cint(f.get("limit") or 100), 200)
+    wide = frappe._dict(f, start=0, limit=start + limit, _merged=1)
+    rows = []
+    for dt in doctypes:
+        rows.extend(_search_sales_in(dt, wide))
+    rows.sort(key=lambda r: r.get("creation") or "", reverse=True)
+    return rows[start : start + limit]
+
+
+def _history_doctypes(company=None):
+    """The invoice tables the enabled outlets post to (of one company, when
+    asked, and of the companies this user may see)."""
+    from lumenpos.api.permissions import allowed_companies
+
+    filters = {"disabled": 0}
+    companies = allowed_companies()
+    if company:
+        filters["company"] = company
+    elif companies is not None:
+        filters["company"] = ["in", list(companies)]
+    profiles = frappe.get_all("POS Profile", filters=filters, pluck="name")
+    return sorted({_table_doctype(p) for p in profiles}) or [INVOICE_DOCTYPE]
+
+
+def _search_sales_in(doctype, f):
+    """search_sales on one invoice table."""
+    from lumenpos.api.permissions import allowed_companies
 
     # kind= makes these resolve by TYPE as well as name: a site whose
     # `online_order` holds the marketplace order NUMBER must not be treated as
@@ -1822,6 +1887,13 @@ def search_sales(filters=None):
     if f.pos_profile and not cint(f.all_profiles):
         conds.append("pi.pos_profile = %(pos_profile)s")
         params["pos_profile"] = f.pos_profile
+    if f.get("company"):
+        conds.append("pi.company = %(company)s")
+        params["company"] = f.company
+    companies = allowed_companies()
+    if companies is not None:
+        conds.append("pi.company in %(allowed_companies)s")
+        params["allowed_companies"] = tuple(companies)
 
     docstatus = f.get("docstatus") or "Submitted"
     if docstatus == "Submitted":
@@ -1917,7 +1989,7 @@ def search_sales(filters=None):
         params["payment_mode"] = f.payment_mode
 
     where = " and ".join(conds) if conds else "1=1"
-    params["limit"] = min(cint(f.get("limit") or 100), 200)
+    params["limit"] = min(cint(f.get("limit") or 100), 1000 if f.get("_merged") else 200)
     params["start"] = cint(f.get("start") or 0)
 
     app_select = f"pi.{app_field} as app_type" if app_field else "null as app_type"
@@ -1938,8 +2010,8 @@ def search_sales(filters=None):
     # as a %(...)s param. Safe despite the f-string.
     rows = frappe.db.sql(  # nosemgrep
         f"""
-        select pi.name, pi.customer, pi.customer_name, c.mobile_no, pi.pos_profile,
-               pi.grand_total, pi.currency, pi.posting_date, pi.posting_time,
+        select pi.name, pi.customer, pi.customer_name, c.mobile_no, pi.pos_profile, pi.company,
+               pi.creation, pi.grand_total, pi.currency, pi.posting_date, pi.posting_time,
                pi.status, pi.docstatus, pi.is_return, pi.owner, u.full_name as owner_name,
                {app_select}, {order_select}, {online_select}, {exchange_select},
                {pay_modes_select}
@@ -1957,6 +2029,7 @@ def search_sales(filters=None):
     for row in rows:
         row["is_exchange"] = _truthy_custom(row.get("is_exchange"))
         row["owner_name"] = row.get("owner_name") or row.get("owner")
+        row["creation"] = str(row.get("creation") or "")
     return rows
 
 
@@ -2069,6 +2142,9 @@ def _build_return_doc(original, sale_doctype, invoice, items, serials, pos_profi
     profile-filtered closings/reports missed it entirely."""
     handling_profile_name = pos_profile or original.pos_profile
     handling_profile = frappe.get_cached_doc("POS Profile", handling_profile_name)
+    from lumenpos.api import permissions as outlet_permissions
+
+    outlet_permissions.assert_outlet(handling_profile_name)
     if handling_profile.company != original.company:
         frappe.throw(
             _(
@@ -2211,6 +2287,15 @@ def _cashier_refund_modes(original):
     return [mode for mode in modes if mode != exchanges.MODE_OF_PAYMENT]
 
 
+def _wallet_modes():
+    """Tenders a refund never goes back onto. A credit note paid out to "Gift
+    Card" or "Cashback" credits the liability account but tops up no card and
+    no cashback balance (only store credit keeps a ledger row per refund), so
+    the customer lost the money while the books said the shop owed it. What
+    was paid that way goes back as store credit instead."""
+    return {gift_cards.mode_of_payment(), cashback.MODE_OF_PAYMENT}
+
+
 def _allowed_refund_modes(original):
     """The refund tenders permitted for this sale: every mode the customer
     actually paid with, expanded by the configured per-mode rules (e.g. paid
@@ -2220,16 +2305,18 @@ def _allowed_refund_modes(original):
     if not settings.get("restrict_refund_to_paid_mode"):
         return None
     paid = {p.mode_of_payment for p in (original.payments or []) if flt(p.amount) > 0}
-    allowed = set(paid)
+    wallets = _wallet_modes()
+    allowed = set(paid) - wallets
     for rule in settings.get("refund_rules") or []:
-        if rule.paid_mode in paid and rule.refund_mode:
+        if rule.paid_mode in paid and rule.refund_mode and rule.refund_mode not in wallets:
             allowed.add(rule.refund_mode)
     # Refunding onto the customer's account used to be hard-wired as always
     # allowed, so a cashier could park a refund on credit against shop policy.
-    # It's a switch now, with ONE carve-out: credit the customer actually SPENT
-    # on this sale can always go back to credit (capped at what they spent),
-    # because otherwise a credit-paid sale would have no refund method at all.
-    if settings.get("allow_store_credit_refund") or store_credit.MODE_OF_PAYMENT in paid:
+    # It's a switch now, with ONE carve-out: what the customer paid out of a
+    # wallet (store credit, a gift card, cashback) can always go back to credit,
+    # because a refund never goes back onto a gift card or cashback (see
+    # _wallet_modes) and cash for it would turn a card into money.
+    if settings.get("allow_store_credit_refund") or paid & (wallets | {store_credit.MODE_OF_PAYMENT}):
         allowed.add(store_credit.MODE_OF_PAYMENT)
     # The exchange clearing tender is never a refund to the customer, it is the
     # internal leg that the matching new sale pays straight back out. Refund
@@ -2437,6 +2524,11 @@ def create_return(
     if _split_fn:
         refund_payments = _split_fn(abs(refund_amount))
     splits = _refund_splits(refund_payments, refund_amount, refund_mode, allowed_modes)
+    if any(r["mode_of_payment"] in _wallet_modes() for r in splits):
+        frappe.throw(
+            _("A refund does not go back onto a gift card or cashback. Refund that part as store credit."),
+            title=_("Refund"),
+        )
     # A sale in another currency is refunded through tenders ERPNext accepts
     # for it (its own currency or the company's), never into store credit,
     # whose ledger holds the outlet's currency only (lumenpos.currency).

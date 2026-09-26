@@ -38,7 +38,7 @@
             <span v-if="hold.status !== 'Open'" class="tag">{{ t(hold.status) }}</span>
           </div>
           <div class="muted small">
-            {{ hold.name }}<span v-if="hold.expiry_date"> · {{ t('until') }} {{ hold.expiry_date }}</span>
+            {{ hold.name }}<span v-if="hold.pos_profile !== session.posProfile"> · {{ hold.pos_profile }}</span><span v-if="hold.expiry_date"> · {{ t('until') }} {{ hold.expiry_date }}</span>
           </div>
         </div>
         <div class="hold-right">
@@ -99,9 +99,14 @@
             </button>
           </div>
           <div class="actions">
-            <button class="btn btn-primary" :disabled="busy" @click="handOver">
+            <!-- The goods are kept at the hold's own outlet; any outlet of the
+                 company can take a payment or give the money back. -->
+            <button v-if="open.pos_profile === session.posProfile" class="btn btn-primary" :disabled="busy" @click="handOver">
               {{ t('Hand over, collect {amount}', { amount: money(open.balance) }) }}
             </button>
+            <span v-else class="muted small handover-note">
+              {{ t('Hand the goods over at {outlet}, where they are kept.', { outlet: open.pos_profile }) }}
+            </span>
             <button class="btn btn-outline danger" :disabled="busy" @click="cancelHold">
               {{ t('Cancel hold and refund {amount}', { amount: money(open.paid) }) }}
             </button>
@@ -187,6 +192,7 @@ async function takePayment() {
     const res = await call('lumenpos.api.layaway.add_instalment', {
       layaway: open.value.name,
       payments: [{ mode_of_payment: payMode.value, amount: Number(payAmount.value) }],
+      pos_profile: session.posProfile,
     })
     open.value = res.layaway
     payAmount.value = open.value.balance || null
@@ -207,6 +213,7 @@ async function handOver() {
     const res = await call('lumenpos.api.layaway.complete_layaway', {
       layaway: open.value.name,
       payments,
+      pos_profile: session.posProfile,
     })
     open.value = res.layaway
     session.notify(t('Goods handed over'))
@@ -224,6 +231,7 @@ async function cancelHold() {
     const res = await call('lumenpos.api.layaway.cancel_layaway', {
       layaway: open.value.name,
       refund_mode: payMode.value,
+      pos_profile: session.posProfile,
     })
     open.value = res.layaway
     session.notify(t('Hold cancelled and refunded'))

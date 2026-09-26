@@ -1477,6 +1477,17 @@ const customerForm = {
   "Postal code": "الرمز البريدي",
   "Address": "العنوان",
   "Add a field of Customer…": "إضافة حقل من حقول العميل…",
+  "Customer deposits account": "حساب عربون العملاء",
+  "Switch outlet": "تغيير الفرع",
+  "Hand the goods over at {outlet}, where they are kept.": "سلم البضاعة في {outlet} حيث هي محفوظة.",
+  "The sale on screen will be cleared. Switch outlet?": "ستمسح عملية البيع الحالية. تغيير الفرع؟",
+  "All companies": "كل الشركات",
+  "Whole group": "المجموعة كلها",
+  "One company": "شركة واحدة",
+  "Chosen outlets": "فروع محددة",
+  "Sold by {company}. It can be returned or exchanged at one of its outlets.":
+    "باعتها {company}. يمكن استرجاعها أو استبدالها في أحد فروعها.",
+  "Where money taken on holds waits until the goods are handed over.": "حيث تبقى مبالغ الحجوزات حتى تسليم البضاعة.",
   "Your own Customer fields appear here too, for example a national ID or a commercial registration number. The mobile is how the till finds a customer it already has: without it, the same person can be added twice.":
     "تظهر هنا أيضا حقول العميل الخاصة بك، مثل رقم الهوية أو السجل التجاري. الجوال هو ما يتعرف به الصندوق على عميل موجود مسبقا، وبدونه قد يضاف الشخص نفسه مرتين.",
 }

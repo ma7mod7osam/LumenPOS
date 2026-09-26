@@ -39,6 +39,7 @@
   "saturday",
   "sunday",
   "eligibility_section",
+  "company",
   "pos_profiles",
   "col_elig",
   "customer_eligibility",
@@ -232,6 +233,13 @@
    "label": "Eligibility"
   },
   {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Company",
+   "description": "Empty: every company. Set: every outlet of this company, unless outlets are chosen below."
+  },
+  {
    "fieldname": "pos_profiles",
    "fieldtype": "Table",
    "label": "Outlets",
@@ -293,7 +301,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-16 00:00:00",
+ "modified": "2026-09-26 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Cashback Rule",

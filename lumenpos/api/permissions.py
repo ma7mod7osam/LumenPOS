@@ -51,6 +51,45 @@ def _roles(user=None):
     return set(frappe.get_roles(user) if user else frappe.get_roles())
 
 
+def allowed_companies(user=None):
+    """The companies ERPNext's User Permissions hold this user to, or None
+    when there is no such permission (every company)."""
+    user = user or frappe.session.user
+    if user == "Administrator":
+        return None
+    companies = frappe.get_all("User Permission", filters={"user": user, "allow": "Company"}, pluck="for_value")
+    return set(companies) or None
+
+
+def can_use_outlet(pos_profile, user=None):
+    """Whether this user may work at this outlet: its company allowed by the
+    user's permissions, and the user a manager, assigned to the outlet
+    (Applicable for Users), or at a shop that assigns nobody."""
+    user = user or frappe.session.user
+    if not pos_profile:
+        return False
+    if user == "Administrator":
+        return True
+    company = frappe.get_cached_value("POS Profile", pos_profile, "company")
+    companies = allowed_companies(user)
+    if companies is not None and company not in companies:
+        return False
+    if is_manager(user):
+        return True
+    assigned = frappe.get_all("POS Profile User", filters={"user": user, "parenttype": "POS Profile"}, pluck="parent")
+    return not assigned or pos_profile in assigned
+
+
+def assert_outlet(pos_profile):
+    if not can_use_outlet(pos_profile):
+        frappe.throw(
+            frappe._("You are not assigned to outlet {0}. Ask an administrator to add you under Applicable for Users.").format(
+                pos_profile
+            ),
+            frappe.PermissionError,
+        )
+
+
 def is_manager(user=None):
     return bool(MANAGER_ROLES & _roles(user))
 

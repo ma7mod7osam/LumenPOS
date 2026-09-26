@@ -142,7 +142,12 @@ const props = defineProps({
 })
 
 const session = useSessionStore()
-const s = computed(() => props.settings || session.settings || {})
+// The receipt of the outlet that made the sale (sent with it), over this
+// till's own: a reprint of another outlet's sale shows that outlet's tax ID,
+// address and logo.
+const s = computed(
+  () => props.settings || { ...(session.settings || {}), ...(props.receipt.receipt_settings || {}) }
+)
 
 // Amounts print in the sale's own currency (lumenpos.currency). A sale in
 // another currency also shows its local value, the rate, each tender in its own

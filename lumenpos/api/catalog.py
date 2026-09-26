@@ -456,8 +456,13 @@ def price_check(pos_profile, query):
             here[b.item_code] = b.actual_qty
     totals = {}
     if codes:
+        # This company's warehouses only: another company's stock is not stock
+        # this till's customer can be sold.
+        warehouses = frappe.get_all("Warehouse", filters={"company": profile.company, "is_group": 0}, pluck="name")
         for b in frappe.get_all(
-            "Bin", filters={"item_code": ["in", codes]}, fields=["item_code", "actual_qty"]
+            "Bin",
+            filters={"item_code": ["in", codes], "warehouse": ["in", warehouses or [""]]},
+            fields=["item_code", "actual_qty"],
         ):
             totals[b.item_code] = (totals.get(b.item_code) or 0) + flt(b.actual_qty)
 

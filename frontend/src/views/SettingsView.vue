@@ -226,13 +226,7 @@
             </button>
           </div>
           <div class="sub-label">{{ t('Outlets & customers') }}</div>
-          <div class="outlet-row">
-            <label v-for="profile in session.availableProfiles" :key="profile" class="inline-check">
-              <input type="checkbox" :value="profile" v-model="promoForm.pos_profiles" />
-              {{ profile }}
-            </label>
-            <span class="muted small">{{ t('(none ticked = all outlets)') }}</span>
-          </div>
+          <ScopePicker v-model:company="promoForm.company" v-model:outlets="promoForm.pos_profiles" />
           <div class="item-row">
             <LinkPicker
               doctype="Customer Group"
@@ -614,13 +608,7 @@
             </button>
           </div>
           <div class="sub-label">{{ t('Outlets & customers') }}</div>
-          <div class="outlet-row">
-            <label v-for="profile in session.availableProfiles" :key="profile" class="inline-check">
-              <input type="checkbox" :value="profile" v-model="cashbackForm.pos_profiles" />
-              {{ profile }}
-            </label>
-            <span class="muted small">{{ t('(none ticked = all outlets)') }}</span>
-          </div>
+          <ScopePicker v-model:company="cashbackForm.company" v-model:outlets="cashbackForm.pos_profiles" />
           <div class="item-row">
             <LinkPicker
               doctype="Customer Group"
@@ -748,13 +736,7 @@
           </p>
 
           <div class="sub-label">{{ t('Outlets') }}</div>
-          <div class="outlet-row">
-            <label v-for="profile in session.availableProfiles" :key="profile" class="inline-check">
-              <input type="checkbox" :value="profile" v-model="bundleForm.pos_profiles" />
-              {{ profile }}
-            </label>
-            <span class="muted small">{{ t('(none ticked = all outlets)') }}</span>
-          </div>
+          <ScopePicker v-model:company="bundleForm.company" v-model:outlets="bundleForm.pos_profiles" />
         </div>
 
         <!-- Sticky footer -->
@@ -818,12 +800,7 @@
             {{ t('Active') }}
           </label>
           <div class="sub-label">{{ t('Outlets & customers') }}</div>
-          <div class="outlet-row">
-            <label v-for="profile in session.availableProfiles" :key="profile" class="inline-check">
-              <input type="checkbox" :value="profile" v-model="bookForm.pos_profiles" />
-              {{ profile }}
-            </label>
-          </div>
+          <ScopePicker v-model:company="bookForm.company" v-model:outlets="bookForm.pos_profiles" />
           <div class="item-row">
             <LinkPicker
               doctype="Customer Group"
@@ -1617,6 +1594,17 @@
             />
             <span class="muted small">{{ t('The cost of the cashback program.') }}</span>
           </label>
+          <label class="field">
+            <span>{{ t('Customer deposits account') }}</span>
+            <LinkPicker
+              :key="'dep-' + selectedCompany"
+              doctype="Account"
+              :filters="{ company: selectedCompany, root_type: 'Liability' }"
+              v-model="companyRow.deposit_account"
+              :placeholder="t('Liability account, created automatically if empty')"
+            />
+            <span class="muted small">{{ t('Where money taken on holds waits until the goods are handed over.') }}</span>
+          </label>
         </div>
       </div>
 
@@ -2030,6 +2018,7 @@ import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { catalogCount, storagePersisted, customerCount } from '../offline'
 import LinkPicker from '../components/LinkPicker.vue'
+import ScopePicker from '../components/ScopePicker.vue'
 import PriceListEditor from '../components/PriceListEditor.vue'
 import ReceiptView from '../components/ReceiptView.vue'
 import { t } from '../i18n'
@@ -2393,6 +2382,7 @@ const companyRow = computed(
       service_charge_account: '',
       cashback_liability_account: '',
       cashback_expense_account: '',
+      deposit_account: '',
     }
 )
 
@@ -2727,6 +2717,7 @@ async function load() {
         service_charge_account: '',
         cashback_liability_account: '',
         cashback_expense_account: '',
+        deposit_account: '',
       })
     }
   }
@@ -2789,6 +2780,7 @@ function newBundle() {
     title: '', status: 'Active', bundle_price: 0,
     valid_from: null, valid_to: null,
     items: [{ item_code: '', label: '', qty: 1 }],
+    company: '',
     pos_profiles: [],
   }
   editingBundle.value = true
@@ -2808,6 +2800,7 @@ function editBundle(bundle) {
       qty: row.qty,
       allocated_amount: row.allocated_amount || null,
     })),
+    company: bundle.company || '',
     pos_profiles: [...(bundle.pos_profiles || [])],
   }
   editingBundle.value = true
@@ -2886,6 +2879,7 @@ function newPromotion() {
     buy_qty: 2, get_qty: 1, get_discount_type: 'Free', get_discount_value: 0, max_applications: 0,
     min_spend: 0, basket_discount_type: 'Percentage', basket_discount_value: 0,
     bundle_price: 0,
+    company: '',
     pos_profiles: [], customer_groups: [], items: [],
   }
   couponStats.value = null
@@ -3025,6 +3019,7 @@ async function editPromotion(name) {
     qty: row.qty || 1,
     exclude: row.exclude || 0,
   }))
+  data.company = data.company || ''
   promoForm.value = data
   editingPromo.value = true
   testResult.value = null
@@ -3146,6 +3141,7 @@ function newCashbackRule() {
     monday: 1, tuesday: 1, wednesday: 1, thursday: 1, friday: 1, saturday: 1, sunday: 1,
     stackable: 0, priority: 1, requires_coupon: 0, coupon_code: '',
     customer_eligibility: 'All Customers', apply_on_all: 1,
+    company: '',
     pos_profiles: [], customer_groups: [], items: [],
   }
   editingCashback.value = true
@@ -3159,6 +3155,7 @@ async function editCashbackRule(name) {
     label: row.item_code || row.item_group || row.brand || row.tag || '',
     exclude: row.exclude || 0,
   }))
+  data.company = data.company || ''
   cashbackForm.value = data
   editingCashback.value = true
 }
@@ -3266,6 +3263,7 @@ function newBook() {
   bookForm.value = {
     title: '', status: 'Active', priority: 1,
     valid_from: null, valid_to: null,
+    company: '',
     pos_profiles: [], customer_groups: [], items: [],
   }
   bookImportReport.value = null
@@ -3282,6 +3280,7 @@ function isProtected(pl) {
 function editBook(book) {
   bookForm.value = {
     ...JSON.parse(JSON.stringify(book)),
+    company: book.company || '',
     items: (book.items || []).map((r) => ({ ...r })),
   }
   bookImportReport.value = null

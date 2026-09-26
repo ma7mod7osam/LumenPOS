@@ -80,7 +80,9 @@ def book_overrides(profile, customer_group, item_codes, on_date=None):
             continue
         doc = frappe.get_cached_doc("POS Price Book", book.name)
         profiles = [r.pos_profile for r in (doc.pos_profiles or [])]
-        if profiles and profile.name not in profiles:
+        from lumenpos import scope
+
+        if not scope.applies_to(doc.get("company"), profiles, profile.name):
             continue
         groups = [r.customer_group for r in (doc.customer_groups or [])]
         if groups and (not customer_group or customer_group not in groups):

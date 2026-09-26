@@ -283,6 +283,9 @@ const refundModes = computed(() => {
     ? [...allowedModes.value]
     : session.paymentModes.map((x) => x.mode_of_payment)
   if (!allowedModes.value && !modes.includes(session.storeCreditMode)) modes.push(session.storeCreditMode)
+  // A refund never goes back onto a gift card or cashback: that part is
+  // refunded as store credit (the server refuses it too).
+  modes = modes.filter((mode) => mode !== session.giftCardMode && mode !== session.cashbackMode)
   // A sale in another currency goes back through tenders ERPNext accepts for
   // it (its own currency or the local one), never onto a wallet: their
   // ledgers hold the outlet's currency only.

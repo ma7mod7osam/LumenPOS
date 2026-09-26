@@ -28,6 +28,7 @@ export const useSessionStore = defineStore('session', {
     posProfile: null,
     invoiceMode: 'POS Invoice',
     availableProfiles: [],
+    profileCompanies: {}, // outlet -> its company
     otherOpenRegisters: [],
     company: null,
     currency: 'USD',
@@ -101,6 +102,16 @@ export const useSessionStore = defineStore('session', {
 
   getters: {
     registerOpen: (s) => Boolean(s.registerSession),
+    // The companies this user's outlets belong to; more than one means the
+    // screens name the company next to outlets, sales and figures.
+    companies: (s) => [...new Set(Object.values(s.profileCompanies || {}))].sort(),
+    multiCompany() {
+      return this.companies.length > 1
+    },
+    outletLabel: (s) => (name) =>
+      new Set(Object.values(s.profileCompanies || {})).size > 1 && s.profileCompanies?.[name]
+        ? `${name} · ${s.profileCompanies[name]}`
+        : name,
     // The money the main drawer holds, and that change is given in: the
     // company currency (lumenpos.currency).
     localCurrency: (s) => s.multiCurrency?.company_currency || s.currency,
@@ -210,6 +221,7 @@ export const useSessionStore = defineStore('session', {
       this.posProfile = data.pos_profile
       this.invoiceMode = data.invoice_mode || 'POS Invoice'
       this.availableProfiles = data.available_profiles || []
+      this.profileCompanies = data.profile_companies || {}
       this.company = data.company
       this.currency = data.currency
       this.priceList = data.price_list

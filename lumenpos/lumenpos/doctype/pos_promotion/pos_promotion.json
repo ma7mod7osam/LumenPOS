@@ -32,6 +32,7 @@
   "saturday",
   "sunday",
   "eligibility_section",
+  "company",
   "pos_profiles",
   "column_break_eligibility",
   "customer_eligibility",
@@ -214,6 +215,13 @@
    "label": "Eligibility"
   },
   {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Company",
+   "description": "Empty: every company. Set: every outlet of this company, unless outlets are chosen below."
+  },
+  {
    "description": "Leave empty to run in all outlets",
    "fieldname": "pos_profiles",
    "fieldtype": "Table",
@@ -347,7 +355,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-06-10 00:00:00.000000",
+ "modified": "2026-09-26 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Promotion",

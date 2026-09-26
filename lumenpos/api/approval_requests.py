@@ -202,6 +202,15 @@ def pending_requests(pos_profile=None):
     filters = {"status": "Pending"}
     if pos_profile:
         filters["pos_profile"] = pos_profile
+    # An approver held to some companies sees their outlets' requests only.
+    from lumenpos.api.permissions import allowed_companies
+
+    companies = allowed_companies()
+    if companies is not None and not pos_profile:
+        filters["pos_profile"] = [
+            "in",
+            frappe.get_all("POS Profile", filters={"company": ["in", list(companies)]}, pluck="name") or [""],
+        ]
     rows = frappe.get_all(
         REQUEST_DOCTYPE,
         filters=filters,
