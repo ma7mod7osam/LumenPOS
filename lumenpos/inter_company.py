@@ -259,15 +259,17 @@ def post_pending(upto=None, commit=True):
                     update_modified=False,
                 )
             booked += len(names)
+            if commit:
+                # One committed pair per group, so a later failure keeps it.
+                frappe.db.commit()  # nosemgrep
         except Exception as exc:
             frappe.db.rollback(save_point="lumenpos_ic")
             message = str(exc)[:500]
             for name in names:
                 frappe.db.set_value(SETTLEMENT, name, "error", message, update_modified=False)
             frappe.log_error(title="LumenPOS: inter-company settlement failed", message=frappe.get_traceback())
-        if commit:
-            # One committed pair per group, so a later failure keeps it.
-            frappe.db.commit()  # nosemgrep
+            if commit:
+                frappe.db.commit()  # nosemgrep
     return booked
 
 
