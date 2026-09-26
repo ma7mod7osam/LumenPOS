@@ -17,6 +17,18 @@ LumenPOS_ROLES = ["LumenPOS Cashier", "LumenPOS Manager"]
 # log + Sales Invoice rights). These are ADDITIVE, existing perms are never
 # removed, so admins can still tighten/loosen everything in the Role
 # Permissions Manager afterwards.
+#
+# Adding a customer at the till: ERPNext saves the Customer, then its mobile and
+# e-mail as a Contact and a national address as an Address, each one AS the
+# cashier, so the role needs create on all three (read opens the Customers
+# screen). Without them a cashier holding only this role was refused a new
+# customer and never saw that screen. Read and create only: editing or deleting
+# customers stays with the roles ERPNext gives it to.
+CUSTOMER_GRANTS = {
+    "Customer": ["read", "create"],
+    "Contact": ["read", "create"],
+    "Address": ["read", "create"],
+}
 CORE_GRANTS = {
     "LumenPOS Cashier": {
         "POS Invoice": ["read", "write", "create", "submit", "print"],
@@ -24,6 +36,7 @@ CORE_GRANTS = {
         "POS Closing Entry": ["read", "write", "create", "submit"],
         "POS Invoice Merge Log": ["read", "write", "create", "submit"],
         "Sales Invoice": ["read", "write", "create", "submit"],
+        **CUSTOMER_GRANTS,
     },
     "LumenPOS Manager": {
         "POS Invoice": ["read", "write", "create", "submit", "cancel", "amend", "print", "delete"],
@@ -31,6 +44,7 @@ CORE_GRANTS = {
         "POS Closing Entry": ["read", "write", "create", "submit", "cancel"],
         "POS Invoice Merge Log": ["read", "write", "create", "submit", "cancel"],
         "Sales Invoice": ["read", "write", "create", "submit", "cancel", "amend", "print"],
+        **CUSTOMER_GRANTS,
     },
 }
 
