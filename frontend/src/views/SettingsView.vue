@@ -222,7 +222,7 @@
               :class="{ on: promoForm[day] }"
               @click="promoForm[day] = promoForm[day] ? 0 : 1"
             >
-              {{ day.slice(0, 3) }}
+              {{ t('day:' + day) }}
             </button>
           </div>
           <div class="sub-label">{{ t('Outlets & customers') }}</div>
@@ -604,7 +604,7 @@
               :class="{ on: cashbackForm[day] }"
               @click="cashbackForm[day] = cashbackForm[day] ? 0 : 1"
             >
-              {{ day.slice(0, 3) }}
+              {{ t('day:' + day) }}
             </button>
           </div>
           <div class="sub-label">{{ t('Outlets & customers') }}</div>
@@ -1177,13 +1177,24 @@
             {{ icBusy ? t('Booking…') : t('Book now') }}
           </button>
           <div v-if="icStatus.recent.length" class="sub-label">{{ t('Latest entries') }}</div>
-          <div v-for="row in icStatus.recent" :key="row.to_journal_entry" class="muted small ic-recent">
-            {{ row.posting_date }} · {{ t(row.wallet) }} · {{ row.from_company }} → {{ row.to_company }} ·
-            {{ money(row.amount, icStatus.companies[row.from_company]) }} ·
-            <a :href="`/app/journal-entry/${row.to_journal_entry}`" target="_blank">{{ row.to_journal_entry }}</a>
-            /
-            <a :href="`/app/journal-entry/${row.from_journal_entry}`" target="_blank">{{ row.from_journal_entry }}</a>
-          </div>
+          <div v-if="icStatus.recent.length" class="ic-wrap"><table class="ic-table">
+            <thead>
+              <tr><th>{{ t('Date') }}</th><th>{{ t('Issued by') }}</th><th>{{ t('Spent at') }}</th><th>{{ t('Balance') }}</th><th class="right">{{ t('Amount') }}</th><th>{{ t('Entries') }}</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in icStatus.recent" :key="row.to_journal_entry">
+                <td>{{ row.posting_date }}</td>
+                <td>{{ row.from_company }}</td>
+                <td>{{ row.to_company }}</td>
+                <td>{{ t(row.wallet) }}</td>
+                <td class="right">{{ money(row.amount, icStatus.companies[row.from_company]) }}</td>
+                <td class="ic-links">
+                  <a :href="`/app/journal-entry/${row.to_journal_entry}`" target="_blank">{{ row.to_journal_entry }}</a>
+                  <a :href="`/app/journal-entry/${row.from_journal_entry}`" target="_blank">{{ row.from_journal_entry }}</a>
+                </td>
+              </tr>
+            </tbody>
+          </table></div>
         </template>
       </div>
 
@@ -3688,7 +3699,9 @@ const filteredBooks = computed(() => {
 .neg { color: var(--red); }
 .ic-table th, .ic-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: start; }
 .ic-table .right { text-align: end; }
-.ic-recent { margin-top: 4px; }
+.ic-links { display: flex; flex-direction: column; gap: 2px; }
+.ic-links a { color: var(--brand); text-decoration: none; font-variant-numeric: tabular-nums; }
+.ic-links a:hover { text-decoration: underline; }
 .cf-head,
 .cf-line {
   display: grid;

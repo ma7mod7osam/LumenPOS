@@ -1526,7 +1526,49 @@ const customerForm = {
     "تظهر هنا أيضا حقول العميل الخاصة بك، مثل رقم الهوية أو السجل التجاري. الجوال هو ما يتعرف به الصندوق على عميل موجود مسبقا، وبدونه قد يضاف الشخص نفسه مرتين.",
 }
 
+// Keys that are not English sentences: ERPNext's invoice statuses and the
+// weekday chips, prefixed so they never collide with a label of the same word.
+const prefixedEn = {
+  'status:Draft': 'Draft',
+  'status:Return': 'Return',
+  'status:Credit Note Issued': 'Credit Note Issued',
+  'status:Consolidated': 'Consolidated',
+  'status:Submitted': 'Submitted',
+  'status:Paid': 'Paid',
+  'status:Unpaid': 'Unpaid',
+  'status:Partly Paid': 'Partly Paid',
+  'status:Overdue': 'Overdue',
+  'status:Cancelled': 'Cancelled',
+  'day:monday': 'Mon',
+  'day:tuesday': 'Tue',
+  'day:wednesday': 'Wed',
+  'day:thursday': 'Thu',
+  'day:friday': 'Fri',
+  'day:saturday': 'Sat',
+  'day:sunday': 'Sun',
+}
+const prefixedAr = {
+  'status:Draft': 'مسودة',
+  'status:Return': 'مرتجع',
+  'status:Credit Note Issued': 'صدر لها إشعار دائن',
+  'status:Consolidated': 'مدمجة في الإقفال',
+  'status:Submitted': 'معتمدة',
+  'status:Paid': 'مدفوعة',
+  'status:Unpaid': 'غير مدفوعة',
+  'status:Partly Paid': 'مدفوعة جزئيا',
+  'status:Overdue': 'متأخرة',
+  'status:Cancelled': 'ملغاة',
+  'day:monday': 'الإثنين',
+  'day:tuesday': 'الثلاثاء',
+  'day:wednesday': 'الأربعاء',
+  'day:thursday': 'الخميس',
+  'day:friday': 'الجمعة',
+  'day:saturday': 'السبت',
+  'day:sunday': 'الأحد',
+  "Entries": "القيود",
+}
+
 export const messages = {
-  en: {},
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm },
+  en: { ...prefixedEn },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...prefixedAr },
 }
