@@ -280,9 +280,12 @@ def resolve_scan(pos_profile, code, customer_group=None, app_type=None):
 
 
 @frappe.whitelist()
-def get_prices(pos_profile, item_codes, customer_group=None, app_type=None):
+def get_prices(pos_profile, item_codes, customer_group=None, app_type=None, customer=None):
     """Batch reprice for the cart when the active price list changes
-    (customer with a price book, or a delivery-app channel)."""
+    (customer with a price book, or a delivery-app channel). With a customer
+    billed in another currency who has their own price list in it, the items
+    that list prices come in the outlet's terms, exactly as the sale will
+    charge them, so the cart and the payment screen agree."""
     if isinstance(item_codes, str):
         import json
 
@@ -296,9 +299,19 @@ def get_prices(pos_profile, item_codes, customer_group=None, app_type=None):
             "Item", filters={"name": ["in", item_codes]}, fields=["name", "stock_uom"]
         )
     }
+    prices = effective_prices(profile, item_codes, customer_group, app_price_list, uom_map)
+    if customer and frappe.db.exists("Customer", customer):
+        from lumenpos import currency
+        from lumenpos.api.sales import _quote_session
+
+        try:
+            ctx = currency.sale_context(profile, customer, price_list, _quote_session(profile.name))
+        except frappe.ValidationError:
+            ctx = None  # a customer this till cannot sell to: the sale says why
+        prices.update(currency.own_list_prices(ctx, item_codes, uom_map))
     return {
         "price_list": price_list,
-        "prices": effective_prices(profile, item_codes, customer_group, app_price_list, uom_map),
+        "prices": prices,
         "standard_prices": standard_prices(profile, item_codes, uom_map),
     }
 

@@ -119,18 +119,21 @@ def _build_sale_invoice(
         _check_price_edit_permission(payload)
     discount_approver = _check_discount_passcode(payload) if check_passcode else None
 
-    # A customer with their own list in the sale's currency is priced from it
-    # (ERPNext honours it too), brought into the outlet's terms so the offers,
-    # bundles and discounts below keep working on one currency.
     lines = _build_lines(
         payload["items"],
         profile,
         customer_group,
-        ctx.own_list or (app.get("price_list") if app else None),
+        app.get("price_list") if app else None,
     )
-    if ctx.own_list:
-        for line in lines:
-            line["price"] = flt(line["price"]) / ctx.factor
+    # A customer with their own list in the sale's currency is priced from it
+    # (ERPNext honours it too) for every item it lists; the rest keep the
+    # outlet's price, converted like any other (lumenpos.currency).
+    own = currency.own_list_prices(
+        ctx, [line["item_code"] for line in lines], {line["item_code"]: line["stock_uom"] for line in lines}
+    )
+    for line in lines:
+        if line["item_code"] in own:
+            line["price"] = own[line["item_code"]]
     bundle_discounts, bundle_applied = _apply_bundles(payload["items"], lines, profile.name)
 
     # Promotions never touch bundle lines, bundle pricing is final.

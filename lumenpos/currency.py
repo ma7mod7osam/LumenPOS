@@ -143,6 +143,21 @@ def own_price_list(customer, currency):
     return None
 
 
+def own_list_prices(ctx, item_codes, uom_map=None):
+    """{item_code: price in the OUTLET's terms} for the items the customer's own
+    price list (in the sale's currency) prices, so offers, bundles and
+    discounts keep working on one currency. An item that list does not price
+    is left out: it keeps the outlet's price and is converted like any other.
+    (Until 0.51.1 such an item fell back to its outlet NUMBER read as the
+    sale's currency: a US$5 item sold for ZWG 5 instead of ZWG 175.)"""
+    if not ctx or not ctx.get("own_list") or not item_codes:
+        return {}
+    from lumenpos.price_books import get_price_map
+
+    own = get_price_map(item_codes, ctx.own_list, uom_map)
+    return {code: flt(rate) / ctx.factor for code, rate in own.items() if flt(rate) > 0}
+
+
 def sale_context(profile, customer, price_list, session_name=None, pin=False):
     """What a sale to `customer` at this outlet is in.
 
