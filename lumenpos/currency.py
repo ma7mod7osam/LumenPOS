@@ -392,18 +392,25 @@ def _ensure_cash_mode(currency, company, account):
     elif not row.default_account:
         row.default_account = account
     else:
-        # A method of this name the shop already had ("CASH ZAR": names match
-        # whatever the case) whose account is in another currency would count
-        # this currency's cash in that one. Say so instead of using it.
         held = frappe.get_cached_value("Account", row.default_account, "account_currency")
-        if held and held != currency:
+        if not held or held == currency:
+            return doc.name
+        if doc.name == name and row.default_account == frappe.get_cached_value(
+            "Company", company, "default_cash_account"
+        ):
+            # ERPNext gives a new company's cash account to the first Cash-type
+            # method it finds, which can be this drawer: it gets its own back.
+            row.default_account = account
+        else:
+            # A method the shop already had under this name ("CASH ZAR", names
+            # match whatever the case) with an account in another currency
+            # would count this currency's cash in that one. Say so instead.
             frappe.throw(
                 _(
                     "The payment method {0} already exists, and its account for {1} ({2}) is in {3}, not {4}. "
                     "Give it a {4} account, or rename it, so the {4} cash drawer can be set up."
                 ).format(doc.name, company, row.default_account, held, currency)
             )
-        return doc.name
     fill_required_custom_fields(doc, name)
     doc.save(ignore_permissions=True)
     return doc.name
@@ -443,11 +450,15 @@ def _ensure_walk_in(currency, receivables):
                 "territory": territory or frappe.db.get_single_value("Selling Settings", "territory"),
             }
         )
+    changed = doc.is_new() or doc.default_currency != currency
     doc.default_currency = currency
     have = {r.company for r in (doc.get("accounts") or [])}
     for company, account in receivables.items():
         if company not in have:
             doc.append("accounts", {"company": company, "account": account})
+            changed = True
+    if not changed:
+        return doc.name  # set up already: saved once, not on every run
     fill_required_custom_fields(doc, label)
     doc.flags.ignore_permissions = True
     if doc.is_new():
@@ -497,18 +508,20 @@ def setup_errors():
 
 
 def ensure_setup():
-    """After a migrate, and after saving Settings: set up every currency row
-    that is not set up yet. Never blocks a migrate. A currency is set up whole
-    or not at all (no drawer without its walk-in customer), and why it failed
-    is kept for the Settings screen, which used to say "Set up when you save"
-    forever. Returns {currency: reason} for the ones that failed."""
+    """After a migrate, and after saving Settings: set up every currency row.
+    Every time, not only the first: an outlet or a company added later gets
+    the drawer and the receivable too (everything here is get-or-create).
+    Never blocks a migrate. A currency is set up whole or not at all (no
+    drawer without its walk-in customer), and why it failed is kept for the
+    Settings screen, which used to say "Set up when you save" forever.
+    Returns {currency: reason} for the ones that failed."""
     if not enabled():
         return {}
     doc = frappe.get_single(SETTINGS)
     changed = False
     failed = {}
     for row in doc.get("sale_currencies") or []:
-        if not row.currency or (row.walk_in_customer and row.cash_mode):
+        if not row.currency:
             continue
         frappe.db.savepoint("lumenpos_currency_setup")
         try:
@@ -520,9 +533,10 @@ def ensure_setup():
                 title=f"LumenPOS: setting up {row.currency} failed", message=frappe.get_traceback()
             )
             continue
-        row.walk_in_customer = row.walk_in_customer or made["walk_in_customer"]
-        row.cash_mode = row.cash_mode or made["cash_mode"]
-        changed = True
+        if not (row.walk_in_customer and row.cash_mode):
+            row.walk_in_customer = row.walk_in_customer or made["walk_in_customer"]
+            row.cash_mode = row.cash_mode or made["cash_mode"]
+            changed = True
     try:
         cache = frappe.cache()
         cache.delete_key(SETUP_ERRORS)

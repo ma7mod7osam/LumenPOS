@@ -1273,8 +1273,8 @@
               {{ t('Show the equivalent at the till') }}
             </label>
             <span v-if="row.walk_in_customer" class="muted small">{{ row.walk_in_customer }} · {{ row.cash_mode }}</span>
-            <span v-else-if="row.setup_error" class="neg small">{{ t('Could not set up: {reason}', { reason: row.setup_error }) }}</span>
-            <span v-else class="muted small">{{ t('Set up when you save') }}</span>
+            <span v-else-if="!row.setup_error" class="muted small">{{ t('Set up when you save') }}</span>
+            <span v-if="row.setup_error" class="neg small">{{ t('Could not set up: {reason}', { reason: row.setup_error }) }}</span>
             <button class="btn-ghost" @click="generalForm.sale_currencies.splice(i, 1)"><Icon name="close" /></button>
           </div>
           <button class="btn btn-outline add-row" @click="generalForm.sale_currencies.push({ currency: '', show_equivalent: 1 })">

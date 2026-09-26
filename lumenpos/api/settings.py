@@ -251,8 +251,8 @@ def _sale_currencies(doc):
             "cash_mode": row.cash_mode or "",
             "show_equivalent": 1 if row.show_equivalent else 0,
             "rates": rates.get(row.currency, []),
-            # Why the last setup of a currency not set up yet failed.
-            "setup_error": "" if row.walk_in_customer else (problems.get(row.currency) or ""),
+            # Why the last setup of this currency failed, if it did.
+            "setup_error": problems.get(row.currency) or "",
         }
         for row in (doc.get("sale_currencies") or [])
     ]
