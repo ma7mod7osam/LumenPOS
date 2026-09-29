@@ -968,6 +968,12 @@ def _reconcile_session(session_name, counted):
     if not opening_name:
         _mark_closed(session.name, None)
         return None
+    try:
+        opening_name = _usable_opening_entry(session, opening_name)
+    except Exception as exc:
+        frappe.db.rollback()
+        _mark_failed(session.name, None, _short(exc))
+        return None
 
     closing_name = session.get("pos_closing_entry") or frappe.db.get_value(
         "POS Closing Entry",
@@ -1088,6 +1094,65 @@ def fill_pending_figures():
             if closing.docstatus != 1:
                 continue
         _fill_pending_figures(row.name, closing, quiet=True)
+
+
+def _usable_opening_entry(session, opening_name):
+    """The POS Opening Entry this shift closes against. Someone may have
+    cancelled it in ERPNext (v13 to v15 allow that even with sales on it), and
+    ERPNext refuses a POS Closing Entry that links a cancelled one ("Cannot
+    link cancelled document"), so the shift could never close and its sales
+    would never reach the books. ERPNext's own way back is to amend the
+    cancelled entry: an amendment made earlier (by hand, or by an earlier try)
+    is used, or one is made, and the shift points at it from then on."""
+    if frappe.db.get_value("POS Opening Entry", opening_name, "docstatus") != 2:
+        return opening_name
+    cancelled = opening_name
+    current = opening_name
+    while True:
+        amended = frappe.db.get_value(
+            "POS Opening Entry", {"amended_from": current}, ["name", "docstatus"], as_dict=True
+        )
+        if not amended:
+            break
+        current = amended.name
+        if amended.docstatus == 2:
+            continue
+        if amended.docstatus == 0:
+            # A draft amendment someone started by hand: finish it.
+            draft = frappe.get_doc("POS Opening Entry", amended.name)
+            draft.flags.ignore_validate = True
+            draft.flags.ignore_permissions = True
+            draft.submit()
+        return _point_session_at(session, cancelled, current)
+    last = frappe.get_doc("POS Opening Entry", current)
+    new = frappe.copy_doc(last)
+    new.amended_from = last.name
+    # Open again: nothing of the cancelled entry's own close carries over.
+    new.status = "Draft"
+    new.pos_closing_entry = None
+    new.period_end_date = None
+    # The same period, outlet and cashier as the shift; ERPNext's own checks
+    # (one open entry per outlet and per cashier) are for opening a shift, not
+    # for closing one that already ran, as in _create_fresh_session.
+    new.flags.ignore_validate = True
+    new.insert(ignore_permissions=True)
+    new.submit()
+    return _point_session_at(session, cancelled, new.name)
+
+
+def _point_session_at(session, cancelled, opening_name):
+    session.db_set("pos_opening_entry", opening_name, commit=True)
+    try:
+        frappe.get_doc("POS Register Session", session.name).add_comment(
+            "Info",
+            _("The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.").format(
+                cancelled, opening_name
+            ),
+        )
+        frappe.db.commit()  # nosemgrep
+    except Exception:
+        frappe.log_error(title="LumenPOS: note on an amended opening entry", message=frappe.get_traceback())
+    return opening_name
 
 
 def _consolidate_now(closing):

@@ -643,6 +643,7 @@
 "That code is not right.","该验证码不正确。"
 "That current PIN is not right.","当前 PIN 码不正确。"
 "That is more than the {0} still owed on this hold.","该金额超过此预留单尚欠的 {0}。"
+"The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.","此班次的 POS 开班单 {0} 已在 ERPNext 中取消，因此班次按其修订单 {1} 关闭。"
 "The POS sale that took this instalment, its line posts to the deposit liability account.","收取这笔分期付款的 POS 销售，其明细行记入定金负债科目。"
 "The Sales Order that reserves the goods while the hold is open.","预留期间锁定商品的销售订单。"
 "The approval is {0}, not approved.","该审批状态为 {0}，未获批准。"

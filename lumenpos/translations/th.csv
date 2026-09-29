@@ -643,6 +643,7 @@
 "That code is not right.","รหัสนั้นไม่ถูกต้อง"
 "That current PIN is not right.","PIN ปัจจุบันไม่ถูกต้อง"
 "That is more than the {0} still owed on this hold.","จำนวนนี้มากกว่ายอด {0} ที่ยังค้างชำระสำหรับการจองสินค้านี้"
+"The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.","รายการเปิดกะ POS {0} ของกะนี้ถูกยกเลิกใน ERPNext จึงปิดกะนี้ด้วยฉบับแก้ไข {1}"
 "The POS sale that took this instalment, its line posts to the deposit liability account.","การขาย POS ที่รับเงินงวดนี้ รายการในการขายนั้นบันทึกเข้าบัญชีหนี้สินเงินมัดจำ"
 "The Sales Order that reserves the goods while the hold is open.","ใบสั่งขายที่กันสินค้าไว้ขณะที่การจองสินค้ายังเปิดอยู่"
 "The approval is {0}, not approved.","การอนุมัติอยู่ในสถานะ {0} ยังไม่ได้รับอนุมัติ"

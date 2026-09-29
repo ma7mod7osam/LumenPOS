@@ -643,6 +643,7 @@
 "That code is not right.","Kode tersebut salah."
 "That current PIN is not right.","PIN saat ini salah."
 "That is more than the {0} still owed on this hold.","Jumlah itu melebihi sisa {0} yang masih harus dibayar untuk titip bayar ini."
+"The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.","Pembukaan POS {0} untuk shift ini dibatalkan di ERPNext, jadi shift ditutup dengan amendemennya {1}."
 "The POS sale that took this instalment, its line posts to the deposit liability account.","Penjualan POS yang menerima cicilan ini, barisnya dibukukan ke akun kewajiban uang muka."
 "The Sales Order that reserves the goods while the hold is open.","Pesanan Penjualan yang mencadangkan barang selama titip bayar masih terbuka."
 "The approval is {0}, not approved.","Status persetujuan ini {0}, belum disetujui."

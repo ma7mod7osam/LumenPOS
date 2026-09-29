@@ -643,6 +643,7 @@
 "That code is not right.","Ce code est incorrect."
 "That current PIN is not right.","Le code PIN actuel est incorrect."
 "That is more than the {0} still owed on this hold.","Ce montant dépasse les {0} encore dus sur cette mise de côté."
+"The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.","L'Ouverture PDV {0} de cette session a été annulée dans ERPNext, la session est donc clôturée avec son amendement {1}."
 "The POS sale that took this instalment, its line posts to the deposit liability account.","La vente PDV qui a encaissé ce versement, dont la ligne est comptabilisée sur le compte de passif des acomptes."
 "The Sales Order that reserves the goods while the hold is open.","La commande client qui réserve les articles tant que la mise de côté est ouverte."
 "The approval is {0}, not approved.","Cette demande a le statut {0}, elle n'est pas approuvée."

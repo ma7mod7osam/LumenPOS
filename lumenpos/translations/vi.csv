@@ -643,6 +643,7 @@
 "That code is not right.","Mã này không đúng."
 "That current PIN is not right.","Mã PIN hiện tại không đúng."
 "That is more than the {0} still owed on this hold.","Số tiền này vượt quá {0} còn nợ của phiếu giữ hàng này."
+"The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.","Phiếu mở ca POS {0} của ca này đã bị hủy trong ERPNext, nên ca được đóng theo bản sửa đổi {1}."
 "The POS sale that took this instalment, its line posts to the deposit liability account.","Giao dịch POS đã thu lần trả này, dòng của giao dịch ghi vào tài khoản nợ phải trả tiền đặt cọc."
 "The Sales Order that reserves the goods while the hold is open.","Đơn bán hàng dành riêng hàng hóa trong khi phiếu giữ hàng còn mở."
 "The approval is {0}, not approved.","Phê duyệt đang ở trạng thái {0}, chưa được duyệt."

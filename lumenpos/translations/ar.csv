@@ -643,6 +643,7 @@
 "That code is not right.","هذا الرمز غير صحيح."
 "That current PIN is not right.","الرمز السري الحالي غير صحيح."
 "That is more than the {0} still owed on this hold.","هذا المبلغ يتجاوز المتبقي على هذا الحجز ({0})."
+"The POS Opening Entry {0} of this shift was cancelled in ERPNext, so the shift closes against its amendment {1}.","تم إلغاء قيد فتح نقطة البيع {0} لهذه الوردية في ERPNext، لذلك تغلق الوردية على نسخته المعدلة {1}."
 "The POS sale that took this instalment, its line posts to the deposit liability account.","عملية البيع في نقطة البيع التي استلمت هذه الدفعة، ويرحل سطرها إلى حساب التزام الدفعات."
 "The Sales Order that reserves the goods while the hold is open.","أمر البيع الذي يحجز البضاعة ما دام الحجز مفتوحا."
 "The approval is {0}, not approved.","حالة طلب الاعتماد: {0}، وهو غير معتمد."
