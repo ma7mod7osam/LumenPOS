@@ -87,7 +87,9 @@ function lineMatches(line, rows, role = null) {
     if (role && (row.role || 'Buy') !== role) continue
     const appliesTo = row.applies_to || 'Item'
     if (appliesTo === 'Item' && line.item_code === row.value) return true
-    if (appliesTo === 'Item Group' && line.item_group === row.value) return true
+    // A group covers the groups beneath it (the server lists them in groups);
+    // a rule sent without the list matches the name, as the server engine does.
+    if (appliesTo === 'Item Group' && (row.groups || [row.value]).includes(line.item_group)) return true
     if (appliesTo === 'Brand' && line.brand === row.value) return true
     if (appliesTo === 'Tag' && (line.tags || []).includes(row.value)) return true
   }

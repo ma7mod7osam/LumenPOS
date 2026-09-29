@@ -117,14 +117,18 @@ def item_groups_under(groups):
         return None
     names = set()
     for group in wanted:
-        node = frappe.db.get_value("Item Group", group, ["lft", "rgt"], as_dict=True)
-        if not node:
-            names.add(group)
-            continue
-        names.update(
-            frappe.get_all("Item Group", filters={"lft": [">=", node.lft], "rgt": ["<=", node.rgt]}, pluck="name")
-        )
+        names.update(item_group_and_below(group))
     return sorted(names)
+
+
+def item_group_and_below(group):
+    """A group with every group beneath it (nested set), the root giving the
+    whole tree. What an offer or a cashback rule on a group covers, as an
+    ERPNext pricing rule on an item group covers its sub-groups."""
+    node = frappe.db.get_value("Item Group", group, ["lft", "rgt"], as_dict=True)
+    if not node:
+        return [group]
+    return frappe.get_all("Item Group", filters={"lft": [">=", node.lft], "rgt": ["<=", node.rgt]}, pluck="name")
 
 
 @frappe.whitelist()

@@ -37,6 +37,31 @@ r = evaluatePromotions(
 )
 check('bxgy shared pool', r.total_savings, 2.0)
 
+// An item group covers its sub-groups (the server lists them in groups):
+// 10% off Food, BURGER@10 (Burgers) + FRIES@4 (Sides) + COLA@2 (Drinks) -> 1.4
+r = evaluatePromotions(
+  cart([line('BURGER', 10, 1, 'Burgers'), line('FRIES', 4, 1, 'Sides'), line('COLA', 2, 1, 'Drinks')]),
+  [{ ...base, items: [{ applies_to: 'Item Group', value: 'Food', groups: ['Food', 'Burgers', 'Sides'], role: 'Buy' }], discount_type: 'Percentage', discount_value: 10 }],
+  NOW
+)
+check('item group covers its sub-groups', r.total_savings, 1.4)
+
+// Excluding a group excludes its sub-groups: all but Food, BURGER@10 + COLA@2 -> 0.2
+r = evaluatePromotions(
+  cart([line('BURGER', 10, 1, 'Burgers'), line('COLA', 2, 1, 'Drinks')]),
+  [{ ...base, apply_on_all: 1, items: [{ applies_to: 'Item Group', value: 'Food', groups: ['Food', 'Burgers'], exclude: 1 }], discount_type: 'Percentage', discount_value: 10 }],
+  NOW
+)
+check('excluding a group excludes its sub-groups', r.total_savings, 0.2)
+
+// A rule without the list matches the group by name: BURGER (Burgers) no, SOUP@5 (Food) yes -> 0.5
+r = evaluatePromotions(
+  cart([line('BURGER', 10, 1, 'Burgers'), line('SOUP', 5, 1, 'Food')]),
+  [{ ...base, items: [{ applies_to: 'Item Group', value: 'Food', role: 'Buy' }], discount_type: 'Percentage', discount_value: 10 }],
+  NOW
+)
+check('item group without the list matches its name', r.total_savings, 0.5)
+
 // 6x COLA, buy2get1 -> 2 applications -> 4.0
 r = evaluatePromotions(
   cart([line('COLA', 2, 6)]),

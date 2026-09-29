@@ -165,7 +165,9 @@ def _line_matches(line, rows, role=None):
         value = row.get("value")
         if applies_to == "Item" and line.get("item_code") == value:
             return True
-        if applies_to == "Item Group" and line.get("item_group") == value:
+        # A group covers the groups beneath it (the loader lists them in
+        # "groups"); a rule serialized without the list matches the name.
+        if applies_to == "Item Group" and line.get("item_group") in (row.get("groups") or [value]):
             return True
         if applies_to == "Brand" and line.get("brand") == value:
             return True

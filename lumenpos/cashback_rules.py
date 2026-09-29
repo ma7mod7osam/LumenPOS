@@ -20,6 +20,8 @@ from lumenpos.promotions.loader import time_str
 def serialize(doc):
     """A POS Cashback Rule as the plain dict the evaluator (and is_active) read.
     The schedule and targeting keys match a promotion's on purpose."""
+    from lumenpos.api.catalog import item_group_and_below
+
     return {
         "name": doc.name,
         "title": doc.title,
@@ -56,6 +58,8 @@ def serialize(doc):
                     if row.applies_to == "Brand"
                     else row.get("tag")
                 ),
+                # The group and every group beneath it (engine._line_matches).
+                "groups": item_group_and_below(row.item_group) if row.applies_to == "Item Group" else None,
                 "exclude": row.get("exclude") or 0,
             }
             for row in (doc.items or [])

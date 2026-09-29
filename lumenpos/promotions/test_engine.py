@@ -93,6 +93,46 @@ class TestSimpleDiscount(unittest.TestCase):
         self.assertAlmostEqual(r["line_discounts"][0], 0.5)
         self.assertAlmostEqual(r["line_discounts"][1], 0.0)
 
+    def test_item_group_covers_its_sub_groups(self):
+        # The loader lists a group with every group beneath it ("groups"), as an
+        # ERPNext pricing rule on an item group covers its sub-groups.
+        p = promo(
+            items=[{"applies_to": "Item Group", "value": "Food", "groups": ["Food", "Burgers", "Sides"], "role": "Buy"}],
+            discount_type="Percentage",
+            discount_value=10,
+        )
+        r = evaluate(
+            cart(line("BURGER", 10.0, item_group="Burgers"), line("FRIES", 4.0, item_group="Sides"),
+                 line("COLA", 2.0, item_group="Drinks")),
+            [p], NOW,
+        )
+        self.assertAlmostEqual(r["line_discounts"][0], 1.0)
+        self.assertAlmostEqual(r["line_discounts"][1], 0.4)
+        self.assertAlmostEqual(r["line_discounts"][2], 0.0)
+        self.assertAlmostEqual(r["total_savings"], 1.4)
+
+    def test_excluding_a_group_excludes_its_sub_groups(self):
+        p = promo(
+            apply_on_all=1,
+            items=[{"applies_to": "Item Group", "value": "Food", "groups": ["Food", "Burgers"], "exclude": 1}],
+            discount_type="Percentage",
+            discount_value=10,
+        )
+        r = evaluate(cart(line("BURGER", 10.0, item_group="Burgers"), line("COLA", 2.0, item_group="Drinks")), [p], NOW)
+        self.assertAlmostEqual(r["line_discounts"][0], 0.0)
+        self.assertAlmostEqual(r["line_discounts"][1], 0.2)
+
+    def test_item_group_without_the_list_matches_its_name(self):
+        # A rule serialized before the list existed still matches by name.
+        p = promo(
+            items=[{"applies_to": "Item Group", "value": "Food", "role": "Buy"}],
+            discount_type="Percentage",
+            discount_value=10,
+        )
+        r = evaluate(cart(line("BURGER", 10.0, item_group="Burgers"), line("SOUP", 5.0, item_group="Food")), [p], NOW)
+        self.assertAlmostEqual(r["line_discounts"][0], 0.0)
+        self.assertAlmostEqual(r["line_discounts"][1], 0.5)
+
 
 class TestBuyXGetY(unittest.TestCase):
     def test_buy_two_get_one_free_shared_pool(self):

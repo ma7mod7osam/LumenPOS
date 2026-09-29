@@ -69,6 +69,8 @@ def clear_accidental_window(doc):
 
 
 def serialize(doc):
+    from lumenpos.api.catalog import item_group_and_below
+
     return {
         "name": doc.name,
         "title": doc.title,
@@ -101,6 +103,9 @@ def serialize(doc):
                     if row.applies_to == "Brand"
                     else row.get("tag")
                 ),
+                # The group and every group beneath it: both engines match an
+                # item filed in a sub-group (engine._line_matches, promotions.js).
+                "groups": item_group_and_below(row.item_group) if row.applies_to == "Item Group" else None,
                 "role": row.role or "Buy",
                 "qty": row.qty or 1,
                 "exclude": row.get("exclude") or 0,
