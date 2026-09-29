@@ -1380,4 +1380,6 @@ export default {
   "Shift {session} is closing. Its sales are consolidated in the background.": "班次 {session} 正在关闭，其销售将在后台合并。",
   "The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.": "关闭时无法计算应有收入。班次合并时将从其 POS 交班单中补入。",
   "difference pending": "差异待定",
+  "Products were found, but none has stock at this outlet, so they are hidden.": "找到了商品，但本门店都没有库存，因此已隐藏。",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "如需仍然显示：设置、常规、收银台与班次、在商品网格中显示无库存的商品。",
 }

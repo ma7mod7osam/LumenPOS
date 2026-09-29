@@ -36,7 +36,10 @@ export const useCatalogStore = defineStore('catalog', {
         this.cachedCount = await catalogCount().catch(() => 0)
       }
       if (this.cachedCount > 0) {
-        const items = await searchCatalog(this.search, this.itemGroup)
+        const groups = this.itemGroup
+          ? session.itemGroupMembers?.[this.itemGroup] || [this.itemGroup]
+          : null
+        const items = await searchCatalog(this.search, groups)
         // The newest request clears "Loading…" here too: a cold start's server
         // request that lost the race to the full catalog download (which then
         // searched the device) never cleared it, and the grid stayed on

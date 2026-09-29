@@ -1380,4 +1380,6 @@ export default {
   "Shift {session} is closing. Its sales are consolidated in the background.": "Schicht {session} wird geschlossen. Ihre Verkäufe werden im Hintergrund konsolidiert.",
   "The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.": "Die erwarteten Einnahmen ließen sich beim Schließen nicht ermitteln. Sie werden aus der POS-Abschlussbuchung der Schicht übernommen, sobald sie konsolidiert ist.",
   "difference pending": "Differenz ausstehend",
+  "Products were found, but none has stock at this outlet, so they are hidden.": "Es wurden Produkte gefunden, aber keines hat Bestand in dieser Filiale, deshalb sind sie ausgeblendet.",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "Um sie trotzdem anzuzeigen: Einstellungen, Allgemein, Kasse und Schichten, Artikel ohne Bestand im Raster anzeigen.",
 }

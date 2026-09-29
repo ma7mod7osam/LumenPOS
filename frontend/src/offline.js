@@ -116,12 +116,15 @@ export async function saveCatalog(items) {
   })
 }
 
-export async function searchCatalog(search = '', itemGroup = '', limit = 80) {
+// `groups`: the picked group and every group beneath it (the server sends
+// them per chip), or one group name, or nothing for all.
+export async function searchCatalog(search = '', groups = null, limit = 80) {
   const database = await db()
   const all = await request(database.transaction('items').objectStore('items').getAll())
   const term = search.trim().toLowerCase()
+  const allowed = Array.isArray(groups) ? groups : groups ? [groups] : null
   const filtered = all.filter((item) => {
-    if (itemGroup && item.item_group !== itemGroup) return false
+    if (allowed && !allowed.includes(item.item_group)) return false
     if (!term) return true
     return (
       (item.item_name || '').toLowerCase().includes(term) ||

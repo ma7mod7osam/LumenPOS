@@ -1380,4 +1380,6 @@ export default {
   "Shift {session} is closing. Its sales are consolidated in the background.": "กำลังปิดกะ {session} ยอดขายของกะนี้จะถูกรวมยอดเบื้องหลัง",
   "The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.": "ไม่สามารถคำนวณยอดตามระบบได้ตอนปิดกะ ระบบจะนำยอดมาจากรายการปิดกะ POS ของกะนั้นเมื่อรวมยอดเสร็จ",
   "difference pending": "ส่วนต่างรอคำนวณ",
+  "Products were found, but none has stock at this outlet, so they are hidden.": "พบสินค้า แต่ไม่มีรายการใดมีสต็อกที่สาขานี้ จึงถูกซ่อนไว้",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "หากต้องการแสดง: การตั้งค่า, ทั่วไป, เครื่องคิดเงินและกะ, แสดงสินค้าที่หมดสต็อกในตารางสินค้า",
 }

@@ -1569,6 +1569,9 @@ const prefixedAr = {
   "This shop allows one open shift per person at a time. Close it, then open this one.": "يسمح هذا المتجر بوردية مفتوحة واحدة لكل شخص في الوقت نفسه. أغلقها ثم افتح هذه.",
   "Go to its Register page": "اذهب إلى صفحة صندوقها",
   "One open shift per person": "وردية مفتوحة واحدة لكل شخص",
+  // The grid says why products are hidden (0.54.1).
+  "Products were found, but none has stock at this outlet, so they are hidden.": "توجد منتجات، لكن لا يتوفر لأي منها مخزون في هذا الفرع، لذلك هي مخفية.",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "لإظهارها: الإعدادات، عام، الصندوق والورديات، إظهار الأصناف غير المتوفرة في الشبكة.",
   // Nobody is held back by a shift that will not close (0.54.0).
   "Not open to you any more: ask a manager to close it.": "لم تعد متاحة لك: اطلب من مدير إغلاقها.",
   "If you cannot close it, a manager can close it for you from that outlet's Register page.": "إذا لم تستطع إغلاقها، يمكن لمدير إغلاقها عنك من صفحة صندوق ذلك الفرع.",

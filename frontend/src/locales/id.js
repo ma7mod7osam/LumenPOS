@@ -1380,4 +1380,6 @@ export default {
   "Shift {session} is closing. Its sales are consolidated in the background.": "Shift {session} sedang ditutup. Penjualannya dikonsolidasikan di latar belakang.",
   "The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.": "Pendapatan seharusnya tidak dapat dihitung saat penutupan. Angkanya diambil dari Penutupan POS shift itu saat dikonsolidasikan.",
   "difference pending": "selisih menunggu",
+  "Products were found, but none has stock at this outlet, so they are hidden.": "Produk ditemukan, tetapi tidak ada yang memiliki stok di gerai ini, jadi disembunyikan.",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "Untuk tetap menampilkannya: Pengaturan, Umum, Kasir dan shift, Tampilkan barang yang stoknya habis di grid.",
 }

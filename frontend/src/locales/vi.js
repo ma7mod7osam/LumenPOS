@@ -1380,4 +1380,6 @@ export default {
   "Shift {session} is closing. Its sales are consolidated in the background.": "Ca {session} đang được đóng. Doanh số của ca sẽ được hợp nhất ở chế độ nền.",
   "The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.": "Không thể tính doanh thu dự kiến khi đóng ca. Số liệu sẽ được lấy từ Phiếu đóng ca POS của ca đó khi hợp nhất xong.",
   "difference pending": "chênh lệch đang chờ",
+  "Products were found, but none has stock at this outlet, so they are hidden.": "Đã tìm thấy sản phẩm, nhưng không có sản phẩm nào còn hàng tại cửa hàng này nên chúng bị ẩn.",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "Để vẫn hiển thị chúng: Cài đặt, Chung, Quầy thu ngân và ca, Hiện mặt hàng hết hàng trong lưới.",
 }

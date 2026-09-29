@@ -5,7 +5,13 @@
   <div class="grid-wrap">
     <div v-if="catalog.loading" class="grid-empty">{{ t('Loading…') }}</div>
     <div v-else-if="!visibleItems.length" class="grid-empty">
-      {{ t('No products found') }}
+      <!-- Found, but every one is out of stock here and the outlet hides
+           those: say so, or it reads as if nothing was found at all. -->
+      <template v-if="catalog.items.length">
+        <div>{{ t('Products were found, but none has stock at this outlet, so they are hidden.') }}</div>
+        <div class="grid-hint">{{ t('To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.') }}</div>
+      </template>
+      <template v-else>{{ t('No products found') }}</template>
     </div>
     <div v-else class="grid">
       <button
@@ -146,9 +152,14 @@ function initials(name) {
 }
 .grid-empty {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
   align-items: center;
   justify-content: center;
   height: 200px;
+  padding: 0 16px;
+  text-align: center;
   color: var(--text-muted);
 }
+.grid-hint { font-size: 12.5px; }
 </style>

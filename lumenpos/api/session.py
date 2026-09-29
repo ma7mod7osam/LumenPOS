@@ -64,7 +64,12 @@ def get_bootstrap(pos_profile=None):
         "Company", profile.company, "default_currency"
     )
 
+    from lumenpos.api.catalog import item_groups_under
+
     item_groups = [row.item_group for row in (profile.item_groups or [])]
+    # The whole tree listed ("All Item Groups") is the same as none listed.
+    if item_groups and item_groups_under(item_groups) is None:
+        item_groups = []
     if not item_groups:
         item_groups = frappe.get_all(
             "Item Group",
@@ -98,6 +103,8 @@ def get_bootstrap(pos_profile=None):
         ),
         "payment_modes": payment_modes,
         "item_groups": item_groups,
+        # A chip covers the groups beneath it, on the device too (offline.js).
+        "item_group_members": _item_group_members(item_groups),
         "taxes": _profile_taxes(profile),
         "promotions": get_active_promotions(profile_name),
         "register_session": session,
@@ -499,6 +506,20 @@ def get_open_session(pos_profile, user=None):
         "opening_float": doc.opening_float,
         "pos_opening_entry": doc.get("pos_opening_entry"),
     }
+
+
+def _item_group_members(groups):
+    """{group: [it and every group beneath it]} for the till's group chips
+    that have groups beneath them, so the catalog on the device filters the
+    way the server does (catalog.item_groups_under)."""
+    from lumenpos.api.catalog import item_groups_under
+
+    members = {}
+    for group in groups:
+        under = item_groups_under([group]) or []
+        if len(under) > 1:
+            members[group] = under
+    return members
 
 
 def _default_pos_profile():

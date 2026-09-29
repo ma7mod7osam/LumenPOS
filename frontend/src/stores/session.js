@@ -38,6 +38,7 @@ export const useSessionStore = defineStore('session', {
     defaultCustomerName: null,
     paymentModes: [],
     itemGroups: [],
+    itemGroupMembers: {},
     taxes: [],
     promotions: [],
     registerSession: null,
@@ -230,6 +231,7 @@ export const useSessionStore = defineStore('session', {
       this.defaultCustomerName = data.default_customer_name
       this.paymentModes = data.payment_modes || []
       this.itemGroups = data.item_groups || []
+      this.itemGroupMembers = data.item_group_members || {}
       this.taxes = data.taxes || []
       this.promotions = data.promotions || []
       this.registerSession = data.register_session

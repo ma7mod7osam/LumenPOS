@@ -102,6 +102,31 @@ def stock_levels(warehouse, item_codes):
     return {b.item_code: available_qty(b.item_code, warehouse, b.actual_qty) for b in bins}
 
 
+def item_groups_under(groups):
+    """Each group with every group beneath it (Item Group is a tree), the way
+    ERPNext's own POS reads a POS Profile's item groups and the group picked on
+    the till: an outlet listing "All Item Groups", or a parent group such as
+    "Food", sells the items filed under its children too. None means no group
+    filter at all: nothing listed, or the whole tree (its root) listed."""
+    wanted = [group for group in (groups or []) if group]
+    if not wanted:
+        return None
+    from frappe.utils.nestedset import get_root_of
+
+    if get_root_of("Item Group") in wanted:
+        return None
+    names = set()
+    for group in wanted:
+        node = frappe.db.get_value("Item Group", group, ["lft", "rgt"], as_dict=True)
+        if not node:
+            names.add(group)
+            continue
+        names.update(
+            frappe.get_all("Item Group", filters={"lft": [">=", node.lft], "rgt": ["<=", node.rgt]}, pluck="name")
+        )
+    return sorted(names)
+
+
 @frappe.whitelist()
 def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_list=None):
     """Items with selling price and stock for the POS grid."""
@@ -121,10 +146,11 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
             "item_name": ["like", f"%{search}%"],
             "name": ["like", f"%{search}%"],
         }
-    if item_group:
-        filters["item_group"] = item_group
-    elif profile.item_groups:
-        filters["item_group"] = ["in", [r.item_group for r in profile.item_groups]]
+    # A group covers the groups beneath it (item_groups_under). Matching the
+    # name alone showed nothing at an outlet listing "All Item Groups".
+    groups = item_groups_under([item_group] if item_group else [r.item_group for r in profile.item_groups or []])
+    if groups:
+        filters["item_group"] = ["in", groups]
 
     wf = warranty_field()
     fields = [

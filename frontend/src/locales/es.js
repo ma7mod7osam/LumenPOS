@@ -1380,4 +1380,6 @@ export default {
   "Shift {session} is closing. Its sales are consolidated in the background.": "El turno {session} se está cerrando. Sus ventas se consolidan en segundo plano.",
   "The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.": "No se pudieron calcular los ingresos esperados al cerrar. Se completan con el Cierre de PdV del turno cuando se consolida.",
   "difference pending": "diferencia pendiente",
+  "Products were found, but none has stock at this outlet, so they are hidden.": "Se encontraron productos, pero ninguno tiene existencias en esta sucursal, así que están ocultos.",
+  "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "Para mostrarlos de todos modos: Configuración, General, Caja y turnos, Mostrar artículos sin existencias en la cuadrícula.",
 }
