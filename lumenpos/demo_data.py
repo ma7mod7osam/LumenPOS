@@ -927,6 +927,7 @@ def _sell_day(profile, day, count, codes, walk_in, customers, serial_codes):
                         rng.choice(["Cash", "Store Credit"]),
                         return_reason=rng.choice(["Wrong size", "Changed mind", "Faulty item"]),
                         pos_profile=profile,
+                        _post_now=False,
                     )
                     returned += 1
                 except Exception:

@@ -227,6 +227,7 @@ def submit_exchange(payload):
         return_request=payload.get("return_request"),
         pos_profile=profile.name,
         _split_fn=split,
+        _post_now=False,
     )
     returned_value = _document_value(return_receipt["doctype"], return_receipt["name"])
     covered = flt(settled["amount"], 2)
@@ -248,6 +249,15 @@ def submit_exchange(payload):
     ) + collected
     sale_receipt = sales.submit_sale(sale_payload)
     _stamp_original(sale_receipt, original)
+    # ERPNext 13 and 14 put the goods that came back on the shelf only once the
+    # credit note is posted: post it now that the whole exchange stands.
+    from lumenpos.api import register
+
+    if register.post_returns_now([return_receipt["name"]]):
+        sale_receipt["stock_after"] = {
+            **sales._stock_after(frappe.get_doc(return_receipt["doctype"], return_receipt["name"])),
+            **sales._stock_after(frappe.get_doc(sale_receipt["doctype"], sale_receipt["name"])),
+        }
 
     return {
         "return": return_receipt,

@@ -192,6 +192,46 @@ def ensure_change_gl_entries():
     return True
 
 
+def _erpnext_major():
+    try:
+        return int(str(_erpnext_version()).split(".")[0])
+    except ValueError:
+        return 99  # a development build: the newest rules
+
+
+def merge_posts_sales_when_sold():
+    """When ERPNext posts a shift's merged invoices. 15 and 16 give the merged
+    Sales Invoice the posting time of its last sale (POSInvoiceMergeLog.
+    merge_pos_invoice_into) and the credit note the close's. 13 and 14 post
+    both at the close, the credit note first."""
+    return _erpnext_major() >= 15
+
+
+def returns_held_until_posted():
+    """ERPNext 13 and 14 give a returned item back to the shelf only once the
+    return is posted: their stock check (POSInvoice.validate_stock_availablility,
+    through get_pos_reserved_qty) takes every POS sale not posted yet off the
+    shelf and none of its returns. 15 and 16 count the returns (and a bundle's
+    Packed Item rows, get_pos_reserved_qty_from_table)."""
+    return _erpnext_major() < 15
+
+
+def consolidate_pos_invoices(rows):
+    """ERPNext's own posting of chosen POS Invoices without a shift close
+    (pos_invoice_merge_log.consolidate_pos_invoices, closing_entry None): one
+    merge per customer, a Sales Invoice for the sales and a credit note for the
+    returns, as the close would post them. `rows` are shaped like a POS Closing
+    Entry's invoice rows. It commits, and rolls back what is not committed yet
+    when it fails."""
+    try:
+        from erpnext.accounts.doctype.pos_invoice_merge_log.pos_invoice_merge_log import (
+            consolidate_pos_invoices as consolidate,
+        )
+    except Exception as exc:  # pragma: no cover - version guard
+        _fail("POS invoice consolidation", exc)
+    return consolidate(pos_invoices=rows)
+
+
 def closing_invoice_table():
     """The POS Closing Entry table that lists the shift's POS Invoices:
     `pos_transactions` up to ERPNext 15, renamed `pos_invoices` in ERPNext 16

@@ -1228,12 +1228,220 @@ def _consolidate_now(closing):
         frappe.db.commit()  # nosemgrep
         return "Submitted"
 
+    batches = _merge_batches(pending)
+    when_sold = erpnext_compat.merge_posts_sales_when_sold()
+    shift_date, shift_time = closing.posting_date, closing.posting_time
     try:
-        create_merge_logs(get_invoice_customer_map(pending), closing)
+        for index, (rows, ends) in enumerate(batches):
+            if when_sold and index < len(batches) - 1 and ends:
+                # posted where this part of the shift ends, before the sale
+                # that relies on its return (see _merge_batches)
+                closing.posting_date, closing.posting_time = str(ends.date()), ends.strftime("%H:%M:%S.%f")
+            else:
+                closing.posting_date, closing.posting_time = shift_date, shift_time
+            _forget_cached_values()
+            create_merge_logs(get_invoice_customer_map(rows), closing)
         return frappe.db.get_value("POS Closing Entry", closing.name, "status") or "Submitted"
     except Exception:
         # create_merge_logs already rolled back, set status=Failed + error.
+        # A batch before it stays posted, and a retry feeds only what is left.
         return "Failed"
+    finally:
+        closing.posting_date, closing.posting_time = shift_date, shift_time
+
+
+def _merge_batches(rows):
+    """[(rows, when the last of them was posted)]: the shift's invoices cut
+    into the parts they have to be merged in, one after the other, so that no
+    part takes out goods that only a later one brings back.
+
+    A returned item is back on sale at once (catalog.pos_reserved_map, and on
+    ERPNext 13 and 14 post_returns_now), so a shift can hold: sold (the last
+    one), returned, sold again. ERPNext merges each customer's
+    invoices into one Sales Invoice and one credit note. 15 and 16 post the
+    Sales Invoice first, at the time of its last sale, and the credit note at
+    the close: the resale goes out before the return comes back and the close
+    fails ("1.0 units of Item ... needed in Warehouse", seen on v15 and v16).
+    13 and 14 post the credit note first, but only within one customer, so a
+    return by one customer and a sale to another fail the same way there.
+    ERPNext splits a merge like this itself for serial numbers
+    (pos_invoice_merge_log.split_invoices), this does it for quantities.
+
+    In the order the invoices were posted, a new part starts at every sale
+    holding a stock item or bundle that a return earlier in the same part
+    brought back (on 15 and 16 a bundle's components count too, through its
+    Packed Item rows). On 15 and 16
+    every part but the last is merged at the time of its own last invoice, so
+    its credit note reaches the stock ledger before the resale that follows,
+    and never before the Sales Invoice it returns against. 13 and 14 merge
+    every part at the close, one after the other, and the ledger keeps entries
+    of the same time in the order they were made. Most shifts are one part,
+    merged at the close exactly as before."""
+    if not rows:
+        return []
+    names = [r.pos_invoice for r in rows]
+    heads = {
+        d.name: d
+        for d in frappe.db.sql(
+            """select name, is_return, posting_date, posting_time, creation
+            from `tabPOS Invoice` where name in %(names)s""",
+            {"names": names},
+            as_dict=True,
+        )
+    }
+    goods = {}
+    for d in frappe.db.sql(
+        """select line.parent, line.item_code from (
+            select parent, item_code from `tabPOS Invoice Item` where parent in %(names)s
+            union all
+            select parent, item_code from `tabPacked Item`
+            where parenttype = 'POS Invoice' and parent in %(names)s
+        ) line
+        inner join `tabItem` item on item.name = line.item_code
+        left join `tabProduct Bundle` bundle on bundle.name = line.item_code
+        where item.is_stock_item = 1 or bundle.name is not null""",
+        {"names": names},
+        as_dict=True,
+    ):
+        goods.setdefault(d.parent, set()).add(d.item_code)
+
+    def posted(name):
+        head = heads.get(name)
+        if not head or not head.posting_date:
+            return None
+        return get_datetime("{0} {1}".format(getdate(head.posting_date), head.posting_time or "00:00:00"))
+
+    def order(row):
+        when = posted(row.pos_invoice)
+        head = heads.get(row.pos_invoice)
+        made = str(head.creation) if head else ""
+        return (0, when, made, row.pos_invoice) if when else (1, made, row.pos_invoice)
+
+    parts, current, back = [], [], set()
+    for row in sorted(rows, key=order):
+        head = heads.get(row.pos_invoice)
+        items = goods.get(row.pos_invoice, set())
+        if current and head and not cint(head.is_return) and items & back:
+            parts.append(current)
+            current, back = [], set()
+        current.append(row)
+        if head and cint(head.is_return):
+            back |= items
+    parts.append(current)
+    return [(part, max((posted(r.pos_invoice) for r in part if posted(r.pos_invoice)), default=None)) for part in parts]
+
+
+def _forget_cached_values():
+    """Frappe's per-request value cache. ERPNext reads an original invoice's
+    status through it while it merges (split_invoices), and a part merged just
+    before may have changed it."""
+    cache = getattr(frappe.db, "value_cache", None)
+    if hasattr(cache, "clear"):
+        cache.clear()
+
+
+def post_returns_now(names):
+    """ERPNext 13 and 14 only: post these POS returns at once, those that bring
+    goods back to the shelf, each with its sale when that is not posted yet
+    (and the sale's other returns not posted yet), so the goods that came back
+    can be sold again in the same shift. Returns the names posted.
+
+    Their stock check (POSInvoice.validate_stock_availablility) takes every POS
+    sale not posted yet off the shelf and gives none of its returns back, so a
+    returned item stayed "sold" until the shift closed (15 and 16 count the
+    returns themselves). Frappe's Marketplace audit allows neither replacing
+    ERPNext's POS Invoice class nor patching it at run time, so the returned
+    goods reach the shelf the way ERPNext moves them anyway: by posting, here
+    through ERPNext's own posting of chosen POS Invoices
+    (erpnext_compat.consolidate_pos_invoices), one merge per customer, as the
+    close would post them, only earlier. The close then leaves them out of its
+    merge and still counts them in its totals (_submit_closing,
+    _build_closing), as it does for a day rolled past midnight on v16.
+
+    Serialized behind the same lock as every close. Best effort: a return that
+    cannot be posted now stays as it is, the Error Log says why, and it comes
+    back on sale when the shift closes. Everything the caller wrote is
+    committed first, so a failed posting can never undo the return itself:
+    call it only once the request's own work is done."""
+    if not erpnext_compat.returns_held_until_posted():
+        return []
+    rows = {}
+    for name in names or []:
+        ret = _reference_row(name)
+        if not ret or not cint(ret.is_return) or not _brings_goods_back(name):
+            continue
+        rows[ret.pos_invoice] = ret
+        original = _reference_row(ret.return_against) if ret.return_against else None
+        if original:
+            rows[original.pos_invoice] = original
+            for other in frappe.get_all(
+                "POS Invoice",
+                filters={"return_against": original.pos_invoice, "docstatus": 1, "consolidated_invoice": ["is", "not set"]},
+                pluck="name",
+            ):
+                row = _reference_row(other)
+                if row:
+                    rows[row.pos_invoice] = row
+    if not rows:
+        return []
+    # The return is the cashier's and must stand whatever the posting does:
+    # ERPNext rolls back all it has not committed when a merge fails.
+    frappe.db.commit()  # nosemgrep
+    if not _acquire_lock(timeout=5):  # a cashier is waiting on this
+        frappe.log_error(
+            title="LumenPOS: return not posted at once",
+            message=_("A shift close held the posting lock, so {0} will be posted with the shift.").format(
+                ", ".join(rows)
+            ),
+        )
+        return []
+    try:
+        _forget_cached_values()
+        erpnext_compat.consolidate_pos_invoices(list(rows.values()))
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(title="LumenPOS: return not posted at once", message=frappe.get_traceback())
+        return []
+    finally:
+        _release_lock()
+    return [name for name in rows if frappe.db.get_value("POS Invoice", name, "consolidated_invoice")]
+
+
+def _brings_goods_back(name):
+    """Does this return hold a stock item or a bundle? A service, a gift card
+    or a deposit puts nothing back on a shelf, so it waits for the close."""
+    return bool(
+        frappe.db.sql(
+            """select 1 from `tabPOS Invoice Item` line
+            inner join `tabItem` item on item.name = line.item_code
+            left join `tabProduct Bundle` bundle on bundle.name = line.item_code
+            where line.parent = %s and (item.is_stock_item = 1 or bundle.name is not null)
+            limit 1""",
+            name,
+        )
+    )
+
+
+def _reference_row(name):
+    """A POS Invoice as a POS Closing Entry lists it, if it is submitted and
+    not posted yet."""
+    d = frappe.db.get_value(
+        "POS Invoice",
+        name,
+        ["name", "customer", "posting_date", "grand_total", "is_return", "return_against", "docstatus",
+         "consolidated_invoice"],
+        as_dict=True,
+    )
+    if not d or cint(d.docstatus) != 1 or d.consolidated_invoice:
+        return None
+    return frappe._dict(
+        pos_invoice=d.name,
+        customer=d.customer,
+        posting_date=d.posting_date,
+        grand_total=d.grand_total,
+        is_return=d.is_return,
+        return_against=d.return_against,
+    )
 
 
 def _make_closing_entry(session_doc, counted):

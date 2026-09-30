@@ -50,8 +50,38 @@ def internal_item_codes():
     return codes
 
 
+# What POS Invoices not consolidated yet hold of each item, as the stock check
+# of the ERPNext version on the site counts it (erpnext_compat.
+# returns_held_until_posted). 15 and 16 net each sale against its returns (a
+# return's lines are negative) and count a bundle's components through their
+# Packed Item rows (pos_invoice.get_pos_reserved_qty_from_table). 13 and 14 count
+# the sales only, and list no Packed Item rows on a POS Invoice: a return there
+# reaches the shelf once it is posted, which LumenPOS does at once
+# (register.post_returns_now).
+_POS_HELD_SQL = """
+    select item_code, sum(qty) as qty from (
+        select pii.item_code as item_code, pii.stock_qty as qty
+        from `tabPOS Invoice Item` pii
+        inner join `tabPOS Invoice` pi on pi.name = pii.parent
+        where pi.docstatus = 1
+          and ifnull(pi.consolidated_invoice, '') = ''
+          and pii.warehouse = %(warehouse)s {sales_only}
+        union all
+        select pk.item_code as item_code, pk.qty as qty
+        from `tabPacked Item` pk
+        inner join `tabPOS Invoice` pi on pi.name = pk.parent
+        where pk.parenttype = 'POS Invoice'
+          and pi.docstatus = 1
+          and ifnull(pi.consolidated_invoice, '') = ''
+          and pk.warehouse = %(warehouse)s {sales_only}
+    ) held
+    group by item_code
+"""
+
+
 def pos_reserved_map(warehouse):
-    """{item_code: qty} sold on POS Invoices that have not been consolidated.
+    """{item_code: qty} still held by POS Invoices that have not been
+    consolidated, counted as ERPNext counts them (see _POS_HELD_SQL).
 
     A submitted POS Invoice writes no Stock Ledger Entry at all: ERPNext moves
     the stock when the shift's POS Closing Entry consolidates it (this holds
@@ -65,6 +95,15 @@ def pos_reserved_map(warehouse):
     this exists to prevent. Sales Invoice outlets never appear here, their
     invoices move the Bin on submit.
 
+    A return puts its goods back at once (0.56.1). Until then the till counted
+    only the sales on every version, so a returned item stayed "sold", hidden
+    and refused ("only 0 in stock") until the shift closed, while ERPNext 15
+    and 16 already had it back on sale (a shop in Zimbabwe, 2026-09-30). On 13
+    and 14 ERPNext itself holds the goods until the return is posted, so a
+    return made at the till is posted at once (register.post_returns_now), and
+    register._merge_batches keeps a close on 15 and 16 from taking stock below
+    zero.
+
     Memoised per request: get_full_catalog walks the catalogue in pages of 500
     and would otherwise repeat this query for every page.
     """
@@ -76,17 +115,10 @@ def pos_reserved_map(warehouse):
     if warehouse in cache:
         return cache[warehouse]
     try:
-        rows = frappe.db.sql(
-            """
-            select pii.item_code as item_code, sum(pii.stock_qty) as qty
-            from `tabPOS Invoice Item` pii
-            inner join `tabPOS Invoice` pi on pi.name = pii.parent
-            where pi.docstatus = 1
-              and ifnull(pi.consolidated_invoice, '') = ''
-              and pi.is_return = 0
-              and pii.warehouse = %(warehouse)s
-            group by pii.item_code
-            """,
+        rows = frappe.db.sql(  # nosemgrep
+            _POS_HELD_SQL.format(
+                sales_only="and pi.is_return = 0" if erpnext_compat.returns_held_until_posted() else ""
+            ),
             {"warehouse": warehouse},
             as_dict=True,
         )
@@ -437,8 +469,13 @@ def stock_by_warehouse(item_code, pos_profile=None):
         actual = flt(r.actual_qty)
         # Sales Order reservations plus anything a till has already sold but not
         # consolidated, so this answer matches what that branch can hand over.
-        reserved = flt(r.reserved_qty) + pos_reserved_map(r.warehouse).get(item_code, 0)
-        if actual == 0 and reserved == 0:
+        # A till's net can be below zero (a return of a sale already closed puts
+        # the goods back before the Bin knows): that adds to what is available
+        # and is never shown as a negative reservation.
+        held = pos_reserved_map(r.warehouse).get(item_code, 0)
+        reserved = flt(r.reserved_qty) + max(held, 0)
+        available = actual - flt(r.reserved_qty) - held
+        if actual == 0 and reserved == 0 and available == 0:
             continue
         out.append(
             {
@@ -446,7 +483,7 @@ def stock_by_warehouse(item_code, pos_profile=None):
                 "company": wh_company,
                 "actual_qty": actual,
                 "reserved_qty": reserved,
-                "available_qty": actual - reserved,
+                "available_qty": available,
                 "is_here": 1 if r.warehouse == here else 0,
             }
         )

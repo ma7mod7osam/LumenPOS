@@ -818,7 +818,8 @@ export const useCartStore = defineStore('cart', {
       this.submitting = true
       try {
         const result = await call('lumenpos.api.exchanges.submit_exchange', { payload })
-        useCatalogStore().applyStock(result?.sale?.stock_after)
+        // What came back moves too, not only what went out (0.56.1).
+        useCatalogStore().applyStock({ ...(result?.return?.stock_after || {}), ...(result?.sale?.stock_after || {}) })
         markReturned(this.exchange.invoice, this.exchange.items)
         this.exchange = null
         this.clear()

@@ -9,6 +9,7 @@ import {
   catalogCount,
   saveCustomers,
   patchCatalogStock,
+  patchCatalogStockBy,
   kvSet,
 } from '../offline'
 import { useSessionStore } from './session'
@@ -135,18 +136,27 @@ export const useCatalogStore = defineStore('catalog', {
 
     // Offline there is no server answer, so take the sold quantity off the
     // cached figure ourselves (negative qty for a return puts it back). The
-    // sale's real answer replaces this estimate when the queue syncs.
+    // sale's real answer replaces this estimate when the queue syncs. The
+    // device's cache moves by the same amount for every item, on screen or
+    // not: until 0.56.1 an item missing from the grid at that moment (another
+    // search, another group) kept its old figure, so a return taken back from
+    // History could stay hidden at 0.
     applyStockDelta(lines) {
-      const levels = {}
+      const deltas = {}
       for (const line of lines || []) {
         const code = line.item_code
         if (!code) continue
-        const cached = this.items.find((i) => i.item_code === code)
-        const base = cached ? cached.actual_qty : null
-        if (base == null) continue
-        levels[code] = (levels[code] ?? base) - (Number(line.qty) || 0)
+        deltas[code] = (deltas[code] || 0) + (Number(line.qty) || 0)
       }
-      this.applyStock(levels)
+      if (!Object.keys(deltas).length) return
+      for (const item of this.items) {
+        if (item.is_stock_item && item.item_code in deltas) {
+          item.actual_qty = (Number(item.actual_qty) || 0) - deltas[item.item_code]
+        }
+      }
+      patchCatalogStockBy(deltas).catch(() => {
+        /* the tiles are already right, the cache catches up on the next refresh */
+      })
     },
 
     setSearch(value) {

@@ -273,6 +273,25 @@ const showFavourites = ref(false)
 const favourites = ref([])
 const favLoading = ref(false)
 
+// The favourites are read once, so their counts follow every sale and return
+// the way the grid's tiles do: until 0.56.1 a favourite kept the count it was
+// read with, and an item sold out and brought back stayed at 0 there.
+// (An action subscription made in setup ends with this screen.)
+catalog.$onAction(({ name, args }) => {
+  if (!favourites.value.length) return
+  if (name === 'applyStock') {
+    const levels = args[0] || {}
+    for (const fav of favourites.value) {
+      if (fav.item_code in levels) fav.actual_qty = levels[fav.item_code]
+    }
+  } else if (name === 'applyStockDelta') {
+    for (const line of args[0] || []) {
+      const fav = favourites.value.find((f) => f.item_code === line.item_code)
+      if (fav && fav.is_stock_item) fav.actual_qty = (Number(fav.actual_qty) || 0) - (Number(line.qty) || 0)
+    }
+  }
+})
+
 async function toggleFavourites() {
   showFavourites.value = !showFavourites.value
   showBundles.value = false

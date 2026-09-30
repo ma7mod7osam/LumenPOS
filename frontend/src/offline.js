@@ -199,6 +199,32 @@ export async function patchCatalogStock(levels) {
   })
 }
 
+// The same, by how much each stock item moved ({item_code: qty sold}, a return
+// negative), for a sale or return made without a connection. Reads each figure
+// from the cache itself, so an item that is not on screen moves too.
+export async function patchCatalogStockBy(deltas) {
+  const codes = Object.keys(deltas || {})
+  if (!codes.length) return 0
+  const database = await db()
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction('items', 'readwrite')
+    const store = transaction.objectStore('items')
+    let written = 0
+    for (const code of codes) {
+      const req = store.get(code)
+      req.onsuccess = () => {
+        const item = req.result
+        if (!item || !item.is_stock_item) return
+        item.actual_qty = (Number(item.actual_qty) || 0) - deltas[code]
+        store.put(item)
+        written += 1
+      }
+    }
+    transaction.oncomplete = () => resolve(written)
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
 // --- customers cache (recent/frequent subset, for offline select) -----------
 
 export async function saveCustomers(customers) {

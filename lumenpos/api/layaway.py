@@ -539,6 +539,7 @@ def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None,
             return_reason=reason or _("Hold cancelled"),
             pos_profile=acting.name,
             refund_payments=refund_payments or None,
+            _post_now=False,
         )
         row.refunded = 1
         refunds.append(credit["name"])
