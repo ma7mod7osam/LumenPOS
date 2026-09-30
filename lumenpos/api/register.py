@@ -1341,15 +1341,19 @@ def _forget_cached_values():
 
 
 def post_returns_now(names):
-    """ERPNext 13 and 14 only: post these POS returns at once, those that bring
-    goods back to the shelf, each with its sale when that is not posted yet
-    (and the sale's other returns not posted yet), so the goods that came back
-    can be sold again in the same shift. Returns the names posted.
+    """Post these POS returns at once, those whose goods ERPNext holds until
+    the return is posted, each with its sale when that is not posted yet (and
+    the sale's other returns not posted yet), so the goods that came back can
+    be sold again in the same shift. Returns the names posted.
 
-    Their stock check (POSInvoice.validate_stock_availablility) takes every POS
-    sale not posted yet off the shelf and gives none of its returns back, so a
-    returned item stayed "sold" until the shift closed (15 and 16 count the
-    returns themselves). Frappe's Marketplace audit allows neither replacing
+    ERPNext 13 and 14 hold every returned stock item: their stock check
+    (POSInvoice.validate_stock_availablility) takes every POS sale not posted
+    yet off the shelf and gives none of its returns back, so a returned item
+    stayed "sold" until the shift closed. 15 and 16 count returns in that
+    check, but hold a returned SERIAL number (get_reserved_serial_nos_for_pos
+    counts a sale line's serial twice, from its bundle and its serial_no text,
+    and the return once), so there only a return that brings a serial back is
+    posted at once (_held_until_posted). Frappe's Marketplace audit allows neither replacing
     ERPNext's POS Invoice class nor patching it at run time, so the returned
     goods reach the shelf the way ERPNext moves them anyway: by posting, here
     through ERPNext's own posting of chosen POS Invoices
@@ -1363,12 +1367,10 @@ def post_returns_now(names):
     back on sale when the shift closes. Everything the caller wrote is
     committed first, so a failed posting can never undo the return itself:
     call it only once the request's own work is done."""
-    if not erpnext_compat.returns_held_until_posted():
-        return []
     rows = {}
     for name in names or []:
         ret = _reference_row(name)
-        if not ret or not cint(ret.is_return) or not _brings_goods_back(name):
+        if not ret or not cint(ret.is_return) or not _held_until_posted(name):
             continue
         rows[ret.pos_invoice] = ret
         original = _reference_row(ret.return_against) if ret.return_against else None
@@ -1405,6 +1407,28 @@ def post_returns_now(names):
     finally:
         _release_lock()
     return [name for name in rows if frappe.db.get_value("POS Invoice", name, "consolidated_invoice")]
+
+
+def _held_until_posted(name):
+    """Does ERPNext hold what this return brings back until it is posted? On
+    13 and 14 any stock item or bundle, on 15 and 16 a serial number (see
+    post_returns_now)."""
+    if erpnext_compat.returns_held_until_posted():
+        return _brings_goods_back(name)
+    return _brings_serials_back(name)
+
+
+def _brings_serials_back(name):
+    """Does this return hold an item with serial numbers?"""
+    return bool(
+        frappe.db.sql(
+            """select 1 from `tabPOS Invoice Item` line
+            inner join `tabItem` item on item.name = line.item_code
+            where line.parent = %s and item.has_serial_no = 1
+            limit 1""",
+            name,
+        )
+    )
 
 
 def _brings_goods_back(name):

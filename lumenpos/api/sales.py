@@ -2771,8 +2771,9 @@ def create_return(
     once the document is built, "everything up to the new sale goes to the
     exchange clearing tender, the rest is a real refund".
 
-    _post_now: on ERPNext 13 and 14 the return is posted at once, with its
-    sale, so its goods are back on sale in the same shift
+    _post_now: the return is posted at once, with its sale, where ERPNext holds
+    its goods until then (on 13 and 14 any stock item, on 15 and 16 a serial
+    number), so they are back on sale in the same shift
     (register.post_returns_now). That commits, so a Python caller that goes on
     writing in the same request (an exchange, a hold being cancelled, the demo
     builder) passes False, and an exchange posts its credit note itself once

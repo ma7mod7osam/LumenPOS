@@ -249,8 +249,9 @@ def submit_exchange(payload):
     ) + collected
     sale_receipt = sales.submit_sale(sale_payload)
     _stamp_original(sale_receipt, original)
-    # ERPNext 13 and 14 put the goods that came back on the shelf only once the
-    # credit note is posted: post it now that the whole exchange stands.
+    # Where ERPNext puts the goods that came back on the shelf only once the
+    # credit note is posted (13 and 14, and a serial number on 15 and 16),
+    # post it now that the whole exchange stands.
     from lumenpos.api import register
 
     if register.post_returns_now([return_receipt["name"]]):

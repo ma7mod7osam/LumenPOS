@@ -212,7 +212,9 @@ def returns_held_until_posted():
     return is posted: their stock check (POSInvoice.validate_stock_availablility,
     through get_pos_reserved_qty) takes every POS sale not posted yet off the
     shelf and none of its returns. 15 and 16 count the returns (and a bundle's
-    Packed Item rows, get_pos_reserved_qty_from_table)."""
+    Packed Item rows, get_pos_reserved_qty_from_table), all but a returned
+    serial number, which they hold until the return is posted
+    (get_reserved_serial_nos_for_pos, see register.post_returns_now)."""
     return _erpnext_major() < 15
 
 
