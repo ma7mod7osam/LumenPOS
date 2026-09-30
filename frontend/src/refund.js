@@ -61,7 +61,10 @@ function ulp(x) {
 // three methods a site can choose (System Settings, v14 and later; v13 has
 // the legacy one only), on the signed value as ERPNext computes a credit
 // note: under the legacy method -1.515 rounds to -1.51 where 1.515 gives 1.52.
-export function frappeRound(num, precision = 2, method = LEGACY) {
+// `commercial`: how the site's Frappe nudges a tie away from zero, by the
+// value's last place ('ulp', v16) or by 2 ** (log2 x - 52) ('log', v14, v15),
+// as sales.rounding_rule reports it.
+export function frappeRound(num, precision = 2, method = LEGACY, commercial = 'ulp') {
   if (!Number.isFinite(num) || num === 0) return 0
   const multiplier = 10 ** precision
   const sign = num < 0 ? -1 : 1
@@ -75,8 +78,9 @@ export function frappeRound(num, precision = 2, method = LEGACY) {
     return (sign * out) / multiplier
   }
   if (method === 'Commercial Rounding') {
-    // A tie goes away from zero: nudged by one unit in the last place first.
-    return pyRound(num + sign * ulp(num), precision)
+    // A tie goes away from zero: the value is nudged outwards first.
+    const nudge = commercial === 'log' ? 2 ** (Math.log(Math.abs(num)) / Math.log(2) - 52) : ulp(num)
+    return pyRound(num + sign * nudge, precision)
   }
   // Banker's Rounding (legacy): Frappe's default before v16, the only one on v13.
   let n = pyRound(precision ? num * multiplier : num, 8)
@@ -89,30 +93,31 @@ export function frappeRound(num, precision = 2, method = LEGACY) {
 }
 
 // Frappe's remainder(), with Python's float modulo (the divisor's sign).
-function remainder(num, den, precision, method) {
+function remainder(num, den, precision, method, commercial) {
   const m = 10 ** precision
   const a = precision ? num * m : num
   const b = precision ? den * m : den
   let r = a % b
   if (r !== 0 && b < 0 !== r < 0) r += b
-  return frappeRound(precision ? r / m : r, precision, method)
+  return frappeRound(precision ? r / m : r, precision, method, commercial)
 }
 
 // round_based_on_smallest_currency_fraction (frappe/utils/data.py).
 export function roundTotal(value, rule = {}) {
   const precision = rule.precision ?? 2
   const method = rule.method || LEGACY
-  if (rule.disabled) return frappeRound(value, precision, method)
+  const commercial = rule.commercial || 'ulp'
+  if (rule.disabled) return frappeRound(value, precision, method, commercial)
   const fraction = Number(rule.fraction) || 0
   let v = value
   if (fraction) {
-    const rem = remainder(v, fraction, precision, method)
+    const rem = remainder(v, fraction, precision, method, commercial)
     if (rem > fraction / 2) v += fraction - rem
     else v -= rem
   } else {
-    v = frappeRound(v, 0, method)
+    v = frappeRound(v, 0, method, commercial)
   }
-  return frappeRound(v, precision, method)
+  return frappeRound(v, precision, method, commercial)
 }
 
 // One row per item code, as sales._build_return_doc keeps it: the FIRST line
@@ -156,7 +161,7 @@ export function estimateRefund(record, picks) {
   const rule = record?.rounding || {}
   const precision = rule.precision ?? 2
   const method = rule.method || LEGACY
-  const f = (x) => frappeRound(x, precision, method)
+  const f = (x) => frappeRound(x, precision, method, rule.commercial || 'ulp')
   const taxes = record?.taxes || []
   if (taxes.some((t) => !SUPPORTED.includes(t.charge_type))) return null
   const rateFor = (tax, item) =>

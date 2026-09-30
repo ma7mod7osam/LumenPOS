@@ -111,10 +111,11 @@ def rounding_rule(currency_code, doc=None, profile=None):
         if currency_code
         else 0
     )
-    try:
+    # v13 has no rounding method (Banker's legacy is its only one), and asking
+    # for one there queues a red "Invalid field name" onto the answer.
+    method = ""
+    if frappe.get_meta("System Settings").has_field("rounding_method"):
         method = frappe.get_system_settings("rounding_method") or ""
-    except Exception:
-        method = ""
     precision = None
     if doc is not None:
         try:
@@ -138,7 +139,29 @@ def rounding_rule(currency_code, doc=None, profile=None):
         "method": method or "Banker's Rounding (legacy)",
         "precision": precision if precision is not None else 2,
         "row_wise": row_wise,
+        "commercial": _commercial_variant(),
     }
+
+
+_COMMERCIAL = None
+
+
+def _commercial_variant():
+    """How this Frappe breaks a tie away from zero (Commercial Rounding): v16
+    nudges the value by its last place (math.ulp), v14 and v15 by 2 ** (log2 x
+    - 52), which lands differently on a few values. The till repeats the one
+    the site runs (refund.js), read from Frappe's own code once per process."""
+    global _COMMERCIAL
+    if _COMMERCIAL is None:
+        try:
+            import inspect
+
+            from frappe.utils import data
+
+            _COMMERCIAL = "ulp" if "math.ulp" in inspect.getsource(data._round_away_from_zero) else "log"
+        except Exception:
+            _COMMERCIAL = "ulp"
+    return _COMMERCIAL
 
 
 def _offline_return_facts(name):

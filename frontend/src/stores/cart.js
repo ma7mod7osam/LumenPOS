@@ -273,6 +273,9 @@ export const useCartStore = defineStore('cart', {
     // offline keeps each line's rate from it, so it can be taken back without
     // a connection at the rate ERPNext will post (refund.js).
     unitDiscounts(state) {
+      const session = useSessionStore()
+      const rule = session.settings?.rounding?.[session.currency] || {}
+      const r2 = (x) => frappeRound(x, 2, rule.method, rule.commercial)
       const whole = state.lines.map(
         (l, i) => (this.evaluation.line_discounts[i] || 0) + (this.bundleBreakdown.discounts[i] || 0)
       )
@@ -286,11 +289,11 @@ export const useCartStore = defineStore('cart', {
           let spread = 0
           for (const i of eligible) {
             if (net[i] <= 0) continue
-            const share = frappeRound((basket * net[i]) / totalNet, 2)
+            const share = r2((basket * net[i]) / totalNet)
             whole[i] += share
             spread += share
           }
-          const rest = frappeRound(basket - spread, 2)
+          const rest = r2(basket - spread)
           if (rest && eligible.length) {
             whole[eligible.reduce((a, b) => (net[a] >= net[b] ? a : b))] += rest
           }
@@ -1016,15 +1019,17 @@ export const useCartStore = defineStore('cart', {
       const { idx, cart } = this._promoView
       const groups = returnGroups(this.lines, this.evaluation.applied, session.promotions, cart, idx, matchingIndexes)
       const code = sale.foreign ? sale.currency : session.currency
+      const rule = session.settings?.rounding?.[code] || {}
+      const round = (x, p) => frappeRound(x, p, rule.method, rule.commercial)
       const lines = this.lines.map((l, i) => {
         const price = Number(l.price) || 0
-        const listRate = frappeRound(price * factor, 2)
-        const pct = price > 0 && units[i] > 0 ? frappeRound((Math.min(units[i], price) / price) * 100, 6) : 0
+        const listRate = round(price * factor, 2)
+        const pct = price > 0 && units[i] > 0 ? round((Math.min(units[i], price) / price) * 100, 6) : 0
         return {
           item_code: l.item_code,
           item_name: l.item_name,
           qty: l.qty,
-          rate: frappeRound(listRate * (1 - pct / 100), 2),
+          rate: round(listRate * (1 - pct / 100), 2),
           item_tax_rate: {},
           serial: false,
           group: groups[i],
