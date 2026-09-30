@@ -153,8 +153,11 @@ The channel picker defaults to **Walk-in**. Selecting a delivery app
 
 ### Salesperson
 Type a name **or the salesperson number** (`sales_person_no`) and pick.
-Persists across sales (shift-based); recorded on the invoice's sales team
-(100%), so ERPNext commission reports work.
+It stays for the next sales (the person on shift) and is recorded on the
+invoice's Sales Team at 100%, and printed on the receipt. ERPNext's Sales
+Person reports see it only at a Sales Invoice outlet: at a POS Invoice outlet
+(the default) the close merges the shift's sales into a Sales Invoice without
+the Sales Team, and those reports read no POS Invoice (ERPNext 13 to 16).
 
 ### Coupons
 Type the code → **Apply**. Coupon-locked promotions never reach the browser
