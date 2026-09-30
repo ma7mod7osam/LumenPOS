@@ -96,7 +96,7 @@ function lineMatches(line, rows, role = null) {
   return false
 }
 
-function matchingIndexes(cart, promo, role = null) {
+export function matchingIndexes(cart, promo, role = null) {
   // Include rows select lines; exclude rows then subtract from the result.
   const rows = promo.items || []
   const includeRows = rows.filter((r) => !r.exclude)

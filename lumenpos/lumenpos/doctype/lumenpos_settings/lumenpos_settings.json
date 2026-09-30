@@ -7,6 +7,9 @@
  "field_order": [
   "register_section",
   "offline_stock_only",
+  "offline_returns",
+  "background_upload",
+  "warn_unprotected_storage",
   "show_out_of_stock",
   "serial_scan_only",
   "shift_scope",
@@ -125,6 +128,27 @@
    "fieldname": "offline_stock_only",
    "fieldtype": "Check",
    "label": "Cache only in-stock items for offline use"
+  },
+  {
+   "default": "1",
+   "description": "On (the default): without a connection, a sale this device made in the same shift can be taken back, refunded in cash or the way the customer paid, never to store credit, a gift card or cashback. The till works out the refund as ERPNext will, and the server checks it again when the connection is back.",
+   "fieldname": "offline_returns",
+   "fieldtype": "Check",
+   "label": "Returns without a connection"
+  },
+  {
+   "default": "1",
+   "description": "On (the default): sales and returns made without a connection are sent as soon as the network is back, even with the till closed, where the browser allows it (Chrome, Edge, Android). The till still sends them itself whenever it is open.",
+   "fieldname": "background_upload",
+   "fieldtype": "Check",
+   "label": "Send queued sales in the background"
+  },
+  {
+   "default": "1",
+   "description": "On (the default): the till shows a warning when the browser has not agreed to keep its offline data for good, which it may otherwise clear when space runs low, and asks the browser again on a tap.",
+   "fieldname": "warn_unprotected_storage",
+   "fieldtype": "Check",
+   "label": "Warn when offline sales are not protected"
   },
   {
    "default": "0",
@@ -818,7 +842,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-30 13:00:00.000000",
+ "modified": "2026-09-30 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

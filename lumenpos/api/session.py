@@ -300,6 +300,9 @@ def _profile_taxes(profile):
             "rate": row.rate or 0,
             "tax_amount": row.tax_amount or 0,
             "included": row.included_in_print_rate or 0,
+            # A line's own tax rates are keyed by account (refund.js).
+            "account_head": row.account_head,
+            "row_id": row.get("row_id") or None,
         }
         for row in (template.taxes or [])
     ]
@@ -403,6 +406,7 @@ def _client_settings(profile_name=None):
     # A shop can switch holds off while money is still sitting on open ones, so
     # the till keeps the screen (not the button) until those are settled.
     data["open_holds"] = _open_holds(profile_name)
+    data.update(_offline_facts(doc, profile_name))
     # The shop's new-customer form (lumenpos.customer_form).
     from lumenpos import customer_form
 
@@ -416,6 +420,50 @@ def _client_settings(profile_name=None):
 
         data.update(effective_receipt(profile_name))
     return data
+
+
+def _offline_facts(doc, profile_name):
+    """Working without a connection (0.56.0): the three switches, and what a
+    till needs to take back a sale it made itself while the server is out of
+    reach. The shop's refund policy (a sale still waiting to upload has no
+    answer from the server on how it may be refunded), whether any return
+    restriction applies here (nor on its products), and how ERPNext rounds a
+    total in each currency this till sells in."""
+    from lumenpos import currency, return_restrictions
+    from lumenpos.api.sales import rounding_rule
+    from lumenpos.api.settings import offline_switch
+
+    out = {
+        "offline_returns": 1 if offline_switch("offline_returns") else 0,
+        "background_upload": 1 if offline_switch("background_upload") else 0,
+        "warn_unprotected_storage": 1 if offline_switch("warn_unprotected_storage") else 0,
+        "refund_policy": {
+            "restrict": 1 if doc.get("restrict_refund_to_paid_mode") else 0,
+            "store_credit": 1 if doc.get("allow_store_credit_refund") else 0,
+            "rules": [
+                {"paid_mode": r.paid_mode, "refund_mode": r.refund_mode}
+                for r in (doc.get("refund_rules") or [])
+                if r.paid_mode and r.refund_mode
+            ],
+        },
+        "return_restricted": 0,
+        "rounding": {},
+    }
+    try:
+        out["return_restricted"] = 1 if return_restrictions.active_rules(profile_name) else 0
+        if profile_name:
+            profile = frappe.get_cached_doc("POS Profile", profile_name)
+            codes = {profile.currency or frappe.get_cached_value("Company", profile.company, "default_currency")}
+            if currency.enabled():
+                codes.update(currency.currency_rows())
+            codes.add(currency.company_currency(profile.company))
+            out["rounding"] = {code: rounding_rule(code, profile=profile) for code in codes if code}
+    except Exception:
+        # Never block the till from starting: without these a till simply
+        # refuses a return offline.
+        out["return_restricted"] = 1
+        frappe.log_error(title="LumenPOS: offline facts for the till failed", message=frappe.get_traceback())
+    return out
 
 
 @frappe.whitelist()

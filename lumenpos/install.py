@@ -127,6 +127,7 @@ def ensure_setup():
     default_insights_on()
     default_cashback_on()
     default_carry_past_midnight_on()
+    default_offline_switches_on()
     recost_open_holds()
     ensure_currencies()
     ensure_hot_indexes()
@@ -250,6 +251,26 @@ def default_carry_past_midnight_on():
     )
     if not stored:
         set_setting("carry_shift_past_midnight", 1)
+
+
+# Switches that ship ON (0.56.0). Each is written once, the first time a
+# release carrying it migrates, and never again, so a shop's OFF stays off.
+OFFLINE_SWITCHES = ("offline_returns", "background_upload", "warn_unprotected_storage")
+
+
+def default_offline_switches_on():
+    """The three switches for working without a connection ship ON. A loaded
+    Single zeroes a missing Check, so only the tabSingles row can tell "never
+    stored" from "switched off". Write the ON down once, per switch."""
+    from lumenpos.api.insights import set_setting
+
+    for field in OFFLINE_SWITCHES:
+        stored = frappe.db.sql(
+            "select value from tabSingles where doctype=%s and field=%s",
+            ("LumenPOS Settings", field),
+        )
+        if not stored:
+            set_setting(field, 1)
 
 
 def backfill_store_credit_references():

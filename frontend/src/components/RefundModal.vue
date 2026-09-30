@@ -5,13 +5,25 @@
   <div class="modal-backdrop" @click.self="$emit('close')">
     <div class="modal" style="width: 520px">
       <div class="modal-header">
-        {{ isExchange ? t('Exchange {invoice}', { invoice }) : t('Refund {invoice}', { invoice }) }}
+        {{ isExchange ? t('Exchange {invoice}', { invoice }) : t('Refund {invoice}', { invoice: saleLabel }) }}
         <button class="btn-ghost" @click="$emit('close')"><Icon name="close" /></button>
       </div>
 
       <div class="modal-body">
         <div v-if="loading" class="muted empty">{{ t('Loading…') }}</div>
         <template v-else>
+          <!-- A sale this device made in this shift, taken back without a
+               connection (refund.js): the return waits in the queue. -->
+          <div v-if="offline" class="approval-box offline-box">
+            <div class="ap-text">
+              {{ t('No connection: this refund is saved on this device and posts when the connection is back. Pay out exactly the amount shown.') }}
+            </div>
+          </div>
+          <div v-if="noOfflineMode" class="approval-box rejected">
+            <div class="ap-warn">
+              {{ t('This sale can only be refunded to store credit, a gift card or cashback, which need a connection.') }}
+            </div>
+          </div>
           <!-- Products the shop never takes back. No request clears these. -->
           <div v-if="blockedOutright.length" class="approval-box rejected">
             <div class="ap-warn">
@@ -58,11 +70,15 @@
               <div class="return-name">
                 {{ row.item_name }}
                 <span v-if="row.return_group" class="set-badge">{{ t('Set, return together') }}</span>
-                <span v-if="restrictions[row.item_code]" class="no-return-badge">
+                <span v-if="offlineBlocked[row.item_code]" class="no-return-badge">{{ t('Needs a connection') }}</span>
+                <span v-else-if="restrictions[row.item_code]" class="no-return-badge">
                   {{ restrictions[row.item_code].needs_approval ? t('Needs approval') : t('Not returnable') }}
                 </span>
               </div>
-              <div v-if="restrictions[row.item_code]" class="muted small no-return-why">
+              <div v-if="offlineBlocked[row.item_code]" class="muted small no-return-why">
+                {{ t(offlineBlocked[row.item_code]) }}
+              </div>
+              <div v-else-if="restrictions[row.item_code]" class="muted small no-return-why">
                 {{ restrictions[row.item_code].note || restrictions[row.item_code].title }}
               </div>
               <div class="muted small">
@@ -89,7 +105,8 @@
                 </div>
               </div>
             </div>
-            <div v-if="!row.has_serial_no" class="stepper">
+            <div v-if="offlineBlocked[row.item_code]" class="serial-count">0</div>
+            <div v-else-if="!row.has_serial_no" class="stepper">
               <button class="btn btn-outline" @click="dec(row)">−</button>
               <input type="number" min="0" :max="row.returnable_qty" :readonly="!!row.return_group" v-model.number="quantities[row.item_code]" />
               <button class="btn btn-outline" @click="inc(row)">+</button>
@@ -99,9 +116,10 @@
 
           <div v-if="refundTotal > 0" class="refund-summary">
             <div class="refund-amount">
-              {{ isExchange ? t('Coming back ≈') : t('Refund ≈') }} <strong>{{ m(refundTotal) }}</strong>
+              {{ isExchange ? t('Coming back ≈') : offline ? t('Refund') : t('Refund ≈') }} <strong>{{ m(refundTotal) }}</strong>
               <span v-if="foreign" class="muted small">= {{ money(refundTotal * sold.rate, sold.company_currency) }}</span>
-              <span class="muted small">{{ t('(final amount includes taxes, computed on submit)') }}</span>
+              <span v-if="offline" class="muted small">{{ t('(taxes included, as ERPNext will post it)') }}</span>
+              <span v-else class="muted small">{{ t('(final amount includes taxes, computed on submit)') }}</span>
             </div>
             <label class="field-label">{{ t('Return reason') }}</label>
             <select v-model="reason" style="width: 100%">
@@ -155,7 +173,9 @@
                     : t('{amount} left to allocate', { amount: m(Math.max(refundTotal - splitTotal, 0)) }) }}
               </span>
             </div>
-            <p v-if="allowedModes" class="muted small refund-rule-note">
+            <!-- Offline the list is always narrowed (no wallet), which is not
+                 the shop's rule unless it limits refunds to how a sale was paid. -->
+            <p v-if="allowedModes && (!offline || session.settings?.refund_policy?.restrict)" class="muted small refund-rule-note">
               {{ t('Limited to how this sale was paid (Settings → Refunds).') }}
             </p>
             </template>
@@ -179,7 +199,7 @@
         <button
           v-else
           class="btn btn-danger"
-          :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval || !splitCovered"
+          :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval || !splitCovered || noOfflineMode"
           @click="submit"
         >
           {{ busy ? t('Refunding…') : t('Refund') }}
@@ -196,16 +216,39 @@ import { call } from '../api'
 import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { createScanGuard } from '../scanGuard'
-import { money, parseMoney } from '../format'
-import { t } from '../i18n'
+import { money, parseMoney, shortTime } from '../format'
+import { t, locale } from '../i18n'
+import {
+  newId,
+  queueEntry,
+  queueCount,
+  logSale,
+  patchShiftSale,
+  requestBackgroundUpload,
+  markReturned,
+} from '../offline'
+import { estimateRefund, saleItems, offlineRefundModes } from '../refund'
 
 // mode "exchange" reuses everything a return needs (line picking, serials, the
 // restriction and window approvals, the reason) and then hands the selection to
 // the sell screen instead of refunding: the money is settled once the customer
 // has chosen what they are taking instead.
-const props = defineProps({ invoice: String, mode: { type: String, default: 'refund' } })
+// `local`: a sale this device made in this shift, taken back WITHOUT a
+// connection (session.loadShiftSales). The return is queued like a sale.
+const props = defineProps({
+  invoice: String,
+  mode: { type: String, default: 'refund' },
+  local: { type: Object, default: null },
+})
 const emit = defineEmits(['close', 'done', 'exchange'])
 const isExchange = computed(() => props.mode === 'exchange')
+const offline = computed(() => Boolean(props.local))
+const saleLabel = computed(() => props.invoice || props.local?.name || shortTime(props.local?.at))
+// This return's own key, from its first attempt: a refund whose answer is
+// lost on the way back, then tried again, can never post twice.
+const returnKey = newId()
+// item_code -> why that line cannot come back without a connection.
+const offlineBlocked = ref({})
 const session = useSessionStore()
 const scan = createScanGuard()
 const scanOnly = computed(() => Boolean(session.settings?.serial_scan_only))
@@ -306,12 +349,16 @@ const refundModes = computed(() => {
   return modes
 })
 
-const refundTotal = computed(() =>
-  returnable.value.reduce(
+// Offline, the figure ERPNext will post (refund.js), since the money leaves
+// the drawer before the server sees the return. Online, the lines at their
+// rate: the server's own figure comes back with the receipt.
+const refundTotal = computed(() => {
+  if (offline.value) return estimateRefund(props.local, pickedItems().items)?.total || 0
+  return returnable.value.reduce(
     (sum, row) => sum + (quantities.value[row.item_code] || 0) * row.rate,
     0
   )
-)
+})
 
 // Declared after everything it reads: an immediate watcher runs at setup, and
 // placed above refundTotal it threw on its first read and never tracked
@@ -362,13 +409,69 @@ function describeRestriction(r) {
   return r.note ? `${r.item_name} (${r.note})` : r.item_name
 }
 
+// Offline, every tender the shop allows for this sale may be one that needs
+// the server (store credit, a gift card, cashback): then it waits.
+const noOfflineMode = computed(() => offline.value && !loading.value && !refundModes.value.length)
+
 const needsApproval = computed(() => {
   if (blockedOutright.value.length) return true
   if (restrictedNeedingApproval.value.length && !returnRequest.value) return true
   return overWindow.value && !returnRequest.value && !canExceed.value
 })
 
+// A sale of this shift, on this device, without a connection: what can come
+// back, and how, from what the device kept (refund.js).
+function loadLocal() {
+  const record = props.local
+  const blocked = {}
+  returnable.value = saleItems(record)
+    .filter((row) => row.returnable > 0)
+    .map((row) => {
+      if (row.serial) blocked[row.item_code] = 'A serial number needs a connection to be checked'
+      else if (record.blocked?.[row.item_code]) blocked[row.item_code] = 'This product comes back only with an approval, which needs a connection'
+      return {
+        item_code: row.item_code,
+        item_name: row.item_name,
+        qty: row.qty,
+        rate: row.rate,
+        returnable_qty: row.returnable,
+        has_serial_no: 0,
+        returnable_serials: [],
+        return_group: row.group,
+      }
+    })
+  // A set comes back whole: one member that cannot come back holds them all.
+  for (const row of returnable.value) {
+    if (!row.return_group || blocked[row.item_code]) continue
+    if (returnable.value.some((r) => r.return_group === row.return_group && blocked[r.item_code])) {
+      blocked[row.item_code] = 'Sold together with an item that needs a connection'
+    }
+  }
+  offlineBlocked.value = blocked
+  allowedModes.value = offlineRefundModes(record, {
+    paymentModes: session.paymentModes,
+    policy: session.settings?.refund_policy,
+    storeCreditMode: session.storeCreditMode,
+    giftCardMode: session.giftCardMode,
+    cashbackMode: session.cashbackMode,
+  })
+  sold.value = {
+    currency: record.currency || session.currency,
+    company_currency: record.company_currency || session.localCurrency,
+    rate: record.conversion_rate || 1,
+  }
+  customer.value = record.customer || null
+  customerName.value = record.customer_name || null
+  for (const row of returnable.value) quantities.value[row.item_code] = 0
+  refundMode.value = refundModes.value[0] || null
+}
+
 onMounted(async () => {
+  if (offline.value) {
+    loadLocal()
+    loading.value = false
+    return
+  }
   try {
     const data = await call('lumenpos.api.sales.get_returnable', {
       invoice: props.invoice,
@@ -559,8 +662,110 @@ function continueExchange() {
   })
 }
 
+function refundRows() {
+  return refundSplits.value
+    .filter((r) => r.mode_of_payment && (parseMoney(r.amount) || 0) > 0)
+    .map((r) => ({
+      mode_of_payment: r.mode_of_payment,
+      amount: parseMoney(r.amount),
+      reference_no: r.reference_no || null,
+    }))
+}
+
+// Without a connection: the return waits in the queue, behind the sale it
+// takes back, and goes as create_return's own arguments (session._sendQueue,
+// sw.js). The server checks everything again and posts ERPNext's figure.
+async function submitOffline() {
+  const record = props.local
+  const { items } = pickedItems()
+  const refund = refundTotal.value
+  const rows = refundRows()
+  // What came back is written down BEFORE the return is queued: a device
+  // that failed in between must not let the same goods be refunded twice.
+  const before = { ...(record.returned || {}) }
+  const returned = { ...before }
+  for (const [code, qty] of Object.entries(items)) returned[code] = (Number(returned[code]) || 0) + qty
+  await patchShiftSale(record.key, { returned })
+  try {
+    await queueEntry(
+      'return',
+      {
+        invoice: record.name || null,
+        original_key: record.key,
+        items,
+        serials: {},
+        refund_mode: refundMode.value,
+        refund_payments: JSON.stringify(rows),
+        return_reason: reasonValue.value,
+        return_request: null,
+        pos_profile: session.posProfile,
+        idempotency_key: returnKey,
+        offline_refund: refund,
+      },
+      locale.value
+    )
+  } catch (e) {
+    await patchShiftSale(record.key, { returned: before }).catch(() => {})
+    throw e
+  }
+  logSale({
+    key: returnKey,
+    kind: 'return',
+    queued_at: new Date().toISOString(),
+    customer_name: record.customer_name || session.defaultCustomerName || 'Walk-in',
+    item_count: Object.keys(items).length,
+    total: -refund,
+    currency: sold.value.currency,
+    paid: -refund,
+    status: 'pending',
+    original: record.name || null,
+  }).catch(() => {})
+  session.queuedCount = await queueCount()
+  // The goods are back on the shelf: on the tiles too, until the server says.
+  useCatalogStore().applyStockDelta(Object.entries(items).map(([item_code, qty]) => ({ item_code, qty: -qty })))
+  if (session.settings?.background_upload) requestBackgroundUpload()
+  const now = new Date()
+  const byCode = Object.fromEntries(returnable.value.map((r) => [r.item_code, r]))
+  emit('done', {
+    offline: true,
+    is_return: 1,
+    name: `QUEUED-${now.toISOString().replace(/\D/g, '').slice(0, 14)}`,
+    return_against: record.name || null,
+    company: session.company,
+    customer_name: record.customer_name,
+    posting_date: now.toISOString().slice(0, 10),
+    posting_time: now.toTimeString().slice(0, 8),
+    currency: sold.value.currency,
+    items: Object.entries(items).map(([code, qty]) => ({
+      item_code: code,
+      item_name: byCode[code]?.item_name || code,
+      qty: -qty,
+      rate: byCode[code]?.rate || 0,
+      amount: -qty * (byCode[code]?.rate || 0),
+    })),
+    taxes: [],
+    grand_total: -refund,
+    rounded_total: -refund,
+    paid_amount: -refund,
+    change_amount: 0,
+    payments: rows.map((r) => ({ mode_of_payment: r.mode_of_payment, amount: -r.amount })),
+    applied_promotions: [],
+  })
+}
+
 async function submit() {
   busy.value = true
+  if (offline.value) {
+    try {
+      await submitOffline()
+      session.notify(t('Refund saved, it posts when the connection is back'))
+    } catch (e) {
+      session.notify(e.message, true)
+    } finally {
+      busy.value = false
+    }
+    return
+  }
   try {
     const { items, serials } = pickedItems()
     const receipt = await call('lumenpos.api.sales.create_return', {
@@ -568,23 +773,19 @@ async function submit() {
       items,
       serials,
       refund_mode: refundMode.value,
-      refund_payments: JSON.stringify(
-        refundSplits.value
-          .filter((r) => r.mode_of_payment && (parseMoney(r.amount) || 0) > 0)
-          .map((r) => ({
-            mode_of_payment: r.mode_of_payment,
-            amount: parseMoney(r.amount),
-            reference_no: r.reference_no || null,
-          }))
-      ),
+      refund_payments: JSON.stringify(refundRows()),
       return_reason: reasonValue.value,
       return_request: returnRequest.value,
-      // The return posts on the outlet HANDLING it, not the one that sold, 
+      // The return posts on the outlet HANDLING it, not the one that sold,
       // otherwise the refund leaves this drawer under another outlet's name.
       pos_profile: session.posProfile,
+      idempotency_key: returnKey,
     })
     session.notify(t('Refund completed'))
     useCatalogStore().applyStock(receipt?.stock_after) // returned goods go back on the tiles
+    // A sale this device keeps for a return without a connection must know
+    // what already came back, or it could be taken back twice.
+    markReturned(props.invoice, items)
     emit('done', receipt)
   } catch (e) {
     session.notify(e.message, true)
@@ -667,6 +868,10 @@ async function submit() {
 .stepper .btn { padding: 7px 12px; }
 .refund-summary { margin-top: 16px; }
 .refund-amount { margin-bottom: 10px; font-size: 15px; }
+/* The template's line breaks between these are dropped (Vue condenses them),
+   so the gap is the stylesheet's: "$90.00(taxes included" read as one word. */
+.refund-amount strong + .muted,
+.refund-amount .muted + .muted { margin-inline-start: 6px; }
 .field-label {
   display: block;
   font-size: 12px;
@@ -688,6 +893,8 @@ async function submit() {
 }
 .approval-box.approved,
 .approval-box:has(.ap-ok) { background: rgba(20, 99, 255, 0.1); }
+.approval-box.offline-box { background: rgba(20, 99, 255, 0.08); }
+html[data-theme='dark'] .approval-box.offline-box { background: rgba(20, 99, 255, 0.22); }
 .ap-warn { flex: 1; min-width: 220px; font-weight: 600; color: #9a6a0a; }
 .ap-text { flex: 1; min-width: 160px; font-weight: 600; }
 .ap-ok { flex: 1; font-weight: 700; color: var(--brand-dark); display: flex; align-items: center; gap: 6px; }

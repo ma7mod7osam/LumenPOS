@@ -16,9 +16,17 @@ import {
   removePendingCustomer,
   patchSaleLog,
   pruneSaleLog,
+  entryKind,
+  withUploadLock,
+  requestBackgroundUpload,
+  listShiftSales,
+  putShiftSale,
+  patchShiftSale,
+  pruneShiftSales,
 } from '../offline'
+import { fromReceipt } from '../refund'
 import { syncFromErp } from '../theme'
-import { setOffered } from '../i18n'
+import { setOffered, t } from '../i18n'
 import { useCatalogStore } from './catalog'
 
 export const useSessionStore = defineStore('session', {
@@ -212,6 +220,12 @@ export const useSessionStore = defineStore('session', {
       this.queuedCount = await queueCount().catch(() => 0)
       await this.refreshRefused()
       this.offlinePrices = (await kvGet('currency_prices').catch(() => null)) || {}
+      // This device keeps its own sales of the OPEN shift only (returns
+      // without a connection).
+      if (this.registerSession?.name) pruneShiftSales(this.registerSession.name).catch(() => {})
+      // Something still waits to go: ask the browser to send it the moment
+      // it has a network, even if this tab is closed by then.
+      if (this.queuedCount && this.offline && this.settings?.background_upload) requestBackgroundUpload()
       this.loaded = true
     },
 
@@ -274,6 +288,20 @@ export const useSessionStore = defineStore('session', {
       window.addEventListener('focus', () => {
         this.refreshPromotions().catch(() => {})
       })
+      // The service worker sent the queue in the background (sw.js): take its
+      // stock figures and counts, and say so, as for the till's own upload.
+      try {
+        navigator.serviceWorker?.addEventListener('message', (event) => {
+          const data = event.data || {}
+          if (data.type !== 'lumenpos-queue') return
+          useCatalogStore().applyStock(data.stock)
+          this.refreshQueueCount()
+          if (data.synced) this.notify(t('Sent {n} sales made without a connection', { n: data.synced }))
+          if (data.failed) this.notify(t('{n} offline sales still need attention. See the offline sales log', { n: data.failed }), true)
+        })
+      } catch {
+        /* no service worker here */
+      }
       // navigator.onLine misses some failure modes; a failed API call also
       // flips `offline` via markOffline().
     },
@@ -338,84 +366,131 @@ export const useSessionStore = defineStore('session', {
       }, 60000)
     },
 
+    // One upload at a time on this device: the till's own, another tab's, and
+    // the service worker's background upload take turns (offline.UPLOAD_LOCK).
     async flushQueue() {
       if (this.syncing) return
       this.syncing = true
-      const localMap = {} // offline temp customer id -> resolved real name
       try {
-        const queue = await listQueue()
-        let synced = 0
-        let failed = 0
-        for (const entry of queue) {
-          const key = entry.payload?.idempotency_key
-          try {
-            let payload = entry.payload
-            // Reconcile an offline-created customer: resolve its temp id to a
-            // real one (match existing by mobile, else create) and remap the
-            // sale. resolve_pending_customer is idempotent, so a retry is safe.
-            const cust = payload.customer
-            if (typeof cust === 'string' && cust.startsWith('__local__')) {
-              if (!localMap[cust]) {
-                const pending = await getPendingCustomer(cust)
-                if (!pending) throw new Error('offline customer record is missing')
-                const res = await call('lumenpos.api.catalog.resolve_pending_customer', {
-                  payload: pending.payload,
-                })
-                localMap[cust] = res.name
-              }
-              payload = { ...payload, customer: localMap[cust] }
-            }
-            const receipt = await call('lumenpos.api.sales.submit_sale', { payload })
-            // The server's figure replaces the estimate the till made offline.
+        await withUploadLock(() => this._sendQueue())
+      } finally {
+        this.syncing = false
+      }
+    },
+
+    async _sendQueue() {
+      const localMap = {} // offline temp customer id -> resolved real name
+      const queue = await listQueue()
+      let synced = 0
+      let failed = 0
+      for (const entry of queue) {
+        const key = entry.payload?.idempotency_key
+        try {
+          if (entryKind(entry) === 'return') {
+            // A return made without a connection: its payload is already
+            // create_return's arguments, the sale it takes back named by
+            // invoice or, when that sale was queued too, by its own key.
+            const receipt = await call('lumenpos.api.sales.create_return', entry.payload, { lang: entry.lang })
             useCatalogStore().applyStock(receipt?.stock_after)
             await removeQueued(entry.local_id)
-            // Log it as uploaded, with the real server invoice number so the
-            // cashier can see exactly where the offline sale landed.
             await patchSaleLog(key, {
               status: 'synced',
               receipt: (receipt && receipt.name) || null,
               synced_at: new Date().toISOString(),
               error: null,
+              gap: receipt?.offline_gap || 0,
             }).catch(() => {})
             synced++
-          } catch (e) {
-            if (e instanceof OfflineError) break // still down; keep the rest
-            // Server REJECTED this sale (e.g. item deleted, price changed). Keep
-            // it queued and record WHY, but move on so one bad sale can't block
-            // every good sale behind it. It retries on the next flush.
-            await patchSaleLog(key, {
-              status: 'failed',
-              error: e.message,
-              error_at: new Date().toISOString(),
-            }).catch(() => {})
-            this.notify(`A queued sale was rejected: ${e.message}`, true)
-            failed++
             continue
           }
-        }
-        // Prune pending customers no remaining queued sale references (kept ones
-        // re-resolve safely on the next flush, resolution is idempotent).
-        try {
-          const remaining = await listQueue()
-          const stillRef = new Set(remaining.map((e) => e.payload?.customer).filter(Boolean))
-          for (const p of await listPendingCustomers()) {
-            if (!stillRef.has(p.temp_id)) await removePendingCustomer(p.temp_id).catch(() => {})
+          let payload = entry.payload
+          // Reconcile an offline-created customer: resolve its temp id to a
+          // real one (match existing by mobile, else create) and remap the
+          // sale. resolve_pending_customer is idempotent, so a retry is safe.
+          const cust = payload.customer
+          if (typeof cust === 'string' && cust.startsWith('__local__')) {
+            if (!localMap[cust]) {
+              const pending = await getPendingCustomer(cust)
+              if (!pending) throw new Error('offline customer record is missing')
+              const res = await call('lumenpos.api.catalog.resolve_pending_customer', {
+                payload: pending.payload,
+              })
+              localMap[cust] = res.name
+            }
+            payload = { ...payload, customer: localMap[cust] }
           }
-        } catch {
-          /* best-effort cleanup */
+          const receipt = await call('lumenpos.api.sales.submit_sale', { payload }, { lang: entry.lang })
+          // The server's figure replaces the estimate the till made offline.
+          useCatalogStore().applyStock(receipt?.stock_after)
+          // ...and its lines, rates and taxes replace the till's in the sale
+          // kept for a return without a connection.
+          await patchShiftSale(key, fromReceipt(receipt)).catch(() => {})
+          await removeQueued(entry.local_id)
+          // Log it as uploaded, with the real server invoice number so the
+          // cashier can see exactly where the offline sale landed.
+          await patchSaleLog(key, {
+            status: 'synced',
+            receipt: (receipt && receipt.name) || null,
+            synced_at: new Date().toISOString(),
+            error: null,
+          }).catch(() => {})
+          synced++
+        } catch (e) {
+          if (e instanceof OfflineError) break // still down; keep the rest
+          // Server REJECTED this sale (e.g. item deleted, price changed). Keep
+          // it queued and record WHY, but move on so one bad sale can't block
+          // every good sale behind it. It retries on the next flush.
+          await patchSaleLog(key, {
+            status: 'failed',
+            error: e.message,
+            error_at: new Date().toISOString(),
+          }).catch(() => {})
+          this.notify(`A queued sale was rejected: ${e.message}`, true)
+          failed++
+          continue
         }
-        this.queuedCount = await queueCount()
-        await this.refreshRefused()
-        pruneSaleLog().catch(() => {})
-        if (synced) this.notify(`Synced ${synced} offline sale${synced > 1 ? 's' : ''}`)
-        if (failed)
-          this.notify(
-            `${failed} offline sale${failed > 1 ? 's' : ''} still need attention. See the offline sales log`,
-            true
-          )
-      } finally {
-        this.syncing = false
       }
+      // Prune pending customers no remaining queued sale references (kept ones
+      // re-resolve safely on the next flush, resolution is idempotent).
+      try {
+        const remaining = await listQueue()
+        const stillRef = new Set(remaining.map((e) => e.payload?.customer).filter(Boolean))
+        for (const p of await listPendingCustomers()) {
+          if (!stillRef.has(p.temp_id)) await removePendingCustomer(p.temp_id).catch(() => {})
+        }
+      } catch {
+        /* best-effort cleanup */
+      }
+      this.queuedCount = await queueCount()
+      await this.refreshRefused()
+      pruneSaleLog().catch(() => {})
+      if (synced) this.notify(`Synced ${synced} offline sale${synced > 1 ? 's' : ''}`)
+      if (failed)
+        this.notify(
+          `${failed} offline sale${failed > 1 ? 's' : ''} still need attention. See the offline sales log`,
+          true
+        )
+    },
+
+    // This device's sales of the open shift, newest first, for a return
+    // without a connection. A sale the service worker sent in the background
+    // carries its receipt as it came back (sw.js cannot run refund.js):
+    // folded in here, once.
+    async loadShiftSales() {
+      const session = this.registerSession?.name
+      const out = []
+      for (const record of await listShiftSales().catch(() => [])) {
+        if (record.session !== session) continue
+        if (record.posted_receipt) {
+          const merged = { ...record, ...fromReceipt(record.posted_receipt) }
+          delete merged.posted_receipt
+          await putShiftSale(merged).catch(() => {})
+          out.push(merged)
+        } else {
+          out.push(record)
+        }
+      }
+      return out
     },
 
     async refreshPromotions() {

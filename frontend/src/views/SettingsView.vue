@@ -1416,6 +1416,27 @@
             </span>
           </label>
           <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.offline_returns" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Returns without a connection') }}</span>
+              <span class="setting-desc">{{ t('On (the default): without a connection, a sale this device made in the same shift can be taken back, refunded in cash or the way the customer paid, never to store credit, a gift card or cashback. The till works out the refund as ERPNext will, and the server checks it again when the connection is back.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.background_upload" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Send queued sales in the background') }}</span>
+              <span class="setting-desc">{{ t('On (the default): sales and returns made without a connection are sent as soon as the network is back, even with the till closed, where the browser allows it (Chrome, Edge, Android). The till still sends them itself whenever it is open.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.warn_unprotected_storage" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Warn when offline sales are not protected') }}</span>
+              <span class="setting-desc">{{ t('On (the default): the till shows a warning when the browser has not agreed to keep its offline data for good, which it may otherwise clear when space runs low, and asks the browser again on a tap.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.show_out_of_stock" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Show out-of-stock items in the grid') }}</span>
@@ -2349,6 +2370,9 @@ const generalForm = ref({
   restrict_returns_to_window: 0,
   return_window_days: 14,
   offline_stock_only: 0,
+  offline_returns: 1,
+  background_upload: 1,
+  warn_unprotected_storage: 1,
   shift_scope: 'Per outlet',
   one_shift_per_user: 0,
   carry_shift_past_midnight: 1,
@@ -2936,6 +2960,10 @@ async function load() {
     restrict_returns_to_window: info.restrict_returns_to_window || 0,
     return_window_days: info.return_window_days ?? 14,
     offline_stock_only: info.offline_stock_only || 0,
+    // A server from before 0.56.0 does not send these: on, their default.
+    offline_returns: info.offline_returns === 0 ? 0 : 1,
+    background_upload: info.background_upload === 0 ? 0 : 1,
+    warn_unprotected_storage: info.warn_unprotected_storage === 0 ? 0 : 1,
     shift_scope: info.shift_scope || 'Per outlet',
     one_shift_per_user: info.one_shift_per_user ? 1 : 0,
     // A server from before 0.55.0 does not send it: on, its default.

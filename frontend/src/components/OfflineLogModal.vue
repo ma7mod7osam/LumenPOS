@@ -11,6 +11,7 @@
       <div class="modal-body">
         <p class="muted small intro">
           {{ t('Every sale made while offline, and what happened to it on reconnect. A sale stays here as Pending until it has uploaded, nothing is removed until the server confirms it.') }}
+          {{ t('Refunds made without a connection are listed too.') }}
         </p>
 
         <div class="ol-summary">
@@ -33,6 +34,7 @@
             <tr v-for="r in rows" :key="r.key">
               <td class="muted small nowrap">{{ fmtTime(r.queued_at) }}</td>
               <td>
+                <span v-if="r.kind === 'return'" class="ol-kind">{{ t('Refund') }}</span>
                 {{ r.customer_name }}
                 <span class="muted small"> · {{ t('{n} items', { n: r.item_count }) }}</span>
               </td>
@@ -44,6 +46,11 @@
                   <template v-else>◔ {{ t('Pending') }}</template>
                 </span>
                 <div v-if="r.status === 'failed' && r.error" class="ol-error">{{ r.error }}</div>
+                <!-- ERPNext's figure differed from what the till paid out: the
+                     close shows the difference, this says why. -->
+                <div v-if="r.status === 'synced' && r.gap" class="ol-gap">
+                  {{ t('ERPNext posted {amount}', { amount: money(Math.abs(r.total) + r.gap, r.currency) }) }}
+                </div>
               </td>
             </tr>
           </tbody>
@@ -157,4 +164,17 @@ onMounted(refresh)
 .ol-badge.synced { background: rgba(34, 197, 94, 0.16); color: #1a8f4c; }
 .ol-badge.failed { background: rgba(226, 48, 48, 0.14); color: #c23434; }
 .ol-error { margin-top: 3px; color: #c23434; font-size: 11.5px; max-width: 220px; }
+.ol-gap { margin-top: 3px; color: #9a6a0a; font-size: 11.5px; }
+html[data-theme='dark'] .ol-gap { color: #ffce85; }
+.ol-kind {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-inline-end: 4px;
+  color: #b5231f;
+  background: rgba(226, 48, 48, 0.14);
+}
+html[data-theme='dark'] .ol-kind { color: #ff9b9b; background: rgba(226, 48, 48, 0.26); }
 </style>

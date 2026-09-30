@@ -27,6 +27,17 @@ def _carry_past_midnight():
     return carry_past_midnight()
 
 
+def offline_switch(field):
+    """One of install.OFFLINE_SWITCHES (returns without a connection, sending
+    queued sales in the background, the unprotected-storage warning): on
+    unless a shop switched it off. A site updated without its migrate has no
+    such field yet: on, as it ships."""
+    try:
+        return bool(cint(frappe.db.get_single_value("LumenPOS Settings", field)))
+    except Exception:
+        return True
+
+
 def _require(doctype, ptype="write"):
     """Enforce a standard ERPNext DocType permission at the API boundary, so
     every back-office action is governed by the Role Permissions Manager."""
@@ -88,6 +99,9 @@ def get_settings():
         "default_price_list": _default_selling_price_list(),
         "protected_price_lists": sorted(_protected_price_lists()),
         "offline_stock_only": doc.get("offline_stock_only") or 0,
+        "offline_returns": 1 if offline_switch("offline_returns") else 0,
+        "background_upload": 1 if offline_switch("background_upload") else 0,
+        "warn_unprotected_storage": 1 if offline_switch("warn_unprotected_storage") else 0,
         "shift_scope": doc.get("shift_scope") or "Per outlet",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
         "carry_shift_past_midnight": 1 if _carry_past_midnight() else 0,
@@ -302,6 +316,10 @@ def save_settings(payload):
     # Likewise before 0.55.0.
     if "carry_shift_past_midnight" in payload:
         doc.carry_shift_past_midnight = 1 if payload.get("carry_shift_past_midnight") else 0
+    # And before 0.56.0.
+    for field in ("offline_returns", "background_upload", "warn_unprotected_storage"):
+        if field in payload:
+            doc.set(field, 1 if payload.get(field) else 0)
     doc.variance_alert_enabled = 1 if payload.get("variance_alert_enabled") else 0
     doc.variance_alert_threshold = flt(payload.get("variance_alert_threshold"))
     doc.variance_alert_role = payload.get("variance_alert_role") or None

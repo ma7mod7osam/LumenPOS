@@ -63,8 +63,9 @@ export async function call(method, args = {}, options = {}) {
       // _lang is Frappe's own request language: the server's messages (and
       // ERPNext's) come back in the language on the screen, whatever the
       // user's language in the desk. No LumenPOS method takes **kwargs, so
-      // it never reaches one as an argument.
-      body: JSON.stringify({ ...args, _lang: locale.value }),
+      // it never reaches one as an argument. A queued sale is sent in the
+      // language it was made in (options.lang).
+      body: JSON.stringify({ ...args, _lang: options.lang || locale.value }),
       signal: controller.signal,
     })
   } catch {

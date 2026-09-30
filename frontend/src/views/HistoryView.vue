@@ -110,9 +110,48 @@
         </div>
       </div>
 
-      <div v-if="session.offline" class="muted empty">{{ t('Sales history needs a connection.') }}</div>
+      <!-- Without a connection: this device's own sales of the shift, which
+           it can take back (refund.js). Everything else needs the server. -->
+      <template v-if="session.offline">
+        <div v-if="!session.settings.offline_returns" class="muted empty">{{ t('Sales history needs a connection.') }}</div>
+        <template v-else>
+          <div class="offline-head">
+            <div class="offline-title"><Icon name="upload" /> {{ t("This device's sales in this shift") }}</div>
+            <div class="muted small">
+              {{ t('Without a connection, a sale made here in this shift can be taken back. The return is sent when the connection is back. The full history needs a connection.') }}
+            </div>
+          </div>
+          <div v-if="!localSales.length" class="muted empty">{{ t('No sales on this device in this shift yet.') }}</div>
+          <button
+            v-for="sale in localSales"
+            :key="sale.key"
+            class="sale-row local-row"
+            :class="{ blocked: blockerOf(sale) }"
+            @click="refundLocalSale(sale)"
+          >
+            <div class="sale-info">
+              <div class="sale-customer">
+                {{ sale.customer_name }}
+                <span v-if="sale.queued" class="tag amber">{{ t('NOT SENT YET') }}</span>
+                <span v-if="returnedCount(sale)" class="tag red">{{ t('{n} RETURNED', { n: returnedCount(sale) }) }}</span>
+              </div>
+              <div class="muted small">
+                {{ sale.name || t('Waiting to be sent') }} · {{ shortTime(sale.at) }} · {{ t('{n} items', { n: itemCount(sale) }) }}
+              </div>
+              <div v-if="blockerOf(sale)" class="muted small why">{{ t(blockerOf(sale)) }}</div>
+            </div>
+            <div class="sale-right">
+              <div class="sale-amount">{{ money(sale.total, sale.currency) }}</div>
+              <span v-if="!blockerOf(sale)" class="refund-chip">{{ t('Refund') }}</span>
+            </div>
+          </button>
+        </template>
+      </template>
       <div v-else-if="loading" class="muted empty">{{ t('Loading…') }}</div>
       <div v-else-if="!sales.length" class="muted empty">{{ t('No sales match') }}</div>
+      <!-- The history loaded before the connection went stays out of sight:
+           offline, only this device's own sales can be acted on. -->
+      <template v-if="!session.offline">
       <button
         v-for="sale in sales"
         :key="sale.name"
@@ -140,6 +179,7 @@
           <div v-if="sale.payment_modes" class="muted small pay-line"><Icon name="card" /> {{ sale.payment_modes }}</div>
         </div>
       </button>
+      </template>
     </div>
 
     <ReceiptModal
@@ -160,18 +200,25 @@
       @done="onRefundDone"
       @exchange="onExchangePicked"
     />
+    <RefundModal
+      v-if="refundLocal"
+      :local="refundLocal"
+      @close="refundLocal = null"
+      @done="onLocalRefundDone"
+    />
   </div>
 </template>
 
 <script setup>
 import Icon from '../components/Icon.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
 import { useCartStore } from '../stores/cart'
 import { money, shortTime } from '../format'
 import { t } from '../i18n'
+import { offlineBlocker } from '../refund'
 import ReceiptModal from '../components/ReceiptModal.vue'
 import RefundModal from '../components/RefundModal.vue'
 
@@ -332,6 +379,53 @@ async function onRefundDone(returnReceipt) {
   receipt.value = returnReceipt
   await load()
 }
+
+// --- without a connection: this device's sales of the shift -----------------
+const localSales = ref([])
+const refundLocal = ref(null)
+
+async function loadLocal() {
+  localSales.value = session.offline && session.settings?.offline_returns ? await session.loadShiftSales() : []
+}
+
+function blockerOf(sale) {
+  return offlineBlocker(sale, {
+    session: session.registerSession?.name,
+    settings: session.settings,
+    permissions: session.permissions,
+  })
+}
+
+function itemCount(sale) {
+  return (sale.lines || []).reduce((sum, line) => sum + (Number(line.qty) || 0), 0)
+}
+
+function returnedCount(sale) {
+  return Object.values(sale.returned || {}).reduce((sum, qty) => sum + (Number(qty) || 0), 0)
+}
+
+function refundLocalSale(sale) {
+  const why = blockerOf(sale)
+  if (why) {
+    session.notify(t(why), true)
+    return
+  }
+  refundLocal.value = sale
+}
+
+async function onLocalRefundDone(returnReceipt) {
+  refundLocal.value = null
+  receipt.value = returnReceipt
+  await loadLocal()
+}
+
+onMounted(loadLocal)
+// The list follows the connection: offline it shows this device's sales,
+// back online the full history (load) takes over.
+watch(
+  () => session.offline,
+  (off) => (off ? loadLocal() : load())
+)
 </script>
 
 <style scoped>
@@ -420,4 +514,19 @@ html[data-theme='dark'] .tag.purple { color: #cbb8ff; background: rgba(123, 47, 
 .pay-line { margin-top: 1px; display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; max-width: 220px; }
 .small { font-size: 12px; }
 .empty { padding: 40px; text-align: center; }
+.offline-head { padding: 14px 18px 10px; border-bottom: 1px solid var(--border); }
+.offline-title { display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 4px; }
+.local-row.blocked { opacity: 0.8; }
+.local-row .why { margin-top: 2px; color: #9a6a0a; }
+html[data-theme='dark'] .local-row .why { color: #ffce85; }
+.refund-chip {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+}
 </style>

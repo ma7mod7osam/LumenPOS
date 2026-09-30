@@ -5,11 +5,18 @@
   <div class="modal-backdrop" @click.self="$emit('close')">
     <div class="modal" style="width: 440px">
       <div class="modal-header">
-        {{ receipt.is_return ? t('Refund complete') : receipt.offline ? t('Sale queued (offline)') : t('Sale complete') }}
+        {{
+          receipt.is_return
+            ? receipt.offline ? t('Refund queued (offline)') : t('Refund complete')
+            : receipt.offline ? t('Sale queued (offline)') : t('Sale complete')
+        }}
         <button class="btn-ghost" @click="$emit('close')"><Icon name="close" /></button>
       </div>
       <div class="modal-body">
-        <div v-if="receipt.offline" class="offline-banner">
+        <div v-if="receipt.offline && receipt.is_return" class="offline-banner">
+          {{ t('Refund {amount} to the customer. It posts to ERPNext when the connection is back.', { amount: money(Math.abs(receipt.grand_total), receipt.currency) }) }}
+        </div>
+        <div v-else-if="receipt.offline" class="offline-banner">
           {{ t('Saved offline, it will post to ERPNext automatically when the connection returns.') }}
         </div>
         <div v-if="receipt.change_amount > 0" class="change-banner">

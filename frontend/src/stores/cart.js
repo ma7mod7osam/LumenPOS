@@ -3,9 +3,20 @@
 // "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 import { defineStore } from 'pinia'
 import { call, OfflineError } from '../api'
-import { queueSale, queueCount, getCatalogItems, newId, logSale } from '../offline'
-import { evaluatePromotions, suggestOffers } from '../promotions'
+import {
+  queueEntry,
+  queueCount,
+  getCatalogItems,
+  newId,
+  logSale,
+  putShiftSale,
+  requestBackgroundUpload,
+  markReturned,
+} from '../offline'
+import { evaluatePromotions, suggestOffers, matchingIndexes } from '../promotions'
+import { frappeRound, fromReceipt, returnGroups } from '../refund'
 import { money } from '../format'
+import { locale } from '../i18n'
 import { useCatalogStore } from './catalog'
 import { useSessionStore } from './session'
 
@@ -33,6 +44,11 @@ export const useCartStore = defineStore('cart', {
     // at payment. {invoice, items, serials, reason, request, value, customer}
     exchange: null,
     submitting: false,
+    // {signature, key}: the idempotency key of the sale being paid for. A sale
+    // has it from its FIRST attempt, and the same basket tried again keeps it,
+    // so a sale whose answer was lost on the way back (and that the till then
+    // queued, or the cashier retried) can never post twice.
+    _saleKey: null,
     _quoteCache: null, // {signature, at, promise} see quote()
     _quoteTimer: null,
   }),
@@ -249,6 +265,45 @@ export const useCartStore = defineStore('cart', {
       return round2(
         this.netTotal + this.taxBreakdown.exclusiveTotal + this.serviceCharge
       )
+    },
+
+    // Per-unit discount of each line, worked out as the server does
+    // (sales._line_discounts): offers and bundles, a share of a basket
+    // discount, then the line's manual % and the whole-cart %. A sale queued
+    // offline keeps each line's rate from it, so it can be taken back without
+    // a connection at the rate ERPNext will post (refund.js).
+    unitDiscounts(state) {
+      const whole = state.lines.map(
+        (l, i) => (this.evaluation.line_discounts[i] || 0) + (this.bundleBreakdown.discounts[i] || 0)
+      )
+      const basket = this.evaluation.basket_discount || 0
+      if (basket > 0) {
+        const eligible = state.lines.map((l, i) => i).filter((i) => !state.lines[i].bundle_key)
+        const net = {}
+        for (const i of eligible) net[i] = state.lines[i].price * state.lines[i].qty - whole[i]
+        const totalNet = eligible.reduce((sum, i) => sum + (net[i] > 0 ? net[i] : 0), 0)
+        if (totalNet > 0) {
+          let spread = 0
+          for (const i of eligible) {
+            if (net[i] <= 0) continue
+            const share = frappeRound((basket * net[i]) / totalNet, 2)
+            whole[i] += share
+            spread += share
+          }
+          const rest = frappeRound(basket - spread, 2)
+          if (rest && eligible.length) {
+            whole[eligible.reduce((a, b) => (net[a] >= net[b] ? a : b))] += rest
+          }
+        }
+      }
+      const orderPct = state.orderDiscountPercent || 0
+      return state.lines.map((l, i) => {
+        const promoPerUnit = whole[i] / (l.qty || 1)
+        const bundle = Boolean(l.bundle_key)
+        let unit = promoPerUnit + ((l.price - promoPerUnit) * (bundle ? 0 : l.manual_discount_percent || 0)) / 100
+        if (orderPct && !bundle) unit += ((l.price - unit) * orderPct) / 100
+        return Math.max(0, unit)
+      })
     },
 
     itemCount: (state) => state.lines.reduce((sum, l) => sum + l.qty, 0),
@@ -618,7 +673,37 @@ export const useCartStore = defineStore('cart', {
       this.discountRequest = null
       this.activePriceList = null
       this.note = ''
+      this._saleKey = null
       // salesPerson intentionally kept, it's the staff member on shift
+    },
+
+    // The key for paying this basket: kept while the basket stays the same.
+    _keyForSale() {
+      const signature = JSON.stringify(this._basePayload())
+      if (!this._saleKey || this._saleKey.signature !== signature) {
+        this._saleKey = { signature, key: newId() }
+      }
+      return this._saleKey.key
+    },
+
+    // Keep a posted sale on this device for the rest of the shift, so it can
+    // be taken back without a connection. Best effort, never holds a sale up.
+    async _keepShiftSale(key, receipt) {
+      const session = useSessionStore()
+      if (!key || !session.registerSession?.name || !receipt?.name) return
+      try {
+        await putShiftSale({
+          key,
+          session: session.registerSession.name,
+          pos_profile: session.posProfile,
+          user: session.user,
+          at: new Date().toISOString(),
+          returned: {},
+          ...fromReceipt(receipt),
+        })
+      } catch {
+        /* a convenience for later */
+      }
     },
 
     async addCoupon(code) {
@@ -731,6 +816,7 @@ export const useCartStore = defineStore('cart', {
       try {
         const result = await call('lumenpos.api.exchanges.submit_exchange', { payload })
         useCatalogStore().applyStock(result?.sale?.stock_after)
+        markReturned(this.exchange.invoice, this.exchange.items)
         this.exchange = null
         this.clear()
         return result
@@ -786,11 +872,13 @@ export const useCartStore = defineStore('cart', {
         redeem_loyalty_points: redeemLoyaltyPoints || 0,
         discount_passcode: this.discountPasscode,
         discount_request: this.discountRequest,
+        idempotency_key: this._keyForSale(),
       }
       this.submitting = true
       try {
         const receipt = await call('lumenpos.api.sales.submit_sale', { payload })
         useCatalogStore().applyStock(receipt?.stock_after)
+        this._keepShiftSale(payload.idempotency_key, receipt)
         this.clear()
         return receipt
       } catch (e) {
@@ -840,8 +928,10 @@ export const useCartStore = defineStore('cart', {
       session.markOffline()
       // Idempotency key so a retried sync (lost ACK) can't post a duplicate.
       payload.idempotency_key = payload.idempotency_key || newId()
-      await queueSale(payload)
+      await queueEntry('sale', payload, locale.value)
       session.queuedCount = await queueCount()
+      this._keepQueuedSale(payload, payments, sale)
+      if (session.settings?.background_upload) requestBackgroundUpload()
       // No server answer offline, so take the sold quantity off the tiles here.
       // The real figure lands when the queue syncs.
       useCatalogStore().applyStockDelta(payload.items)
@@ -913,6 +1003,64 @@ export const useCartStore = defineStore('cart', {
       }
       this.clear()
       return receipt
+    },
+
+    // A sale queued offline, kept for a return without a connection before it
+    // is even sent: each line at the rate ERPNext will post it at, the
+    // outlet's taxes and rounding, and which lines must come back together.
+    _keepQueuedSale(payload, payments, sale) {
+      const session = useSessionStore()
+      if (!session.registerSession?.name) return
+      const factor = sale.foreign ? sale.factor : 1
+      const units = this.unitDiscounts
+      const { idx, cart } = this._promoView
+      const groups = returnGroups(this.lines, this.evaluation.applied, session.promotions, cart, idx, matchingIndexes)
+      const code = sale.foreign ? sale.currency : session.currency
+      const lines = this.lines.map((l, i) => {
+        const price = Number(l.price) || 0
+        const listRate = frappeRound(price * factor, 2)
+        const pct = price > 0 && units[i] > 0 ? frappeRound((Math.min(units[i], price) / price) * 100, 6) : 0
+        return {
+          item_code: l.item_code,
+          item_name: l.item_name,
+          qty: l.qty,
+          rate: frappeRound(listRate * (1 - pct / 100), 2),
+          item_tax_rate: {},
+          serial: false,
+          group: groups[i],
+        }
+      })
+      putShiftSale({
+        key: payload.idempotency_key,
+        session: session.registerSession.name,
+        pos_profile: session.posProfile,
+        user: session.user,
+        at: new Date().toISOString(),
+        returned: {},
+        name: null,
+        queued: true,
+        currency: code,
+        company_currency: session.localCurrency,
+        conversion_rate: sale.foreign ? sale.rate : 1,
+        customer: this.customer?.name || null,
+        customer_name: this.customer?.customer_name || session.defaultCustomerName || 'Walk-in',
+        lines,
+        taxes: (session.taxes || []).map((t) => ({
+          charge_type: t.charge_type,
+          rate: t.rate || 0,
+          included: t.included || 0,
+          account_head: t.account_head || null,
+          row_id: t.row_id || null,
+        })),
+        rounding: session.settings?.rounding?.[code] || null,
+        total: this.inSale(this.total),
+        paid_modes: payments.filter((p) => Number(p.amount) > 0).map((p) => p.mode_of_payment),
+        refund_modes: null,
+        blocked: null,
+        facts: false,
+        loyalty: false,
+        service_charge: this.serviceCharge > 0,
+      }).catch(() => {})
     },
 
     async park(note) {

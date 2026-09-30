@@ -110,6 +110,7 @@
           </span>
         </div>
       </header>
+      <StorageWarning />
       <main class="content">
         <router-view :key="session.posProfile" />
         <!-- The open-register prompt only blocks the Sell screen; the nav
@@ -155,6 +156,7 @@ import OpenRegisterOverlay from './components/OpenRegisterOverlay.vue'
 import LockOverlay from './components/LockOverlay.vue'
 import XReportModal from './components/XReportModal.vue'
 import OfflineLogModal from './components/OfflineLogModal.vue'
+import StorageWarning from './components/StorageWarning.vue'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
