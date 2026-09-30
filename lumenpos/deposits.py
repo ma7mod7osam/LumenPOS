@@ -165,6 +165,16 @@ def zero_tax_template(company, taxes_and_charges=None):
         abbr = frappe.get_cached_value("Company", company, "abbr")
         name = f"LumenPOS Zero Tax - {abbr}"
         if frappe.db.exists("Item Tax Template", name):
+            # A tax account the outlet's template gained later would be charged
+            # in full: an account missing from an Item Tax Template keeps the
+            # row's own rate. Add it at 0.
+            doc = frappe.get_doc("Item Tax Template", name)
+            have = {row.tax_type for row in doc.taxes}
+            missing = [account for account in accounts if account not in have]
+            if missing:
+                for account in missing:
+                    doc.append("taxes", {"tax_type": account, "tax_rate": 0})
+                doc.save(ignore_permissions=True)
             return name
         doc = frappe.get_doc(
             {

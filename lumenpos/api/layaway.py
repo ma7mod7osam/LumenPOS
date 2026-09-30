@@ -333,7 +333,6 @@ def quote_hold(pos_profile, customer=None, items=None):
     }
 
 
-@frappe.whitelist()
 def _assert_hold_prices(profile, customer, items):
     """A hold keeps the prices the till sends, so they are checked like a
     sale's: below the outlet's price is a discount (Edit price / discount), a
@@ -363,6 +362,7 @@ def _assert_hold_prices(profile, customer, items):
             )
 
 
+@frappe.whitelist()
 def create_layaway(payload):
     """Start a hold: reserve the goods, take the first instalment.
 

@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, now_datetime, nowdate
 
-from lumenpos import cashback, cashback_rules, coupons, currency, gift_cards, store_credit
+from lumenpos import cashback, cashback_rules, coupons, currency, deposits, gift_cards, store_credit
 from lumenpos.price_books import effective_prices, resolve_price_list, standard_prices
 from lumenpos.promotions.engine import evaluate
 from lumenpos.promotions.loader import get_active_promotions
@@ -856,6 +856,16 @@ def sell_gift_card(payload):
             "income_account": gift_card_account,
         },
     )
+    # Clearing the tax table below does not hold: ERPNext puts the outlet's
+    # tax template back on any sale whose table is empty (POS Invoice and Sales
+    # Invoice alike, v13 to v16), so at a VAT outlet a card of 100 came to 115.
+    # The line says it itself instead, as a hold's deposit does. Read from the
+    # database, as ERPNext reads it, not from the cached profile.
+    zero = deposits.zero_tax_template(
+        profile.company, frappe.db.get_value("POS Profile", profile.name, "taxes_and_charges")
+    )
+    if zero:
+        invoice.items[-1].item_tax_template = zero
     if payload.get("sales_person"):
         invoice.append(
             "sales_team",
