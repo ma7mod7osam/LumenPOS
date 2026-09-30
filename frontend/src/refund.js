@@ -224,8 +224,8 @@ export function estimateRefund(record, picks) {
   })
   let grand = rows.length ? rows[rows.length - 1].total : net
   // adjust_grand_total_for_inclusive_tax: the total of tax-inclusive prices
-  // wins over the sum of the rounded parts, within half a unit of the last
-  // decimal place times ten.
+  // wins over the sum of the rounded parts when the two are at most 0.05 apart
+  // (at two decimals: 5 / 10 ** precision).
   if (inclusive && rows.length) {
     const other = rows.reduce((sum, row, i) => sum + (Number(taxes[i].included) ? 0 : row.tax), 0)
     const diff = f(total + other - rows[rows.length - 1].total)
