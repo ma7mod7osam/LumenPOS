@@ -2081,6 +2081,9 @@
         <p class="muted hint-row">
           {{ t('An action with no rule is open to everyone. Returning past the window is the exception: nobody does it directly until you name someone, everyone else sends an approval request.') }}
         </p>
+        <p class="muted hint-row">
+          {{ t('Edit price / discount also covers typing a new price on a sale line, at an outlet whose POS Profile has Allow User to Edit Rate ticked.') }}
+        </p>
       </div>
 
       <!-- Sticky footer -->

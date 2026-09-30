@@ -130,6 +130,69 @@ def shift_rate(session_name, currency, company, pin=False):
     return rate
 
 
+def pin_shift_rates(session_name, profile):
+    """Fix, as a shift opens, the rate of every currency the till sells in (and
+    of the outlet's price list currency when it is not the company's), with
+    the change rule that goes with it. Every till on the shift then knows the
+    rate from the start, so a sale made offline is priced exactly as the
+    server will post it (0.55.0: until then a rate was fixed at the shift's
+    first sale in it, which a till that is offline cannot know). A currency
+    with no rate yet is fixed at its first sale, as before. Never stops a
+    shift from opening."""
+    if not enabled():
+        return
+    ccy = company_currency(profile.company)
+    outlet = list_currency(profile.selling_price_list) or profile.get("currency") or ccy
+    wanted = [code for code in currency_rows() if code != ccy]
+    if outlet != ccy and outlet not in wanted:
+        wanted.append(outlet)
+    muted = frappe.flags.mute_messages
+    frappe.flags.mute_messages = True
+    try:
+        for code in wanted:
+            try:
+                if current_rate(code, ccy):
+                    shift_rate(session_name, code, profile.company, pin=True)
+            except Exception:
+                frappe.log_error(title="LumenPOS: fixing a shift's rate at open", message=frappe.get_traceback())
+    finally:
+        frappe.flags.mute_messages = muted
+
+
+def assert_till_rate(ctx, till_rate):
+    """A sale the till made on its own (offline) was priced at the rate it
+    knew. It posts only at the rate the shift sells at: the same one, since
+    the shift fixes its rates as it opens, unless the till was out of date.
+    Then it is refused with both rates, not posted at a price nobody paid."""
+    if not ctx.foreign or not flt(till_rate):
+        return
+    if abs(flt(till_rate, 9) - flt(ctx.rate, 9)) <= 1e-9 * max(1.0, flt(ctx.rate)):
+        return
+    frappe.throw(
+        _("This sale was rung up at {0}, but the shift sells {1} at {2}. Ring it up again.").format(
+            rate_text(ctx.currency, till_rate, ctx.company_currency),
+            ctx.currency,
+            rate_text(ctx.currency, ctx.rate, ctx.company_currency),
+        ),
+        title=_("Exchange rate"),
+    )
+
+
+def rate_text(currency, rate, company_currency):
+    """"1 USD = 35 ZWG" for a currency worth less than the company's, "1 EUR =
+    4 USD" otherwise: the way a cashier reads a rate."""
+    rate = flt(rate)
+    if not rate:
+        return "-"
+    if rate < 1:
+        return "1 {0} = {1} {2}".format(company_currency, _trim(1 / rate), currency)
+    return "1 {0} = {1} {2}".format(currency, _trim(rate), company_currency)
+
+
+def _trim(value):
+    return ("%.6f" % flt(value)).rstrip("0").rstrip(".")
+
+
 def _change_setting(currency):
     row = currency_rows().get(currency)
     return bool(row and cint(row.get("change_in_currency")))
@@ -730,6 +793,40 @@ def client_config(profile, session_name=None):
                 "change_currency": change_currency,
             }
         )
+    return out
+
+
+@frappe.whitelist()
+def offline_prices(pos_profile):
+    """{currency: {item_code: price in that currency}} from the own price list
+    of each currency's walk-in customer ("Walk-in ZWG"), where it has one: what
+    a sale in that currency charges for the items the list prices. The till
+    keeps it for selling in that currency without a connection, so an offline
+    sale is priced as the server will post it."""
+    from lumenpos.api.sales import _require_sell
+    from lumenpos.price_books import get_price_map
+
+    _require_sell()
+    profile = frappe.get_cached_doc("POS Profile", pos_profile)
+    from lumenpos.api import permissions
+
+    permissions.assert_outlet(profile.name)
+    out = {}
+    if not enabled():
+        return out
+    for code, row in currency_rows().items():
+        own = own_price_list(row.walk_in_customer, code) if row.walk_in_customer else None
+        if not own:
+            continue
+        codes = sorted(set(frappe.get_all("Item Price", filters={"price_list": own, "selling": 1}, pluck="item_code")))
+        if not codes:
+            continue
+        uom_map = {
+            d.name: d.stock_uom
+            for d in frappe.get_all("Item", filters={"name": ["in", codes]}, fields=["name", "stock_uom"])
+        }
+        prices = get_price_map(codes, own, uom_map)
+        out[code] = {item: flt(rate) for item, rate in prices.items() if flt(rate) > 0}
     return out
 
 

@@ -1585,6 +1585,12 @@ const prefixedAr = {
   "Keep a shift open past midnight": "إبقاء الوردية مفتوحة بعد منتصف الليل",
   "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.": "لا يقبل ERPNext 16 المبيعات إلا على وردية فتحت في اليوم نفسه. مفعل (الافتراضي): عند أول بيع بعد منتصف الليل يغلق LumenPOS اليوم في ERPNext ويفتح اليوم التالي تلقائيا، وتستمر الوردية ويحسب درجها مرة واحدة عند إغلاقها. غير مفعل: يجب إغلاق الوردية التي فتحت في يوم سابق قبل أن تبيع مجددا.",
   "ERPNext day closed": "إغلاق يوم في ERPNext",
+  // Another currency offline, a price typed at the till (0.55.0).
+  "Price": "السعر",
+  "Price changed at the till": "تم تغيير السعر في نقطة البيع",
+  "There is no exchange rate for this currency yet, so a sale in it needs a connection": "لا يوجد سعر صرف لهذه العملة بعد، لذلك يحتاج البيع بها إلى اتصال",
+  "A customer billed in another currency needs a connection. Sell to that currency's walk-in instead": "العميل المفوتر بعملة أخرى يحتاج إلى اتصال. اختر العميل النقدي لتلك العملة بدلا منه",
+  "Edit price / discount also covers typing a new price on a sale line, at an outlet whose POS Profile has Allow User to Edit Rate ticked.": "يشمل \"تعديل السعر أو الخصم\" أيضا كتابة سعر جديد لسطر في البيعة، في الفرع الذي فعل في ملف نقطة البيع الخاص به خيار Allow User to Edit Rate.",
   // Nobody is held back by a shift that will not close (0.54.0).
   "Not open to you any more: ask a manager to close it.": "لم تعد متاحة لك: اطلب من مدير إغلاقها.",
   "If you cannot close it, a manager can close it for you from that outlet's Register page.": "إذا لم تستطع إغلاقها، يمكن لمدير إغلاقها عنك من صفحة صندوق ذلك الفرع.",

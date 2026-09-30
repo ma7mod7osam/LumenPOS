@@ -1394,4 +1394,8 @@ export default {
   "Keep a shift open past midnight": "Giữ ca mở qua nửa đêm",
   "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.": "ERPNext 16 chỉ nhận bán hàng trên ca mở trong cùng ngày. Bật (mặc định): ở lần bán đầu tiên sau nửa đêm, LumenPOS tự đóng ngày đó trong ERPNext và mở ngày tiếp theo, ca tiếp tục và được đếm một lần, khi đóng ca. Tắt: ca từ một ngày trước phải được đóng trước khi có thể bán tiếp.",
   "ERPNext day closed": "Đã đóng ngày ERPNext",
+  "Price changed at the till": "Giá đã đổi tại quầy",
+  "There is no exchange rate for this currency yet, so a sale in it needs a connection": "Chưa có tỷ giá cho loại tiền này, nên bán bằng loại tiền này cần có kết nối",
+  "A customer billed in another currency needs a connection. Sell to that currency's walk-in instead": "Khách hàng được lập hóa đơn bằng loại tiền khác cần có kết nối. Hãy bán cho khách lẻ của loại tiền đó",
+  "Edit price / discount also covers typing a new price on a sale line, at an outlet whose POS Profile has Allow User to Edit Rate ticked.": "\"Sửa giá / giảm giá\" cũng bao gồm việc nhập giá mới cho một dòng bán hàng, tại cửa hàng có Hồ sơ POS đã đánh dấu \"Cho phép người dùng chỉnh sửa tỷ giá\".",
 }

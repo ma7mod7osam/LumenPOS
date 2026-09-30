@@ -327,6 +327,14 @@ export const useCartStore = defineStore('cart', {
       return (amount) => money(this.inSale(amount), code)
     },
 
+    // The sale's customer is a currency's own walk-in ("Walk-in ZWG"): its
+    // prices are the ones the till keeps for selling in that currency offline.
+    currencyWalkIn(state) {
+      const session = useSessionStore()
+      const name = state.customer?.name
+      return Boolean(name) && session.saleCurrencies.some((c) => c.walk_in_customer === name)
+    },
+
     // Only a walk-in can be switched to another currency: a named customer
     // buys in their own Billing Currency (ERPNext, Customer).
     currencySwitchable(state) {
@@ -371,6 +379,9 @@ export const useCartStore = defineStore('cart', {
           serial_nos: serial ? [serial] : [],
           qty: 1,
           price: item.price || 0,
+          // The outlet's own price, for a sale switched back from another
+          // currency while offline (_offlineCurrencyPrices).
+          catalog_price: item.price || 0,
           standard_price: item.standard_price ?? item.price ?? 0,
           manual_discount_percent: 0,
         })
@@ -428,6 +439,7 @@ export const useCartStore = defineStore('cart', {
           serial_nos: [],
           qty: component.qty,
           price: detail.price || 0,
+          catalog_price: detail.price || 0,
           manual_discount_percent: 0,
           bundle_key: key,
           bundle_name: bundle.name,
@@ -468,7 +480,11 @@ export const useCartStore = defineStore('cart', {
     // with a price book, or a delivery-app channel). Server-authoritative.
     async reprice() {
       const session = useSessionStore()
-      if (session.offline || !this.lines.length) return
+      if (!this.lines.length) return
+      if (session.offline) {
+        this._offlineCurrencyPrices()
+        return
+      }
       try {
         // The customer too: one billed in another currency may have their
         // own price list in it (lumenpos.currency).
@@ -481,15 +497,68 @@ export const useCartStore = defineStore('cart', {
         })
         this.activePriceList = data.price_list
         for (const line of this.lines) {
-          if (data.prices[line.item_code] !== undefined) {
-            line.price = data.prices[line.item_code]
-          }
+          const listed = data.prices[line.item_code]
           const std = data.standard_prices?.[line.item_code]
+          // A typed price stays: the list's goes where clearing it returns to.
+          if (line.price_override != null) {
+            if (listed !== undefined) line.price_before_override = listed
+            line.standard_before_override = std != null ? std : line.price_before_override
+            continue
+          }
+          if (listed !== undefined) line.price = listed
           line.standard_price = std != null ? std : line.price
         }
       } catch {
         /* keep current prices; server re-resolves at submit anyway */
       }
+    },
+
+    // Offline, a sale in another currency takes the prices of that currency's
+    // walk-in's own price list, as the server will (lumenpos.currency
+    // .offline_prices), and a sale back in the outlet's currency the prices
+    // the lines came with.
+    _offlineCurrencyPrices() {
+      const session = useSessionStore()
+      const sale = this.saleCurrency
+      const own = sale.foreign && !sale.blocked && this.currencyWalkIn
+        ? (session.offlinePrices || {})[sale.currency] || {}
+        : null
+      for (const line of this.lines) {
+        if (line.price_override != null) continue
+        if (line.catalog_price == null) line.catalog_price = line.price
+        const price = own ? own[line.item_code] : null
+        line.price = price ? Math.round((price / sale.factor) * 1e6) / 1e6 : line.catalog_price
+      }
+    },
+
+    // A price typed for one line, where the outlet allows it and the person
+    // may (session.permissions.can_change_price; the server checks again):
+    // in the sale's currency, it replaces the line's price before offers.
+    // Empty goes back to the list's price.
+    setLinePrice(index, value) {
+      const line = this.lines[index]
+      if (!line || line.bundle_key) return
+      const text = String(value ?? '').trim().replace(',', '.')
+      if (text === '') {
+        this._clearPrice(line)
+        return
+      }
+      const typed = Math.max(0, Math.round((Number(text) || 0) * 100) / 100)
+      if (line.price_override == null) {
+        line.price_before_override = line.price
+        line.standard_before_override = line.standard_price
+      }
+      const factor = this.saleCurrency.blocked ? 1 : this.saleCurrency.factor || 1
+      line.price_override = typed
+      line.price = typed / factor
+      line.standard_price = line.price
+    },
+
+    _clearPrice(line) {
+      if (line.price_override == null) return
+      line.price = line.price_before_override ?? line.price
+      line.standard_price = line.standard_before_override ?? line.price
+      line.price_override = null
     },
 
     hasSerial(serial) {
@@ -515,7 +584,13 @@ export const useCartStore = defineStore('cart', {
     },
 
     async setCustomer(customer) {
+      // A typed price is in the sale's currency: a customer who buys in
+      // another one takes the lines back to their list prices first.
+      const before = this.saleCurrency.currency
       this.customer = customer
+      if (this.saleCurrency.currency !== before) {
+        for (const line of this.lines) this._clearPrice(line)
+      }
       this.wallet = null
       this.reprice() // customer group may activate a price book
       if (!customer) return
@@ -594,6 +669,8 @@ export const useCartStore = defineStore('cart', {
           item_code: l.item_code,
           qty: l.qty,
           manual_discount_percent: l.manual_discount_percent || 0,
+          // A price typed at the till, in the sale's currency (setLinePrice).
+          price_override: l.price_override ?? null,
           serial_nos: l.serial_nos || [],
           bundle_key: l.bundle_key || null,
         })),
@@ -728,10 +805,19 @@ export const useCartStore = defineStore('cart', {
 
     async _queueOffline(payload, payments) {
       const session = useSessionStore()
-      // The rate a sale in another currency posts at is fixed by the server
-      // for the shift, so the till never guesses it offline.
-      if (this.saleCurrency.foreign) {
-        throw new Error('A sale in another currency needs a connection, it cannot be queued offline')
+      // A sale in another currency is priced at the rate the shift fixed as
+      // it opened, which the till knows, and the server posts it only at that
+      // rate (lumenpos.currency.assert_till_rate). A named customer billed in
+      // another currency may have prices of their own the till does not keep.
+      const sale = this.saleCurrency
+      if (sale.foreign) {
+        if (sale.blocked || !sale.rate) {
+          throw new Error('There is no exchange rate for this currency yet, so a sale in it needs a connection')
+        }
+        if (!this.currencyWalkIn) {
+          throw new Error("A customer billed in another currency needs a connection. Sell to that currency's walk-in instead")
+        }
+        payload.currency_rate = sale.rate
       }
       if (payload.items.some((i) => (i.serial_nos || []).length)) {
         throw new Error('Serialized items need a connection, they cannot be queued offline')
@@ -761,8 +847,11 @@ export const useCartStore = defineStore('cart', {
       useCatalogStore().applyStockDelta(payload.items)
 
       // Client-side receipt stand-in; the real invoice posts when the queue
-      // syncs. Totals here exclude server-side taxes.
+      // syncs. Totals here exclude server-side taxes. A sale in another
+      // currency is shown in it, with its local value and the rate.
       const paid = payments.reduce((sum, p) => sum + p.amount, 0)
+      const inSale = sale.foreign ? this.inSale : (amount) => amount
+      const saleTotal = inSale(this.total)
 
       // Durable log entry so the cashier can later see this sale went out and
       // what became of it on reconnect (pending → synced with the real invoice
@@ -773,7 +862,8 @@ export const useCartStore = defineStore('cart', {
         customer_name:
           this.customer?.customer_name || session.defaultCustomerName || 'Walk-in',
         item_count: this.lines.length,
-        total: this.total,
+        total: saleTotal,
+        currency: sale.foreign ? sale.currency : session.currency,
         paid,
         status: 'pending',
       }).catch(() => {})
@@ -784,11 +874,12 @@ export const useCartStore = defineStore('cart', {
         customer_name: this.customer?.customer_name || session.defaultCustomerName || 'Walk-in',
         posting_date: new Date().toISOString().slice(0, 10),
         posting_time: new Date().toTimeString().slice(0, 8),
-        currency: session.currency,
+        currency: sale.foreign ? sale.currency : session.currency,
         items: this.lines.map((l, i) => {
           const promoDiscount = this.evaluation.line_discounts[i] || 0
-          const lineTotal =
+          const lineTotal = inSale(
             (l.price * l.qty - promoDiscount) * (1 - (l.manual_discount_percent || 0) / 100)
+          )
           return {
             item_code: l.item_code,
             item_name: l.item_name,
@@ -797,14 +888,28 @@ export const useCartStore = defineStore('cart', {
             amount: lineTotal,
           }
         }),
-        discount_amount: this.evaluation.basket_discount,
+        discount_amount: inSale(this.evaluation.basket_discount),
         taxes: [],
-        grand_total: this.total,
-        rounded_total: this.total,
+        grand_total: saleTotal,
+        rounded_total: saleTotal,
         paid_amount: paid,
-        change_amount: Math.max(0, paid - this.total),
-        payments,
-        applied_promotions: this.evaluation.applied,
+        change_amount: Math.max(0, paid - saleTotal),
+        payments: sale.foreign
+          ? payments.map((p) => ({ ...p, currency: p.tender_currency, tendered: p.tender_amount }))
+          : payments,
+        // Savings in the sale's currency, as on the posted receipt.
+        applied_promotions: sale.foreign
+          ? this.evaluation.applied.map((p) => ({ ...p, savings: inSale(p.savings) }))
+          : this.evaluation.applied,
+        ...(sale.foreign
+          ? {
+              company_currency: session.localCurrency,
+              conversion_rate: sale.rate,
+              base_grand_total: Math.round(saleTotal * sale.rate * 100) / 100,
+              change_currency: sale.row?.change_currency || session.localCurrency,
+              base_change_amount: Math.round(Math.max(0, paid - saleTotal) * sale.rate * 100) / 100,
+            }
+          : {}),
       }
       this.clear()
       return receipt

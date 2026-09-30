@@ -144,6 +144,18 @@ def can_edit_price(user=None):
     return allowed(PRICE_EDIT, user)
 
 
+def can_change_price(profile=None, user=None):
+    """Type a new price on a sale line: where the outlet lets its cashiers
+    change the rate, the way ERPNext's own POS does (POS Profile, Allow User
+    to Edit Rate), for whoever may edit prices (Edit price / discount)."""
+    if profile is not None:
+        if isinstance(profile, str):
+            profile = frappe.get_cached_doc("POS Profile", profile)
+        if not frappe.utils.cint(profile.get("allow_rate_change")):
+            return False
+    return can_edit_price(user)
+
+
 def can_return(user=None):
     """Create a return (credit note)."""
     return allowed(RETURN, user)

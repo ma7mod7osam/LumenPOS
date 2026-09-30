@@ -293,6 +293,7 @@ def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force
             }
         )
         sess.insert()
+        _pin_rates(sess.name, profile)
         _audit_register("open", sess.name, profile.name, opening_float)
         return get_open_session(pos_profile)
 
@@ -413,8 +414,21 @@ def _create_fresh_session(profile, opening_float, bypass_live_guard=False, float
     if bypass_live_guard:
         sess.flags.ignore_validate = True
     sess.insert()
+    _pin_rates(sess.name, profile)
     _audit_register("open", sess.name, profile.name, opening_float)
     return get_open_session(profile.name)
+
+
+def _pin_rates(session_name, profile):
+    """Fix the shift's exchange rates as it opens (currency.pin_shift_rates),
+    so a till that goes offline already knows them. Never stops a shift from
+    opening."""
+    try:
+        from lumenpos import currency
+
+        currency.pin_shift_rates(session_name, profile)
+    except Exception:
+        frappe.log_error(title="LumenPOS: fixing a shift's rates at open", message=frappe.get_traceback())
 
 
 def _role_emails(role, company=None):

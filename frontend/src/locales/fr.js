@@ -1394,4 +1394,8 @@ export default {
   "Keep a shift open past midnight": "Garder une session ouverte après minuit",
   "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.": "ERPNext 16 n'accepte les ventes que sur une session ouverte le jour même. Activé (par défaut) : à la première vente après minuit, LumenPOS clôture la journée dans ERPNext et ouvre la suivante de lui-même, et la session continue et n'est comptée qu'une fois, à sa propre clôture. Désactivé : une session d'un jour précédent doit être clôturée avant de pouvoir vendre à nouveau.",
   "ERPNext day closed": "Journée ERPNext clôturée",
+  "Price changed at the till": "Prix modifié en caisse",
+  "There is no exchange rate for this currency yet, so a sale in it needs a connection": "Il n'y a pas encore de taux de change pour cette devise, une vente dans cette devise nécessite donc une connexion",
+  "A customer billed in another currency needs a connection. Sell to that currency's walk-in instead": "Un client facturé dans une autre devise nécessite une connexion. Vendez plutôt au client de passage de cette devise",
+  "Edit price / discount also covers typing a new price on a sale line, at an outlet whose POS Profile has Allow User to Edit Rate ticked.": "\"Modifier le prix / la remise\" permet aussi de saisir un nouveau prix sur une ligne de vente, dans un magasin dont le Profil PDV a coché Allow User to Edit Rate.",
 }

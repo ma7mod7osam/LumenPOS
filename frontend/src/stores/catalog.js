@@ -9,6 +9,7 @@ import {
   catalogCount,
   saveCustomers,
   patchCatalogStock,
+  kvSet,
 } from '../offline'
 import { useSessionStore } from './session'
 
@@ -85,6 +86,17 @@ export const useCatalogStore = defineStore('catalog', {
         })
         await saveCatalog(items)
         this.cachedCount = items.length
+        // Selling in another currency without a connection: each currency
+        // walk-in's own prices (lumenpos.currency.offline_prices).
+        if (session.multiCurrency?.enabled) {
+          const prices = await call('lumenpos.currency.offline_prices', {
+            pos_profile: session.posProfile,
+          }).catch(() => null)
+          if (prices) {
+            session.offlinePrices = prices
+            await kvSet('currency_prices', prices).catch(() => {})
+          }
+        }
         this.fetch()
       } catch {
         /* cache refresh is best-effort */

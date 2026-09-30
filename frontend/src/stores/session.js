@@ -102,6 +102,9 @@ export const useSessionStore = defineStore('session', {
     // hold the close, and the first one's reason is shown.
     refusedCount: 0,
     refusedReason: '',
+    // {currency: {item_code: price}}: each currency walk-in's own prices, kept
+    // for selling in that currency without a connection (catalog store).
+    offlinePrices: {},
     syncing: false,
     _heartbeat: null,
     toast: null,
@@ -208,6 +211,7 @@ export const useSessionStore = defineStore('session', {
       }
       this.queuedCount = await queueCount().catch(() => 0)
       await this.refreshRefused()
+      this.offlinePrices = (await kvGet('currency_prices').catch(() => null)) || {}
       this.loaded = true
     },
 
@@ -430,9 +434,14 @@ export const useSessionStore = defineStore('session', {
       // Opening is always a fresh shift now, the server never returns a
       // resume/retry control object, so the result IS the live session.
       this.registerSession = result
-      // Sales still queued (one refused on the shift just closed, say) go up
-      // onto this one at once, instead of waiting for the next reconnect.
-      if (this.queuedCount && !this.offline) this.flushQueue().catch(() => {})
+      // The shift fixed its exchange rates as it opened: read them (and keep
+      // them for a reload without a connection), then send what is still
+      // queued (a sale refused on the shift just closed, say) onto this one
+      // at once, instead of waiting for the next reconnect.
+      this.bootstrap(this.posProfile)
+        .catch(() => {})
+        .then(() => (this.queuedCount && !this.offline ? this.flushQueue() : null))
+        .catch(() => {})
       return result
     },
 

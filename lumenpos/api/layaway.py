@@ -334,6 +334,35 @@ def quote_hold(pos_profile, customer=None, items=None):
 
 
 @frappe.whitelist()
+def _assert_hold_prices(profile, customer, items):
+    """A hold keeps the prices the till sends, so they are checked like a
+    sale's: below the outlet's price is a discount (Edit price / discount), a
+    price above it a changed price, which the outlet must allow too (POS
+    Profile, Allow User to Edit Rate). Until 0.55.0 any price went through."""
+    from lumenpos.price_books import effective_prices
+
+    codes = [row.get("item_code") for row in items if row.get("item_code")]
+    group = frappe.db.get_value("Customer", customer, "customer_group") if customer else None
+    uom_map = {
+        d.name: d.stock_uom for d in frappe.get_all("Item", filters={"name": ["in", codes or [""]]}, fields=["name", "stock_uom"])
+    }
+    listed = effective_prices(profile, codes, group, None, uom_map)
+    for row in items:
+        rate = flt(row.get("rate"))
+        price = flt(listed.get(row.get("item_code")))
+        if rate > price + 0.005 and not permissions.can_change_price(profile):
+            frappe.throw(
+                _("You're not allowed to change prices at this outlet ({0} costs {1}).").format(
+                    row.get("item_code"), flt(price, 2)
+                ),
+                frappe.PermissionError,
+            )
+        if rate < price - 0.005 and not permissions.can_edit_price():
+            frappe.throw(
+                _("You're not allowed to edit prices or apply discounts on a sale."), frappe.PermissionError
+            )
+
+
 def create_layaway(payload):
     """Start a hold: reserve the goods, take the first instalment.
 
@@ -352,6 +381,7 @@ def create_layaway(payload):
     items = payload.get("items") or []
     if not items:
         frappe.throw(_("Add the goods being held"))
+    _assert_hold_prices(profile, customer, items)
 
     days = frappe.db.get_single_value("LumenPOS Settings", "layaway_days") or 0
     doc = frappe.new_doc("POS Layaway")

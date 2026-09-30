@@ -36,7 +36,7 @@
                 {{ r.customer_name }}
                 <span class="muted small"> · {{ t('{n} items', { n: r.item_count }) }}</span>
               </td>
-              <td class="num">{{ money(r.total) }}</td>
+              <td class="num">{{ money(r.total, r.currency) }}</td>
               <td>
                 <span class="ol-badge" :class="r.status">
                   <template v-if="r.status === 'synced'">✓ {{ r.receipt || t('Uploaded') }}</template>

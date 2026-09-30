@@ -207,11 +207,17 @@
               : t('Complete Sale {amount}', { amount: money(total, sale.currency) })
         }}
       </button>
+      <!-- A sale in another currency is queued too, at the rate the shift
+           fixed as it opened, for that currency's walk-in (cart._queueOffline). -->
       <p v-if="session.offline" class="muted offline-note">
         {{
-          sale.foreign
-            ? t('A sale in another currency needs a connection, it cannot be queued offline')
-            : t('Offline, this sale will be queued and synced automatically.')
+          !sale.foreign
+            ? t('Offline, this sale will be queued and synced automatically.')
+            : cart.saleCurrency.blocked || !cart.saleCurrency.rate
+              ? t('There is no exchange rate for this currency yet, so a sale in it needs a connection')
+              : !cart.currencyWalkIn
+                ? t("A customer billed in another currency needs a connection. Sell to that currency's walk-in instead")
+                : t('Offline, this sale will be queued and synced automatically.')
         }}
       </p>
     </div>

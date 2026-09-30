@@ -1394,4 +1394,8 @@ export default {
   "Keep a shift open past midnight": "ให้กะเปิดต่อหลังเที่ยงคืน",
   "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.": "ERPNext 16 รับการขายเฉพาะในกะที่เปิดในวันเดียวกัน เปิด (ค่าเริ่มต้น): เมื่อมีการขายครั้งแรกหลังเที่ยงคืน LumenPOS จะปิดวันนั้นใน ERPNext และเปิดวันถัดไปเอง กะยังดำเนินต่อไปและนับเงินเพียงครั้งเดียวเมื่อปิดกะ ปิด: กะจากวันก่อนหน้าต้องปิดก่อนจึงจะขายได้อีก",
   "ERPNext day closed": "ปิดวันใน ERPNext",
+  "Price changed at the till": "เปลี่ยนราคาที่เครื่องคิดเงิน",
+  "There is no exchange rate for this currency yet, so a sale in it needs a connection": "สกุลเงินนี้ยังไม่มีอัตราแลกเปลี่ยน การขายด้วยสกุลเงินนี้จึงต้องเชื่อมต่ออินเทอร์เน็ต",
+  "A customer billed in another currency needs a connection. Sell to that currency's walk-in instead": "ลูกค้าที่ออกบิลเป็นสกุลเงินอื่นต้องเชื่อมต่ออินเทอร์เน็ต ให้ขายให้ลูกค้าทั่วไปของสกุลเงินนั้นแทน",
+  "Edit price / discount also covers typing a new price on a sale line, at an outlet whose POS Profile has Allow User to Edit Rate ticked.": "\"แก้ไขราคา / ส่วนลด\" ครอบคลุมการพิมพ์ราคาใหม่ในรายการขายด้วย ที่สาขาที่โปรไฟล์ POS ติ๊ก \"อนุญาตให้ผู้ใช้แก้ไขอัตรา\" ไว้",
 }

@@ -146,6 +146,9 @@ def _build_sale_invoice(
     for line in lines:
         if line["item_code"] in own:
             line["price"] = own[line["item_code"]]
+    # A price typed at the till replaces the line's price before offers, as a
+    # price list price would (the outlet's switch and the rule are checked).
+    price_overrides = _price_overrides(payload, lines, ctx, profile)
     bundle_discounts, bundle_applied = _apply_bundles(payload["items"], lines, profile.name)
 
     # Promotions never touch bundle lines, bundle pricing is final.
@@ -211,8 +214,16 @@ def _build_sale_invoice(
             "remarks": _build_remarks(payload.get("note"), discount_approver),
         }
     )
-    _set_custom(invoice, ("lumenpos_promotions",), json.dumps(promo_result["applied"]))
+    # The offers the receipt lists, each saving in the sale's currency: the
+    # engine works in the outlet's, so a sale in euros at 4 dollars to the euro
+    # printed "saved €13.20" for a saving of €3.30 (since 0.51.0).
+    applied = promo_result["applied"]
+    if ctx.foreign:
+        applied = [dict(p, savings=flt(flt(p.get("savings")) * ctx.factor, 2)) for p in applied]
+    _set_custom(invoice, ("lumenpos_promotions",), json.dumps(applied))
     _set_custom(invoice, ("lumenpos_note",), payload.get("note"))
+    # For the audit log once the sale posts (submit_sale).
+    invoice.flags.lumenpos_price_overrides = price_overrides
     if app:
         # Use the site's existing channel fields: pick_customer (the checkbox
         # that reveals the app fields), custom_app_type (Select) and
@@ -302,6 +313,49 @@ def _build_sale_invoice(
 
     invoice.run_method("calculate_taxes_and_totals")
     return invoice, customer
+
+
+def _price_overrides(payload, lines, ctx, profile):
+    """Prices typed at the till for single lines, in the sale's currency.
+    Allowed where the outlet lets its cashiers change the rate, the way
+    ERPNext's own POS does (POS Profile, Allow User to Edit Rate), to whoever
+    may edit prices (Who can do what, Edit price / discount), and checked
+    here, whatever the till showed. A typed price replaces the line's price
+    before offers, like a price list's (bundle lines keep bundle pricing).
+    Asked for by a shop in Zimbabwe (2026-09-30). Returns [(item_code, the
+    price it had, the price typed)] in the sale's currency, for the audit log."""
+    typed = [
+        (i, row)
+        for i, row in enumerate(payload.get("items") or [])
+        if row.get("price_override") not in (None, "") and not row.get("bundle_key")
+    ]
+    if not typed:
+        return []
+    from lumenpos.api import permissions
+
+    if not cint(profile.get("allow_rate_change")):
+        frappe.throw(
+            _("{0} does not let prices be changed at the till. Tick Allow User to Edit Rate on its POS Profile to allow it.").format(
+                profile.name
+            ),
+            frappe.PermissionError,
+        )
+    if not permissions.can_edit_price():
+        frappe.throw(
+            _("You're not allowed to edit prices or apply discounts on a sale."),
+            frappe.PermissionError,
+        )
+    factor = flt(ctx.factor) or 1.0
+    out = []
+    for i, row in typed:
+        value = flt(row.get("price_override"))
+        if value < 0:
+            frappe.throw(_("A price cannot be below zero."))
+        was = flt(flt(lines[i]["price"]) * factor, 2)
+        lines[i]["price"] = value / factor
+        lines[i]["standard_price"] = value / factor
+        out.append((lines[i]["item_code"], was, flt(value, 2)))
+    return out
 
 
 def _apply_service_charge(invoice, profile, lines, per_unit_discounts):
@@ -440,6 +494,9 @@ def submit_sale(payload):
     # A real sale fixes the shift's rate for its currency (lumenpos.currency).
     invoice, customer = _build_sale_invoice(profile, payload, session_name=session["name"], pin=True)
     ctx = invoice.flags.lumenpos_currency
+    # A sale the till made offline was priced at the rate it knew: it posts
+    # only if that is the rate the shift sells at (lumenpos.currency).
+    currency.assert_till_rate(ctx, payload.get("currency_rate"))
     _set_custom(invoice, ("lumenpos_session",), session["name"])
     if key:
         _set_custom(invoice, ("lumenpos_idempotency_key",), key)
@@ -559,6 +616,19 @@ def submit_sale(payload):
         )
     # Cashback EARNED on this sale (credited to the customer, spendable later).
     _cashback_earn(invoice, profile, payload, cashback_used)
+    # A price typed at the till, one audit entry per line.
+    if invoice.flags.get("lumenpos_price_overrides"):
+        from lumenpos.api import audit
+
+        for code, was, value in invoice.flags.lumenpos_price_overrides:
+            audit.log(
+                audit.PRICE_EDIT,
+                detail=_("{0}: price changed from {1} to {2}").format(code, was, value),
+                amount=value,
+                reference_doctype=invoice.doctype,
+                reference_name=invoice.name,
+                pos_profile=profile.name,
+            )
     # Spend any single-use bulk coupons that were entered on this sale.
     coupons.consume(payload.get("coupon_codes") or [], invoice.name)
     # Consume the over-limit discount approval (single-use) the sale was built with.

@@ -1394,4 +1394,8 @@ export default {
   "Keep a shift open past midnight": "班次跨过午夜仍保持开启",
   "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.": "ERPNext 16 只接受当天开启的班次上的销售。开启（默认）：午夜后的第一笔销售时，LumenPOS 会自动在 ERPNext 中关闭当天并开启下一天，班次继续进行，并在其自身关闭时清点一次。关闭：之前某天开启的班次必须先关闭，才能再次销售。",
   "ERPNext day closed": "ERPNext 日期已关闭",
+  "Price changed at the till": "价格已在收银台修改",
+  "There is no exchange rate for this currency yet, so a sale in it needs a connection": "该货币尚无汇率，因此以该货币销售需要联网",
+  "A customer billed in another currency needs a connection. Sell to that currency's walk-in instead": "以其他货币结算的客户需要联网。请改为销售给该货币的散客",
+  "Edit price / discount also covers typing a new price on a sale line, at an outlet whose POS Profile has Allow User to Edit Rate ticked.": "\"修改价格/折扣\"也包括在销售行上输入新价格，适用于其 POS 配置已勾选\"允许用户修改单价\"的门店。",
 }

@@ -110,7 +110,11 @@ def get_bootstrap(pos_profile=None):
         "register_session": session,
         "other_open_registers": _other_open_registers(profile_name),
         "pending_closing": _pending_closing(profile_name),
-        "permissions": get_user_permissions(),
+        "permissions": {
+            **get_user_permissions(),
+            # Typing a price on a line: this outlet's own switch and the rule.
+            "can_change_price": _can_change_price(profile),
+        },
         "available_profiles": _user_profiles(),
         # Each outlet's company, so a till on a site with several companies can
         # say which one an outlet, a sale or a figure belongs to.
@@ -506,6 +510,15 @@ def get_open_session(pos_profile, user=None):
         "opening_float": doc.opening_float,
         "pos_opening_entry": doc.get("pos_opening_entry"),
     }
+
+
+def _can_change_price(profile):
+    from lumenpos.api import permissions
+
+    try:
+        return permissions.can_change_price(profile)
+    except Exception:
+        return False
 
 
 def _item_group_members(groups):

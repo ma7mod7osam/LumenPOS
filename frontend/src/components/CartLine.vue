@@ -25,6 +25,9 @@
         <div v-if="line.manual_discount_percent" class="muted small">
           {{ t('{percent}% manual discount', { percent: line.manual_discount_percent }) }}
         </div>
+        <div v-if="line.price_override != null" class="muted small">
+          {{ t('Price changed at the till') }}
+        </div>
         <div v-if="suggestions.length" class="line-suggestions">
           <button
             v-for="(suggestion, i) in suggestions"
@@ -73,6 +76,20 @@
           <button class="btn btn-outline" @click="cart.setQty(index, line.qty + 1)">+</button>
         </div>
       </div>
+      <!-- A price typed for this line: the outlet allows it (POS Profile, Allow
+           User to Edit Rate) and the person may edit prices. -->
+      <div v-if="canChangePrice" class="edit-field">
+        <label>{{ t('Price') }}</label>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="price-in"
+          :value="priceText"
+          :placeholder="String(listPrice)"
+          @change="cart.setLinePrice(index, $event.target.value)"
+          @keydown.enter="$event.target.blur()"
+        />
+      </div>
       <div class="edit-field">
         <label>{{ t('Discount %') }}</label>
         <input
@@ -111,6 +128,7 @@ import { computed } from 'vue'
 
 const session = useSessionStore()
 const canEditPrice = computed(() => session.permissions?.can_edit_price !== false)
+const canChangePrice = computed(() => Boolean(session.permissions?.can_change_price))
 
 const props = defineProps({
   line: Object,
@@ -128,6 +146,12 @@ const expanded = ref(false)
 const serialOpen = ref(false)
 
 const totalDiscount = computed(() => (props.promoDiscount || 0) + (props.bundleDiscount || 0))
+
+// The unit price in the sale's currency: the typed one, or the list's.
+const listPrice = computed(() => cart.inSale(props.line.price_before_override ?? props.line.price))
+const priceText = computed(() =>
+  props.line.price_override != null ? String(props.line.price_override) : String(cart.inSale(props.line.price))
+)
 
 function onSerialAdded(serial) {
   serialOpen.value = false
@@ -247,6 +271,7 @@ html[data-theme='dark'] .line-suggestion:hover { background: rgba(150, 100, 255,
   text-align: center;
   padding: 7px 8px;
 }
+.edit-field input.price-in { width: 96px; }
 .stepper { display: flex; gap: 4px; }
 .stepper .btn { padding: 7px 12px; }
 .remove { margin-left: auto; color: var(--red); }
