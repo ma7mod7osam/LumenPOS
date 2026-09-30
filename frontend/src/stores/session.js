@@ -10,6 +10,7 @@ import {
   listQueue,
   removeQueued,
   queueCount,
+  queueBreakdown,
   getPendingCustomer,
   listPendingCustomers,
   removePendingCustomer,
@@ -97,6 +98,10 @@ export const useSessionStore = defineStore('session', {
     pendingClosing: null,
     offline: false,
     queuedCount: 0,
+    // Of those, sales the server refused (offline.queueBreakdown): they never
+    // hold the close, and the first one's reason is shown.
+    refusedCount: 0,
+    refusedReason: '',
     syncing: false,
     _heartbeat: null,
     toast: null,
@@ -202,6 +207,7 @@ export const useSessionStore = defineStore('session', {
         }
       }
       this.queuedCount = await queueCount().catch(() => 0)
+      await this.refreshRefused()
       this.loaded = true
     },
 
@@ -395,6 +401,7 @@ export const useSessionStore = defineStore('session', {
           /* best-effort cleanup */
         }
         this.queuedCount = await queueCount()
+        await this.refreshRefused()
         pruneSaleLog().catch(() => {})
         if (synced) this.notify(`Synced ${synced} offline sale${synced > 1 ? 's' : ''}`)
         if (failed)
@@ -423,6 +430,9 @@ export const useSessionStore = defineStore('session', {
       // Opening is always a fresh shift now, the server never returns a
       // resume/retry control object, so the result IS the live session.
       this.registerSession = result
+      // Sales still queued (one refused on the shift just closed, say) go up
+      // onto this one at once, instead of waiting for the next reconnect.
+      if (this.queuedCount && !this.offline) this.flushQueue().catch(() => {})
       return result
     },
 
@@ -431,7 +441,18 @@ export const useSessionStore = defineStore('session', {
     // they upload pushes them onto the next shift.
     async refreshQueueCount() {
       this.queuedCount = await queueCount().catch(() => this.queuedCount)
+      await this.refreshRefused()
       return this.queuedCount
+    },
+
+    async refreshRefused() {
+      try {
+        const counts = await queueBreakdown()
+        this.refusedCount = counts.refused
+        this.refusedReason = counts.reason
+      } catch {
+        /* keep the last reading */
+      }
     },
 
     lockTill() {

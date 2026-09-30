@@ -11,6 +11,7 @@
   "serial_scan_only",
   "shift_scope",
   "one_shift_per_user",
+  "carry_shift_past_midnight",
   "variance_alert_enabled",
   "variance_alert_threshold",
   "variance_alert_role",
@@ -646,6 +647,13 @@
    "label": "One open shift per person"
   },
   {
+   "default": "1",
+   "description": "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again. Set from the till: Settings, General, Register and shifts.",
+   "fieldname": "carry_shift_past_midnight",
+   "fieldtype": "Check",
+   "label": "Keep a shift open past midnight"
+  },
+  {
    "default": "0",
    "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies, it never blocks the close.",
    "fieldname": "variance_alert_enabled",
@@ -810,7 +818,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-28 12:00:00.000000",
+ "modified": "2026-09-30 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

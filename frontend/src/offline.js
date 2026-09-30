@@ -279,6 +279,22 @@ export async function queueCount() {
   return request(database.transaction('queue').objectStore('queue').count())
 }
 
+// What the queue holds: sales not tried yet (or still waiting for the
+// connection), and sales the server refused, whose log row says why. A
+// refused sale stays queued and is tried again on every upload, but it must
+// never hold the shift's close: it may never go through on this shift.
+export async function queueBreakdown() {
+  const [queue, log] = await Promise.all([listQueue(), listSaleLog()])
+  const refused = new Map(log.filter((r) => r.status === 'failed').map((r) => [r.key, r]))
+  const rows = queue.filter((e) => refused.has(e.payload?.idempotency_key))
+  const first = rows.length ? refused.get(rows[0].payload.idempotency_key) : null
+  return {
+    waiting: queue.length - rows.length,
+    refused: rows.length,
+    reason: first?.error || '',
+  }
+}
+
 // --- offline sales log ------------------------------------------------------
 // A durable, user-visible record of every sale made offline and what became of
 // it on sync: pending (queued, not yet uploaded), synced (posted, with the

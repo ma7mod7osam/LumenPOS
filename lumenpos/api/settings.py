@@ -21,6 +21,12 @@ def _can_manage():
     return bool(frappe.has_permission("LumenPOS Settings", "write"))
 
 
+def _carry_past_midnight():
+    from lumenpos.api.register import carry_past_midnight
+
+    return carry_past_midnight()
+
+
 def _require(doctype, ptype="write"):
     """Enforce a standard ERPNext DocType permission at the API boundary, so
     every back-office action is governed by the Role Permissions Manager."""
@@ -84,6 +90,10 @@ def get_settings():
         "offline_stock_only": doc.get("offline_stock_only") or 0,
         "shift_scope": doc.get("shift_scope") or "Per outlet",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
+        "carry_shift_past_midnight": 1 if _carry_past_midnight() else 0,
+        # ERPNext 16 and later take sales only on a shift opened the same day,
+        # the only place "Keep a shift open past midnight" does anything.
+        "same_day_shifts": 1 if erpnext_compat.one_open_shift_per_outlet() else 0,
         "variance_alert_enabled": 1 if doc.get("variance_alert_enabled") else 0,
         "variance_alert_threshold": flt(doc.get("variance_alert_threshold")),
         "variance_alert_role": doc.get("variance_alert_role") or "",
@@ -289,6 +299,9 @@ def save_settings(payload):
     # A screen from before 0.54.0 sends no such key: leave the choice alone.
     if "one_shift_per_user" in payload:
         doc.one_shift_per_user = 1 if payload.get("one_shift_per_user") else 0
+    # Likewise before 0.55.0.
+    if "carry_shift_past_midnight" in payload:
+        doc.carry_shift_past_midnight = 1 if payload.get("carry_shift_past_midnight") else 0
     doc.variance_alert_enabled = 1 if payload.get("variance_alert_enabled") else 0
     doc.variance_alert_threshold = flt(payload.get("variance_alert_threshold"))
     doc.variance_alert_role = payload.get("variance_alert_role") or None

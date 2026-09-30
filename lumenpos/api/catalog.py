@@ -30,6 +30,26 @@ def _gift_card_item_code():
         return None
 
 
+def internal_item_codes():
+    """LumenPOS's own placeholder items, never sold as a product: the gift
+    card (sold with the gift-card action) and the customer deposit (taken and
+    spent on a hold, lumenpos.deposits). The deposit one used to show in the
+    grid with a price, and sold like a product, an offer and VAT included:
+    ERPNext's "Auto Insert Item Price If Missing" had saved the first
+    deposit's amount as its price (seen on lumenv14, 2026-09-30)."""
+    codes = set()
+    gc = _gift_card_item_code()
+    if gc:
+        codes.add(gc)
+    try:
+        from lumenpos import deposits
+
+        codes.add(deposits.item_code())
+    except Exception:
+        pass
+    return codes
+
+
 def pos_reserved_map(warehouse):
     """{item_code: qty} sold on POS Invoices that have not been consolidated.
 
@@ -139,11 +159,11 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
     active_price_list = price_list or resolve_price_list(profile)
 
     filters = {"disabled": 0, "is_sales_item": 1, "has_variants": 0}
-    # The gift-card placeholder item is sold via the gift-card action, not tapped
-    # as a product. Keep it out of the grid / search / offline cache.
-    gc = _gift_card_item_code()
-    if gc:
-        filters["name"] = ["!=", gc]
+    # LumenPOS's own placeholder items (gift card, hold deposit) are never
+    # tapped as a product. Keep them out of the grid / search / offline cache.
+    internal = internal_item_codes()
+    if internal:
+        filters["name"] = ["not in", sorted(internal)]
     or_filters = None
     if search:
         or_filters = {
@@ -270,7 +290,7 @@ def resolve_scan(pos_profile, code, customer_group=None, app_type=None):
                 return {"found": False, "message": _held_message(sn.name, held)}
             item_code = sn.item_code
             serial = sn.name
-    if not item_code:
+    if not item_code or item_code in internal_item_codes():
         return {"found": False}
 
     app_price_list = _app_price_list(app_type)
@@ -470,10 +490,9 @@ def price_check(pos_profile, query):
         )
         item_codes = [r.name for r in rows]
 
-    # Never surface the gift-card placeholder item in a price check.
-    gc = _gift_card_item_code()
-    if gc:
-        item_codes = [c for c in item_codes if c != gc]
+    # Never surface LumenPOS's own placeholder items in a price check.
+    internal = internal_item_codes()
+    item_codes = [c for c in item_codes if c not in internal]
 
     if not item_codes:
         return {"matches": []}

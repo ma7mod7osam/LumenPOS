@@ -1572,6 +1572,19 @@ const prefixedAr = {
   // The grid says why products are hidden (0.54.1).
   "Products were found, but none has stock at this outlet, so they are hidden.": "توجد منتجات، لكن لا يتوفر لأي منها مخزون في هذا الفرع، لذلك هي مخفية.",
   "To show them anyway: Settings, General, Register and shifts, Show out-of-stock items in the grid.": "لإظهارها: الإعدادات، عام، الصندوق والورديات، إظهار الأصناف غير المتوفرة في الشبكة.",
+  // A shift past midnight, refused offline sales (0.55.0).
+  "ERPNext days closed during this shift": "أيام ERPNext المغلقة خلال هذه الوردية",
+  "ERPNext 16 takes sales only on a shift opened the same day, so at the first sale after midnight LumenPOS closed the day in ERPNext and opened the next one. Count the drawer once, when you close the shift.": "لا يقبل ERPNext 16 المبيعات إلا على وردية فتحت في اليوم نفسه، لذلك أغلق LumenPOS اليوم في ERPNext عند أول بيع بعد منتصف الليل وفتح اليوم التالي. احسب النقد في الدرج مرة واحدة عند إغلاق الوردية.",
+  "Until {time}": "حتى {time}",
+  "Posted": "تم الترحيل",
+  "Not posted yet": "لم يرحل بعد",
+  "Posting…": "جار الترحيل…",
+  "{n} offline sales were refused by the server.": "رفض الخادم {n} من المبيعات دون اتصال.",
+  "You can still close. Take their cash out of the drawer before you count, and put it back once the next shift is open: they are sent again then.": "يمكنك الإغلاق رغم ذلك. أخرج نقدها من الدرج قبل العد، وأعده بعد فتح الوردية التالية: ترسل مرة أخرى حينها.",
+  "{n} offline sales were refused and are not in this count. Take their cash out of the drawer before you count. Close the register?": "رفض الخادم {n} من المبيعات دون اتصال وهي غير داخلة في هذا العد. أخرج نقدها من الدرج قبل العد. هل تغلق الصندوق؟",
+  "Keep a shift open past midnight": "إبقاء الوردية مفتوحة بعد منتصف الليل",
+  "ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.": "لا يقبل ERPNext 16 المبيعات إلا على وردية فتحت في اليوم نفسه. مفعل (الافتراضي): عند أول بيع بعد منتصف الليل يغلق LumenPOS اليوم في ERPNext ويفتح اليوم التالي تلقائيا، وتستمر الوردية ويحسب درجها مرة واحدة عند إغلاقها. غير مفعل: يجب إغلاق الوردية التي فتحت في يوم سابق قبل أن تبيع مجددا.",
+  "ERPNext day closed": "إغلاق يوم في ERPNext",
   // Nobody is held back by a shift that will not close (0.54.0).
   "Not open to you any more: ask a manager to close it.": "لم تعد متاحة لك: اطلب من مدير إغلاقها.",
   "If you cannot close it, a manager can close it for you from that outlet's Register page.": "إذا لم تستطع إغلاقها، يمكن لمدير إغلاقها عنك من صفحة صندوق ذلك الفرع.",

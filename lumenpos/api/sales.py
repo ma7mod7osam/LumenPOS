@@ -105,6 +105,18 @@ def _build_sale_invoice(
     Every price below stays in the outlet's currency, as it always was; only
     the invoice rows and the service charge are converted, at the rate the
     shift fixed (`pin` fixes it, on a real sale)."""
+    from lumenpos.api.catalog import internal_item_codes
+
+    # LumenPOS's own placeholder items are sold by their own flows (gift card,
+    # hold), never as a product line: sold here, an offer and the outlet's tax
+    # applied to a deposit as if it were goods, and nothing recorded the hold.
+    internal = sorted(internal_item_codes() & {line.get("item_code") for line in payload.get("items") or []})
+    if internal:
+        frappe.throw(
+            _("{0} is kept by LumenPOS for gift cards and hold deposits and cannot be sold as a product.").format(
+                ", ".join(internal)
+            )
+        )
     customer = payload.get("customer") or profile.customer
     if not customer:
         frappe.throw(_("Select a customer (or set a default customer on the POS Profile)"))
@@ -738,26 +750,59 @@ def _lock_open_session(session_name):
 def _assert_erpnext_accepts_sale(pos_profile, session):
     """ERPNext 16's rules for every POS Invoice, said plainly before the sale
     is built rather than as ERPNext's own error at the end: the site must make
-    POS Invoices from the POS (POS Settings), and the shift must have been
-    opened today (one open shift per outlet is kept by open_register)."""
+    POS Invoices from the POS (POS Settings), and the shift's POS Opening Entry
+    must have been opened today (one open shift per outlet is kept by
+    open_register). A shift still selling past midnight has ERPNext's day
+    closed and the next one opened for it (register.roll_day), unless the
+    shop switched that off. Returns the session, on today's entry."""
     from lumenpos import erpnext_compat
+    from lumenpos.api import register
+    from lumenpos.api.session import get_open_session
 
     if frappe.db.get_value("POS Profile", pos_profile, "lumenpos_invoice_mode") == "Sales Invoice":
-        return
+        return session
     refused = erpnext_compat.pos_invoice_refused()
     if refused:
         frappe.throw(refused, title=_("Invoice type"))
     if not erpnext_compat.one_open_shift_per_outlet() or not session.get("pos_opening_entry"):
-        return
+        return session
     started = frappe.db.get_value("POS Opening Entry", session["pos_opening_entry"], "period_start_date")
-    if started and frappe.utils.getdate(started) != frappe.utils.getdate(frappe.utils.today()):
-        frappe.throw(
-            _(
-                "This shift was opened on {0}. ERPNext 16 accepts sales only on a shift opened today: "
-                "close this shift on the Register screen and open a new one."
-            ).format(frappe.utils.formatdate(started)),
-            title=_("Shift from an earlier day"),
-        )
+    if not register.from_earlier_day(started):
+        return session
+    if register.carry_past_midnight():
+        try:
+            rolled = register.roll_day(session["name"])
+        except Exception as exc:
+            # The request fails anyway: keep why for the Error Log, and nothing
+            # of the half-closed day.
+            frappe.db.rollback()
+            frappe.log_error(
+                title="LumenPOS: closing ERPNext's day for a shift past midnight failed",
+                message=frappe.get_traceback(),
+            )
+            frappe.db.commit()  # nosemgrep
+            frappe.throw(
+                _(
+                    "ERPNext's day could not be closed for this shift ({0}). Close the shift on the "
+                    "Register screen and open a new one."
+                ).format(frappe.utils.strip_html(str(exc))[:300]),
+                title=_("Shift from an earlier day"),
+            )
+        if not rolled and not frappe.db.transaction_writes:
+            # Another till on this shift closed the day a moment ago: read
+            # afresh, or ERPNext would still find yesterday's entry open.
+            frappe.db.commit()  # nosemgrep
+        session = get_open_session(pos_profile) or session
+        started = frappe.db.get_value("POS Opening Entry", session["pos_opening_entry"], "period_start_date")
+        if not register.from_earlier_day(started):
+            return session
+    frappe.throw(
+        _(
+            "This shift was opened on {0}. ERPNext 16 accepts sales only on a shift opened today: "
+            "close this shift on the Register screen and open a new one."
+        ).format(frappe.utils.formatdate(started)),
+        title=_("Shift from an earlier day"),
+    )
 
 
 def _open_session(pos_profile):
@@ -768,7 +813,7 @@ def _open_session(pos_profile):
     session = get_open_session(pos_profile)
     if not session:
         frappe.throw(_("No open register session. Open the register first."))
-    _assert_erpnext_accepts_sale(pos_profile, session)
+    session = _assert_erpnext_accepts_sale(pos_profile, session)
     # "Per cashier" scope: the takings land in the drawer of whoever OPENED the
     # shift, so only that cashier may ring one up. Deliberately no manager
     # bypass, selling is operational, not supervisory (supervision, i.e. cash

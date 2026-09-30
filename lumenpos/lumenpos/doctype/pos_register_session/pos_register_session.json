@@ -34,6 +34,8 @@
   "total_discounts",
   "column_break_3",
   "sales_count",
+  "erpnext_days_section",
+  "erpnext_days",
   "overdue_notified"
  ],
  "fields": [
@@ -209,6 +211,21 @@
    "read_only": 1
   },
   {
+   "collapsible": 1,
+   "depends_on": "eval:(doc.erpnext_days || []).length",
+   "fieldname": "erpnext_days_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext Days"
+  },
+  {
+   "description": "ERPNext 16 takes sales only on a POS Opening Entry opened the same day. A shift that sold on past midnight closed each earlier day in ERPNext and opened the next, and was counted once, at its own close.",
+   "fieldname": "erpnext_days",
+   "fieldtype": "Table",
+   "label": "Days Closed While the Shift Ran",
+   "options": "POS Session Day",
+   "read_only": 1
+  },
+  {
    "default": "0",
    "fieldname": "overdue_notified",
    "fieldtype": "Check",
@@ -225,7 +242,7 @@
    "link_fieldname": "lumenpos_session"
   }
  ],
- "modified": "2026-09-28 12:00:00.000000",
+ "modified": "2026-09-30 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Register Session",

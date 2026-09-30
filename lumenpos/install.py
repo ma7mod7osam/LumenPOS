@@ -126,6 +126,7 @@ def ensure_setup():
     backfill_store_credit_references()
     default_insights_on()
     default_cashback_on()
+    default_carry_past_midnight_on()
     recost_open_holds()
     ensure_currencies()
     ensure_hot_indexes()
@@ -234,6 +235,21 @@ def default_cashback_on():
     )
     if not stored:
         set_setting("enable_cashback", 1)
+
+
+def default_carry_past_midnight_on():
+    """carry_shift_past_midnight ships ON (0.55.0): without it a shift on
+    ERPNext 16 stops selling at midnight. A loaded Single zeroes a missing
+    Check, so only the tabSingles row can tell "never stored" from "switched
+    off". Write the ON down once."""
+    from lumenpos.api.insights import set_setting
+
+    stored = frappe.db.sql(
+        "select value from tabSingles where doctype=%s and field=%s",
+        ("LumenPOS Settings", "carry_shift_past_midnight"),
+    )
+    if not stored:
+        set_setting("carry_shift_past_midnight", 1)
 
 
 def backfill_store_credit_references():

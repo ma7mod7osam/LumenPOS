@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "creation": "2026-09-30 13:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "pos_opening_entry",
+  "pos_closing_entry",
+  "started_at",
+  "ended_at",
+  "sales_count",
+  "closing_status",
+  "closing_attempts",
+  "closing_error"
+ ],
+ "fields": [
+  {
+   "fieldname": "pos_opening_entry",
+   "fieldtype": "Link",
+   "options": "POS Opening Entry",
+   "label": "POS Opening Entry",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "pos_closing_entry",
+   "fieldtype": "Link",
+   "options": "POS Closing Entry",
+   "label": "POS Closing Entry",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ended_at",
+   "fieldtype": "Datetime",
+   "label": "To",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_count",
+   "fieldtype": "Int",
+   "label": "Number of Sales",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "closing_status",
+   "fieldtype": "Select",
+   "options": "Pending\nSubmitted\nFailed",
+   "default": "Pending",
+   "label": "Consolidation",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "closing_attempts",
+   "fieldtype": "Int",
+   "label": "Failed Attempts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closing_error",
+   "fieldtype": "Small Text",
+   "label": "Consolidation Error",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-30 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "LumenPOS",
+ "name": "POS Session Day",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

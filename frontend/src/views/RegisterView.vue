@@ -149,6 +149,26 @@
               </div>
             </div>
           </div>
+          <!-- ERPNext 16 takes sales only on a POS Opening Entry opened the
+               same day: the shift closed ERPNext's day at the first sale after
+               midnight and sells on (register.roll_day). -->
+          <div v-if="summary.erpnext_days?.length" class="days-block">
+            <div class="days-title">{{ t('ERPNext days closed during this shift') }}</div>
+            <p class="muted small">{{ t('ERPNext 16 takes sales only on a shift opened the same day, so at the first sale after midnight LumenPOS closed the day in ERPNext and opened the next one. Count the drawer once, when you close the shift.') }}</p>
+            <div v-for="d in summary.erpnext_days" :key="d.pos_closing_entry" class="day-row">
+              <span>{{ t('Until {time}', { time: shortTime(d.ended_at) }) }} · {{ t('Sales') }}: {{ d.sales_count }}</span>
+              <a :href="`/app/pos-closing-entry/${d.pos_closing_entry}`" target="_blank" class="entry-link">{{ d.pos_closing_entry }}</a>
+              <span v-if="d.closing_status === 'Submitted'" class="day-ok">{{ t('Posted') }}</span>
+              <span v-else-if="d.closing_status === 'Failed'" class="neg">{{ t('Not posted yet') }}</span>
+              <span v-else class="muted">{{ t('Posting…') }}</span>
+            </div>
+            <template v-if="failedDay">
+              <pre class="err-detail">{{ failedDay.closing_error }}</pre>
+              <button v-if="canClose" class="btn btn-outline" :disabled="retryingDays" @click="retryDays">
+                <Icon name="refresh" /> {{ t('Try again') }}
+              </button>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -191,13 +211,26 @@
           <!-- Queued offline sales belong to THIS shift's drawer. Closing before
                they upload would push them onto the next shift and leave both
                counts wrong, so block the close until they're in. -->
-          <div v-if="session.queuedCount > 0" class="queued-block">
+          <div v-if="waitingCount > 0" class="queued-block">
             <div>
-              <b>{{ t('{n} offline sales are still waiting to upload.', { n: session.queuedCount }) }}</b>
+              <b>{{ t('{n} offline sales are still waiting to upload.', { n: waitingCount }) }}</b>
               <div class="muted small">{{ t('They belong to this shift. Upload them before closing, or they land on the next shift.') }}</div>
             </div>
             <button class="btn btn-primary" :disabled="uploading" @click="uploadQueued">
               <Icon name="upload" /> {{ uploading ? t('Uploading…') : t('Upload now') }}
+            </button>
+          </div>
+          <!-- Sales the server refused never hold the close: one that can never
+               go through on this shift kept it open for good (a shop's shift
+               that ran past midnight on ERPNext 16, 2026-09-30). -->
+          <div v-else-if="session.refusedCount > 0" class="queued-block refused">
+            <div>
+              <b>{{ t('{n} offline sales were refused by the server.', { n: session.refusedCount }) }}</b>
+              <div v-if="session.refusedReason" class="muted small">{{ session.refusedReason }}</div>
+              <div class="muted small">{{ t('You can still close. Take their cash out of the drawer before you count, and put it back once the next shift is open: they are sent again then.') }}</div>
+            </div>
+            <button class="btn btn-outline" :disabled="uploading" @click="uploadQueued">
+              <Icon name="upload" /> {{ uploading ? t('Uploading…') : t('Try again') }}
             </button>
           </div>
           <div v-if="loadError" class="summary-error">
@@ -340,6 +373,10 @@
             </span>
           </div>
           <div class="muted small">
+            <!-- The ERPNext days closed while the shift sold on past midnight. -->
+            <template v-for="d in past.erpnext_days || []" :key="d.pos_closing_entry">
+              <a :href="`/app/pos-closing-entry/${d.pos_closing_entry}`" target="_blank" class="entry-link">{{ d.pos_closing_entry }}</a>&nbsp;·
+            </template>
             <a v-if="past.pos_opening_entry" :href="`/app/pos-opening-entry/${past.pos_opening_entry}`" target="_blank" class="entry-link">
               {{ past.pos_opening_entry }}
             </a>
@@ -669,6 +706,29 @@ function dismissClosed() {
   pending.value = session.pendingClosing
 }
 
+// Queued offline sales still to upload: the ones the server refused are
+// apart, they never hold the close.
+const waitingCount = computed(() => Math.max((session.queuedCount || 0) - (session.refusedCount || 0), 0))
+
+// A closed ERPNext day that did not reach the books (register.roll_day).
+const failedDay = computed(() => (summary.value?.erpnext_days || []).find((d) => d.closing_status === 'Failed'))
+const retryingDays = ref(false)
+
+async function retryDays() {
+  retryingDays.value = true
+  try {
+    await call('lumenpos.api.register.retry_days', { session: session.registerSession.name })
+    // It runs in the background: read the shift again in a moment.
+    setTimeout(() => {
+      retryingDays.value = false
+      load()
+    }, 5000)
+  } catch (e) {
+    retryingDays.value = false
+    session.notify(e.message, true)
+  }
+}
+
 async function uploadQueued() {
   uploading.value = true
   try {
@@ -686,17 +746,24 @@ async function uploadQueued() {
 async function close() {
   // Queued offline sales belong to THIS shift's drawer. Closing before they
   // upload would push them onto the NEXT shift and leave both counts wrong.
+  // Sales the server refused are the exception: they may never go through on
+  // this shift, and must not keep it open for good.
   await session.refreshQueueCount()
-  if (session.queuedCount > 0) {
+  if (waitingCount.value > 0) {
     session.notify(
       t('{n} offline sales still need to upload. Press Upload now before closing.', {
-        n: session.queuedCount,
+        n: waitingCount.value,
       }),
       true
     )
     return
   }
-  if (!confirm(t('Close the register? This ends the current session. Make any corrections first.'))) return
+  const question = session.refusedCount > 0
+    ? t('{n} offline sales were refused and are not in this count. Take their cash out of the drawer before you count. Close the register?', {
+        n: session.refusedCount,
+      })
+    : t('Close the register? This ends the current session. Make any corrections first.')
+  if (!confirm(question)) return
   closing.value = true
   try {
     const countedClean = {}
@@ -744,6 +811,26 @@ async function close() {
   margin-bottom: 12px;
 }
 .queued-block > div { flex: 1; min-width: 220px; }
+.queued-block.refused {
+  background: rgba(214, 140, 16, 0.10);
+  border-color: rgba(214, 140, 16, 0.32);
+}
+.days-block {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.days-title { font-weight: 600; margin-bottom: 4px; }
+.days-block .muted.small { margin: 0 0 8px; }
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.day-ok { color: var(--brand); font-weight: 600; }
 .ccy-tag {
   display: inline-block;
   font-size: 11px;

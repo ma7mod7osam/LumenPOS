@@ -18,6 +18,8 @@ OVER_LIMIT_DISCOUNT = "Over-limit discount"
 PRICE_EDIT = "Price edit"
 REGISTER_OPEN = "Register open"
 REGISTER_CLOSE = "Register close"
+# A shift selling on past midnight closed ERPNext's day (register.roll_day).
+ERPNEXT_DAY = "ERPNext day closed"
 SETTINGS_CHANGE = "Settings change"
 TILL_UNLOCK = "Till unlock"
 
