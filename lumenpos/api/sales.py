@@ -2534,6 +2534,19 @@ def _build_return_doc(original, sale_doctype, invoice, items, serials, pos_profi
             row.serial_and_batch_bundle = None
             row.use_serial_batch_fields = 1
             row.serial_no = "\n".join(row_serials)
+    # A credit note gives back the tax its sale charged, no more. ERPNext
+    # refills an empty tax table from the POS Profile's CURRENT template, so a
+    # sale that carried no tax (made before the outlet had a template, or at an
+    # outlet without one) came back taxed: a sale of 90 refunded 108. Its lines
+    # say it instead, as a gift card's and a deposit's do.
+    if not original.get("taxes"):
+        zero = deposits.zero_tax_template(
+            handling_profile.company,
+            frappe.db.get_value("POS Profile", handling_profile.name, "taxes_and_charges"),
+        )
+        if zero:
+            for row in return_doc.items:
+                row.item_tax_template = zero
 
     return_doc.payments = []
     _set_custom(return_doc, ("lumenpos_session",), session["name"])
