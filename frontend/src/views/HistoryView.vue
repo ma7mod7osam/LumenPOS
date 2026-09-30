@@ -122,8 +122,9 @@
             </div>
           </div>
           <div v-if="!localSales.length" class="muted empty">{{ t('No sales on this device in this shift yet.') }}</div>
+          <div v-else-if="!localShown.length" class="muted empty">{{ t('No sales match') }}</div>
           <button
-            v-for="sale in localSales"
+            v-for="sale in localShown"
             :key="sale.key"
             class="sale-row local-row"
             :class="{ blocked: blockerOf(sale) }"
@@ -135,8 +136,10 @@
                 <span v-if="sale.queued" class="tag amber">{{ t('NOT SENT YET') }}</span>
                 <span v-if="returnedCount(sale)" class="tag red">{{ t('{n} RETURNED', { n: returnedCount(sale) }) }}</span>
               </div>
+              <!-- Each part isolated: in Arabic the count sat at one end of
+                   the line and its word at the other. -->
               <div class="muted small">
-                {{ sale.name || t('Waiting to be sent') }} · {{ shortTime(sale.at) }} · {{ t('{n} items', { n: itemCount(sale) }) }}
+                <bdi>{{ sale.name || t('Waiting to be sent') }}</bdi> · <bdi>{{ shortTime(sale.at) }}</bdi> · <bdi>{{ t('{n} items', { n: itemCount(sale) }) }}</bdi>
               </div>
               <div v-if="blockerOf(sale)" class="muted small why">{{ t(blockerOf(sale)) }}</div>
             </div>
@@ -383,6 +386,16 @@ async function onRefundDone(returnReceipt) {
 // --- without a connection: this device's sales of the shift -----------------
 const localSales = ref([])
 const refundLocal = ref(null)
+// The search box works on them too: a busy till makes hundreds of sales a
+// shift. Invoice number, customer, or an item's code or name.
+const localShown = computed(() => {
+  const term = (filters.value.search || '').trim().toLowerCase()
+  if (!term) return localSales.value
+  return localSales.value.filter((sale) =>
+    [sale.name, sale.customer_name, sale.customer, ...(sale.lines || []).flatMap((l) => [l.item_code, l.item_name])]
+      .some((value) => (value || '').toLowerCase().includes(term))
+  )
+})
 
 async function loadLocal() {
   localSales.value = session.offline && session.settings?.offline_returns ? await session.loadShiftSales() : []

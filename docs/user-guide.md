@@ -861,8 +861,9 @@ this also makes everyday search instant. If the connection drops:
   soon as a shift opens, and on every upload after that.
 - **Returns without a connection** (from 0.56.0, Settings, General, Register
   and Offline, on by default). Sales History lists this device's own sales of
-  the open shift, those it sent and those still waiting, and any of them can be
-  taken back there: pick the items and the reason, and refund in cash or the
+  the open shift, those it sent and those still waiting (the search box finds
+  them by invoice, customer or item), and any of them can be taken back there:
+  pick the items and the reason, and refund in cash or the
   way the customer paid (never onto store credit, a gift card or cashback, whose
   balances live on the server). The till works the refund out the way ERPNext
   will (taxes, a line's own tax template, rounded totals and the site's rounding

@@ -36,7 +36,7 @@
               <td>
                 <span v-if="r.kind === 'return'" class="ol-kind">{{ t('Refund') }}</span>
                 {{ r.customer_name }}
-                <span class="muted small"> · {{ t('{n} items', { n: r.item_count }) }}</span>
+                <span class="muted small"> · <bdi>{{ t('{n} items', { n: r.item_count }) }}</bdi></span>
               </td>
               <td class="num">{{ money(r.total, r.currency) }}</td>
               <td>
