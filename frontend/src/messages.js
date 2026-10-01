@@ -1614,6 +1614,10 @@ const prefixedEn = {
   'lang:th': 'Thai',
   'lang:id': 'Indonesian',
   'lang:vi': 'Vietnamese',
+  'lang:pt-BR': 'Portuguese (Brazil)',
+  'lang:fa': 'Persian',
+  'lang:ru': 'Russian',
+  'lang:tr': 'Turkish',
 }
 const prefixedAr = {
   // One open shift per person (0.54.0).
@@ -1718,6 +1722,14 @@ const prefixedAr = {
   'lang:th': 'التايلاندية',
   'lang:id': 'الإندونيسية',
   'lang:vi': 'الفيتنامية',
+  'lang:pt-BR': "البرتغالية (البرازيل)",
+  'lang:fa': "الفارسية",
+  'lang:ru': "الروسية",
+  'lang:tr': "التركية",
+  'lang:pt-BR': 'البرتغالية (البرازيل)',
+  'lang:fa': 'الفارسية',
+  'lang:ru': 'الروسية',
+  'lang:tr': 'التركية',
   "Update exchange rates automatically": "تحديث أسعار الصرف تلقائيا",
   "Once a day, from ExchangeRate-API (free), for the currencies set to Automatic below. The others keep the rate you set. A rate you type for today always wins.":
     "مرة يوميا من ExchangeRate-API مجانا، للعملات المضبوطة على تلقائي أدناه. تبقى العملات الأخرى على السعر الذي تحدده، والسعر الذي تكتبه لليوم هو المعتمد دائما.",

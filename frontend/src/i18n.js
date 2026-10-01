@@ -34,6 +34,10 @@ export const LANGUAGES = [
   { code: 'th', name: 'ไทย', dir: 'ltr' },
   { code: 'id', name: 'Bahasa Indonesia', dir: 'ltr' },
   { code: 'vi', name: 'Tiếng Việt', dir: 'ltr' },
+  { code: 'pt-BR', name: 'Português (Brasil)', dir: 'ltr' },
+  { code: 'fa', name: 'فارسی', dir: 'rtl' },
+  { code: 'ru', name: 'Русский', dir: 'ltr' },
+  { code: 'tr', name: 'Türkçe', dir: 'ltr' },
 ]
 
 const packs = import.meta.glob('./locales/*.js')

@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 Lumen Solutions
    SPDX-License-Identifier: AGPL-3.0-only
    "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap');
 
 /* LumenPOS design tokens, the Lumen brand identity.
    Primary blue #1463FF (light) / #2F7BFF (dark); type: Plus Jakarta Sans. */
@@ -35,6 +35,10 @@
      Thai glyph shows) or to the system's own Chinese font. */
   --font-th: 'Plus Jakarta Sans', 'IBM Plex Sans Thai', 'Leelawadee UI', Thonburi, sans-serif;
   --font-zh: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Hiragino Sans GB', sans-serif;
+  /* Persian: Vazirmatn, drawn for Persian. Russian: Plus Jakarta Sans keeps the
+     Latin, the Cyrillic falls to IBM Plex Sans (fetched only for those glyphs). */
+  --font-fa: 'Vazirmatn', 'IBM Plex Sans Arabic', Tahoma, sans-serif;
+  --font-ru: 'Plus Jakarta Sans', 'IBM Plex Sans', 'Segoe UI', Roboto, sans-serif;
   --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
@@ -251,6 +255,20 @@ html[lang='zh'] button {
 }
 html[lang='th'] body,
 html[lang='zh'] body { line-height: 1.6; }
+html[lang='fa'] body,
+html[lang='fa'] input,
+html[lang='fa'] select,
+html[lang='fa'] textarea,
+html[lang='fa'] button {
+  font-family: var(--font-fa);
+}
+html[lang='ru'] body,
+html[lang='ru'] input,
+html[lang='ru'] select,
+html[lang='ru'] textarea,
+html[lang='ru'] button {
+  font-family: var(--font-ru);
+}
 
 html[dir='rtl'] .rail-item {
   border-left: 3px solid transparent;
