@@ -13,6 +13,8 @@ Note: the *bench server* opens the socket, so the printer must be reachable
 from where Frappe runs. On cloud-hosted sites use the browser-print fallback.
 """
 
+from __future__ import annotations
+
 import socket
 
 import frappe
@@ -38,7 +40,7 @@ WIDTH = 42  # characters per line on a typical 80mm printer
 
 
 @frappe.whitelist()
-def print_receipt(invoice, open_drawer=0, reprint=0):
+def print_receipt(invoice: str, open_drawer: int | bool | str = 0, reprint: int | bool | str = 0):
     from lumenpos.api import permissions
 
     # A cashier always prints the receipt for the sale they just made. Printing

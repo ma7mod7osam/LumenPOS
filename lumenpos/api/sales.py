@@ -1,6 +1,10 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
+from __future__ import annotations
+
+from collections.abc import Callable
+
 import json
 
 import frappe
@@ -12,6 +16,7 @@ from lumenpos.price_books import effective_prices, resolve_price_list, standard_
 from lumenpos.promotions.engine import evaluate
 from lumenpos.promotions.loader import get_active_promotions
 from lumenpos import erpnext_compat
+from lumenpos.api import salespeople
 
 INVOICE_DOCTYPE = "POS Invoice"
 
@@ -391,11 +396,11 @@ def _build_sale_invoice(
                 row.update({"use_serial_batch_fields": 1, "serial_no": "\n".join(serials)})
         invoice.append("items", row)
 
-    if payload.get("sales_person"):
-        invoice.append(
-            "sales_team",
-            {"sales_person": payload["sales_person"], "allocated_percentage": 100},
-        )
+    # Who sold (LumenPOS Settings, Salesperson at the till). A quote only
+    # prices, so it never refuses for want of one.
+    sales_person = salespeople.for_sale(payload, enforce=pin)
+    if sales_person:
+        invoice.append("sales_team", {"sales_person": sales_person, "allocated_percentage": 100})
 
     invoice.set_missing_values()
     currency.apply_to_invoice(invoice, ctx)
@@ -543,7 +548,7 @@ def _quote_session(pos_profile):
 
 
 @frappe.whitelist()
-def quote_sale(payload):
+def quote_sale(payload: dict | str):
     """Authoritative pre-payment totals for the current cart, the SAME server
     computation submit_sale uses, so the till charges exactly what the posted
     invoice will show (a VAT-inclusive promo line can round a couple of halalas
@@ -584,7 +589,7 @@ def quote_sale(payload):
 
 
 @frappe.whitelist()
-def submit_sale(payload):
+def submit_sale(payload: dict | str):
     """Create and submit a POS Invoice (consolidated into Sales Invoices by
     ERPNext when the register closes).
 
@@ -782,7 +787,7 @@ def submit_sale(payload):
 
 
 @frappe.whitelist()
-def sell_gift_card(payload):
+def sell_gift_card(payload: dict | str):
     """Sell/load a gift card as a real POS sale: the GIFT-CARD item posts to
     the gift-card liability account (no revenue, no tax until the card is
     spent). payload = {pos_profile, amount, card_no?, expiry_date?,
@@ -866,11 +871,9 @@ def sell_gift_card(payload):
     )
     if zero:
         invoice.items[-1].item_tax_template = zero
-    if payload.get("sales_person"):
-        invoice.append(
-            "sales_team",
-            {"sales_person": payload["sales_person"], "allocated_percentage": 100},
-        )
+    sales_person = salespeople.for_sale(payload)
+    if sales_person:
+        invoice.append("sales_team", {"sales_person": sales_person, "allocated_percentage": 100})
     invoice.set_missing_values()
     invoice.taxes = []
 
@@ -917,7 +920,7 @@ def sell_gift_card(payload):
 
 
 @frappe.whitelist()
-def gift_card_info(card_no, pos_profile=None):
+def gift_card_info(card_no: str, pos_profile: str | None = None):
     """Balance lookup for the payment screen, with who issued the card and
     whether this outlet may take it (lumenpos.inter_company)."""
     from lumenpos import inter_company
@@ -1810,7 +1813,7 @@ def _build_lines(items, profile, customer_group=None, app_price_list=None):
 
 
 @frappe.whitelist()
-def email_receipt(invoice, email=None):
+def email_receipt(invoice: str, email: str | None = None):
     """Email a copy of the receipt to the customer (Settings → Features → Email
     receipt). Uses the explicit address, else the invoice contact, else the
     customer's email. Attaches the POS Profile's Print Format if one is set.
@@ -1858,7 +1861,7 @@ def email_receipt(invoice, email=None):
 
 
 @frappe.whitelist()
-def get_receipt(invoice):
+def get_receipt(invoice: str):
     doc = frappe.get_doc(_doctype_of(invoice), invoice)
     doc.check_permission("read")
     earned_points = frappe.db.get_value(
@@ -1991,7 +1994,7 @@ def _tax_map(raw):
 
 
 @frappe.whitelist()
-def recent_sales(pos_profile, limit=50):
+def recent_sales(pos_profile: str, limit: int | str = 50):
     return search_sales({"pos_profile": pos_profile, "limit": limit})
 
 
@@ -2133,7 +2136,7 @@ def _search_probe_names(doctype, term, order_field=None, cap=SEARCH_PROBE_CAP):
 
 
 @frappe.whitelist()
-def search_sales(filters=None):
+def search_sales(filters: dict | str | None = None):
     """Sales-history search. filters = {
         search: free text (invoice no, customer, mobile, order id),
         pos_profile, all_profiles: 1, date_from, date_to,
@@ -2361,7 +2364,7 @@ def _search_sales_in(doctype, f):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def get_returnable(invoice, pos_profile=None):
+def get_returnable(invoice: str, pos_profile: str | None = None):
     """Per-line quantity still eligible for return (original minus prior returns),
     plus the shop's return restrictions for those products so the refund screen
     can say what it cannot take back, and why."""
@@ -2750,19 +2753,19 @@ def _sold_serials(invoice_doc):
 
 @frappe.whitelist()
 def create_return(
-    invoice,
-    items,
-    refund_mode,
-    serials=None,
-    return_reason=None,
-    return_request=None,
-    pos_profile=None,
-    refund_payments=None,
-    idempotency_key=None,
-    original_key=None,
-    offline_refund=None,
-    _split_fn=None,
-    _post_now=True,
+    invoice: str,
+    items: dict | str,
+    refund_mode: str,
+    serials: dict | str | None = None,
+    return_reason: str | None = None,
+    return_request: str | None = None,
+    pos_profile: str | None = None,
+    refund_payments: list | str | None = None,
+    idempotency_key: str | None = None,
+    original_key: str | None = None,
+    offline_refund: float | str | None = None,
+    _split_fn: Callable | None = None,
+    _post_now: bool = True,
 ):
     """Create a POS return (credit note) against a submitted POS sale.
 
@@ -3107,7 +3110,7 @@ def _validate_return_serials(item_code, qty, serial_nos, sold, already_returned=
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def park_sale(pos_profile, cart, customer=None, customer_name=None, note=None):
+def park_sale(pos_profile: str, cart: dict | str, customer: str | None = None, customer_name: str | None = None, note: str | None = None):
     if isinstance(cart, (dict, list)):
         cart = json.dumps(cart)
     doc = frappe.get_doc(
@@ -3126,7 +3129,7 @@ def park_sale(pos_profile, cart, customer=None, customer_name=None, note=None):
 
 
 @frappe.whitelist()
-def list_parked(pos_profile):
+def list_parked(pos_profile: str):
     return frappe.get_all(
         "POS Parked Sale",
         filters={"pos_profile": pos_profile, "status": "Parked"},
@@ -3137,7 +3140,7 @@ def list_parked(pos_profile):
 
 
 @frappe.whitelist()
-def retrieve_parked(name):
+def retrieve_parked(name: str):
     doc = frappe.get_doc("POS Parked Sale", name)
     doc.check_permission("write")
     cart = json.loads(doc.cart or "{}")
@@ -3147,7 +3150,7 @@ def retrieve_parked(name):
 
 
 @frappe.whitelist()
-def discard_parked(name):
+def discard_parked(name: str):
     doc = frappe.get_doc("POS Parked Sale", name)
     doc.check_permission("delete")
     doc.delete()

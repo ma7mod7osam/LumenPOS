@@ -932,6 +932,9 @@ export const useCartStore = defineStore('cart', {
       session.markOffline()
       // Idempotency key so a retried sync (lost ACK) can't post a duplicate.
       payload.idempotency_key = payload.idempotency_key || newId()
+      // Made under the till's rules of this moment: a rule the shop tightens
+      // before it uploads (a salesperson made required) must not refuse it.
+      payload.queued_offline = 1
       await queueEntry('sale', payload, locale.value)
       session.queuedCount = await queueCount()
       this._keepQueuedSale(payload, payments, sale)

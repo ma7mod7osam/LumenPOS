@@ -31,6 +31,8 @@ Safety
     Nothing is ever deleted.
 """
 
+from __future__ import annotations
+
 import json
 import random
 
@@ -1149,7 +1151,7 @@ def run(invoice_target=INVOICE_TARGET, days=DAYS, force=False):
 
 
 @frappe.whitelist()
-def build_demo_data(invoice_target=INVOICE_TARGET, days=DAYS, force=0):
+def build_demo_data(invoice_target: int | str = INVOICE_TARGET, days: int | str = DAYS, force: int | bool | str = 0):
     """Queue the demo build. Administrator only.
 
     Deliberately a background job: a thousand sales take far longer than a web

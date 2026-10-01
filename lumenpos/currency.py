@@ -37,6 +37,8 @@ before any of this was written):
   sale. What the till shows follows the account really used.
 """
 
+from __future__ import annotations
+
 import json
 
 import frappe
@@ -797,7 +799,7 @@ def client_config(profile, session_name=None):
 
 
 @frappe.whitelist()
-def offline_prices(pos_profile):
+def offline_prices(pos_profile: str):
     """{currency: {item_code: price in that currency}} from the own price list
     of each currency's walk-in customer ("Walk-in ZWG"), where it has one: what
     a sale in that currency charges for the items the list prices. The till
@@ -831,7 +833,7 @@ def offline_prices(pos_profile):
 
 
 @frappe.whitelist()
-def sale_info(pos_profile, customer=None):
+def sale_info(pos_profile: str, customer: str | None = None):
     """What a sale to this customer would be in, for the till to show before
     anything is rung up. Read only: it never fixes a rate."""
     from lumenpos.api.sales import _require_sell
@@ -883,7 +885,7 @@ def rates():
 
 
 @frappe.whitelist()
-def set_rate(currency, company_currency, rate):
+def set_rate(currency: str, company_currency: str, rate: float | str):
     """A new selling rate from today, as ERPNext keeps them: a Currency
     Exchange record. A shift already selling in that currency keeps the rate
     it started with (see shift_rate)."""

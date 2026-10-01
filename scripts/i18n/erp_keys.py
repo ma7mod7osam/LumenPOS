@@ -11,10 +11,12 @@ Usage: python3 erp_keys.py <work> <lang>... (BENCHES: space separated bench
 folders, default the four LumenPOS test benches)."""
 
 import csv
+import io
 import json
 import os
 import re
 import sys
+from pathlib import Path
 
 WORK, LANGS = sys.argv[1], sys.argv[2:]
 BENCHES = os.environ.get(
@@ -50,30 +52,28 @@ def po_keys(path):
                 keys.add(unescape(msgid) + (":" + ctx if ctx else ""))
         entry.update(ctx=None, id=None, str=None)
 
-    with open(path, encoding="utf-8", errors="replace") as po:
-        for line in po:
-            line = line.rstrip("\n")
-            if line.startswith("msgctxt "):
+    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith("msgctxt "):
+            flush()
+            entry["ctx"], part = unquote(line[8:]), "ctx"
+        elif line.startswith("msgid "):
+            if part != "ctx":
                 flush()
-                entry["ctx"], part = unquote(line[8:]), "ctx"
-            elif line.startswith("msgid "):
-                if part != "ctx":
-                    flush()
-                entry["id"], part = [unquote(line[6:])], "id"
-            elif line.startswith("msgstr "):
-                entry["str"], part = [unquote(line[7:])], "str"
-            elif line.startswith('"') and part in ("id", "str"):
-                entry[part].append(unquote(line))
+            entry["id"], part = [unquote(line[6:])], "id"
+        elif line.startswith("msgstr "):
+            entry["str"], part = [unquote(line[7:])], "str"
+        elif line.startswith('"') and part in ("id", "str"):
+            entry[part].append(unquote(line))
     flush()
     return keys
 
 
 def csv_keys(path):
     keys = set()
-    with open(path, encoding="utf-8", errors="replace", newline="") as f:
-        for row in csv.reader(f):
-            if len(row) >= 2 and row[0] and row[1].strip():
-                keys.add(row[0] + (":" + row[2] if len(row) > 2 and row[2] else ""))
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+    for row in csv.reader(io.StringIO(text, newline="")):
+        if len(row) >= 2 and row[0] and row[1].strip():
+            keys.add(row[0] + (":" + row[2] if len(row) > 2 and row[2] else ""))
     return keys
 
 
@@ -86,6 +86,5 @@ for lang in LANGS:
                 found |= csv_keys(f"{base}/translations/{lang}.csv")
             if os.path.exists(f"{base}/locale/{lang.replace('-', '_')}.po"):
                 found |= po_keys(f"{base}/locale/{lang.replace('-', '_')}.po")
-    with open(f"{WORK}/erp_keys_{lang}.json", "w", encoding="utf-8") as out:
-        json.dump(sorted(found), out, ensure_ascii=False)
+    Path(f"{WORK}/erp_keys_{lang}.json").write_text(json.dumps(sorted(found), ensure_ascii=False), encoding="utf-8")
     print(lang, len(found))

@@ -1,6 +1,8 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
+from __future__ import annotations
+
 import frappe
 from frappe import _
 from frappe.utils import flt
@@ -184,7 +186,7 @@ def item_group_and_below(group):
 
 
 @frappe.whitelist()
-def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_list=None):
+def get_items(pos_profile: str, search: str = "", item_group: str = "", start: int | str = 0, limit: int | str = 60, price_list: str | None = None):
     """Items with selling price and stock for the POS grid."""
     start, limit = int(start), min(int(limit), 500)
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
@@ -277,7 +279,7 @@ def get_items(pos_profile, search="", item_group="", start=0, limit=60, price_li
 
 
 @frappe.whitelist()
-def get_full_catalog(pos_profile, max_items=50000):
+def get_full_catalog(pos_profile: str, max_items: int | str = 50000):
     """Whole sellable catalog in one call, for the local-first IndexedDB
     cache (instant search + offline). With 'Cache only in-stock items'
     enabled in LumenPOS Settings, items without stock in the register's
@@ -300,7 +302,7 @@ def get_full_catalog(pos_profile, max_items=50000):
 
 
 @frappe.whitelist()
-def resolve_scan(pos_profile, code, customer_group=None, app_type=None):
+def resolve_scan(pos_profile: str, code: str, customer_group: str | None = None, app_type: str | None = None):
     """Fast path for the scanner: barcode -> item, serial -> item + serial.
     Returns the item priced on the cart's active price list."""
     profile = frappe.get_cached_doc("POS Profile", pos_profile)
@@ -366,7 +368,7 @@ def resolve_scan(pos_profile, code, customer_group=None, app_type=None):
 
 
 @frappe.whitelist()
-def get_prices(pos_profile, item_codes, customer_group=None, app_type=None, customer=None):
+def get_prices(pos_profile: str, item_codes: list | str, customer_group: str | None = None, app_type: str | None = None, customer: str | None = None):
     """Batch reprice for the cart when the active price list changes
     (customer with a price book, or a delivery-app channel). With a customer
     billed in another currency who has their own price list in it, the items
@@ -413,7 +415,7 @@ def _app_price_list(app_type):
 
 
 @frappe.whitelist()
-def blocked_payment_modes(pos_profile, item_codes):
+def blocked_payment_modes(pos_profile: str, item_codes: list | str):
     """Payment methods the shop has blocked for this basket (Settings → payment
     restrictions). The till greys them out; the server re-checks at submit."""
     import json as _json
@@ -443,7 +445,7 @@ def blocked_payment_modes(pos_profile, item_codes):
 
 
 @frappe.whitelist()
-def stock_by_warehouse(item_code, pos_profile=None):
+def stock_by_warehouse(item_code: str, pos_profile: str | None = None):
     """Where else is this item in stock? Answers "do you have it at the other
     branch?" at the counter instead of a phone call.
 
@@ -492,7 +494,7 @@ def stock_by_warehouse(item_code, pos_profile=None):
 
 
 @frappe.whitelist()
-def price_check(pos_profile, query):
+def price_check(pos_profile: str, query: str):
     """Look up an item's live price + stock WITHOUT adding it to a sale
     (Settings → Features → Price / stock checker). Matches a barcode, serial,
     exact item code, or a name fragment. Returns up to 10 matches, each priced
@@ -591,7 +593,7 @@ def price_check(pos_profile, query):
 
 
 @frappe.whitelist()
-def get_quick_keys(pos_profile):
+def get_quick_keys(pos_profile: str):
     """Resolve the configured favourites (Settings → Features → Quick keys) into
     sell-grid item cards, preserving the configured order + any custom labels.
     Codes that no longer resolve (disabled/deleted) are silently dropped."""
@@ -656,7 +658,7 @@ def get_quick_keys(pos_profile):
 
 
 @frappe.whitelist()
-def validate_serial(pos_profile, item_code, serial_no):
+def validate_serial(pos_profile: str, item_code: str, serial_no: str):
     """Strict check used live at the cart and re-run on submit: the serial
     must exist, belong to this item, be Active stock, and sit in the
     register's warehouse."""
@@ -753,7 +755,7 @@ def _held_message(serial_no, held):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def recent_customers(pos_profile, limit=2000):
+def recent_customers(pos_profile: str, limit: int | str = 2000):
     """A CAPPED set of recent/frequent customers to cache for OFFLINE select.
     Prefers customers this outlet's company has recently transacted with, topped
     up with the most-recently-created ones. Deliberately NOT the full directory
@@ -818,7 +820,7 @@ def recent_customers(pos_profile, limit=2000):
 
 
 @frappe.whitelist()
-def search_customers(search=""):
+def search_customers(search: str = ""):
     or_filters = None
     if search:
         or_filters = {
@@ -902,7 +904,7 @@ def _customer_group(customer_type, *wanted):
 
 
 @frappe.whitelist()
-def create_customer(payload):
+def create_customer(payload: dict | str):
     """Customer creation by the shop's own form (lumenpos.customer_form): each
     field Hidden, Optional or Required, for individuals and companies apart.
     Nothing configured is the form as it always was: name and mobile for
@@ -1001,7 +1003,7 @@ def create_customer(payload):
 
 
 @frappe.whitelist()
-def resolve_pending_customer(payload):
+def resolve_pending_customer(payload: dict | str):
     """Reconcile a customer created OFFLINE on reconnect: MATCH an existing
     customer by mobile (the 'already there' case → link, no duplicate) else
     CREATE one. Idempotent by mobile, so a retry after a lost ACK never

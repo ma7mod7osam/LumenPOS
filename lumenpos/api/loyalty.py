@@ -1,6 +1,8 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
+from __future__ import annotations
+
 import frappe
 from frappe.utils import flt
 
@@ -14,7 +16,7 @@ def _cashback_balance(customer, company=None):
 
 
 @frappe.whitelist()
-def get_wallet(customer, company):
+def get_wallet(customer: str, company: str):
     """Loyalty points + store credit balance for the cart sidebar and the
     payment screen."""
     wallet = {

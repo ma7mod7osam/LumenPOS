@@ -408,6 +408,26 @@ function setupAutoLock() {
   max-width: 260px;
 }
 .outlet-switch option { color: var(--text); background: var(--card-bg); }
+/* A phone: the bar keeps to the screen. The clock and the shift timer go (the
+   register pill still says open or closed), and the buttons on the right
+   scroll inside the bar instead of pushing the whole page sideways (it was
+   about 500px wide at 390 on every screen). */
+@media (max-width: 700px) {
+  .topbar { padding: 0 10px; gap: 8px; }
+  .topbar-title { font-size: 15px; }
+  .tb-clock, .tb-shift { display: none; }
+  .topbar-right {
+    flex: 1 1 auto;
+    flex-shrink: 1;
+    min-width: 0;
+    gap: 8px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topbar-right::-webkit-scrollbar { display: none; }
+  .outlet-switch { max-width: 150px; }
+}
 .register-pill {
   font-size: 11.5px;
   font-weight: 700;

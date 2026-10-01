@@ -149,6 +149,11 @@
               </div>
             </div>
           </div>
+          <!-- Who sold what on this shift (lumenpos.api.salespeople.shift_rows). -->
+          <div v-if="summary.salespeople?.length" class="sp-block">
+            <div class="days-title">{{ t('By salesperson') }}</div>
+            <SalespeopleTable :rows="summary.salespeople" :currency="local" />
+          </div>
           <!-- ERPNext 16 takes sales only on a POS Opening Entry opened the
                same day: the shift closed ERPNext's day at the first sale after
                midnight and sells on (register.roll_day). -->
@@ -403,6 +408,7 @@
 
 <script setup>
 import Icon from '../components/Icon.vue'
+import SalespeopleTable from '../components/SalespeopleTable.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
@@ -821,6 +827,7 @@ async function close() {
   border-top: 1px solid var(--border);
 }
 .days-title { font-weight: 600; margin-bottom: 4px; }
+.sp-block { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
 .days-block .muted.small { margin: 0 0 8px; }
 .day-row {
   display: flex;

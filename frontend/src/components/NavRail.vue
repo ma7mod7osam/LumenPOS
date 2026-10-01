@@ -35,6 +35,10 @@
       <svg viewBox="0 0 24 24"><path d="M3 9h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9zm3-5h12l2 5H4l2-5zm5 9h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span :class="fit(t('Register'))">{{ t('Register') }}</span>
     </router-link>
+    <router-link v-if="salespeopleVisible" to="/salespeople" class="rail-item" active-class="active">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM16 11l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span :class="fit(t('Salespeople'))">{{ t('Salespeople') }}</span>
+    </router-link>
     <router-link v-if="session.permissions.insights" to="/insights" class="rail-item" active-class="active">
       <svg viewBox="0 0 24 24"><path d="M3 3v18h18M8 17v-6m5 6V7m5 10v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span :class="fit(t('Insights'))">{{ t('Insights') }}</span>
@@ -88,6 +92,10 @@ const holdsVisible = computed(
   () =>
     (session.settings.enable_layaway || session.settings.open_holds) &&
     session.permissions.can_hold_goods !== false
+)
+// The salesperson report: for whoever may see it, while the shop uses salespeople.
+const salespeopleVisible = computed(
+  () => session.permissions.sales_by_person && (session.settings.salesperson_mode || 'Optional') !== 'Off'
 )
 const approvalsOpen = ref(false)
 const pendingCount = ref(0)

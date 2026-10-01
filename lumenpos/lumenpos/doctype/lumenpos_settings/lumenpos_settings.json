@@ -72,6 +72,7 @@
   "service_charge_account",
   "features_col",
   "enable_price_checker",
+  "salesperson_mode",
   "enable_xreport",
   "enable_audit_log",
   "enable_email_receipt",
@@ -475,6 +476,14 @@
    "fieldname": "enable_price_checker",
    "fieldtype": "Check",
    "label": "Price / stock checker"
+  },
+  {
+   "default": "Optional",
+   "description": "Optional (the default): the cashier may pick who sold. Required: a sale without a salesperson is refused. Off: the till asks for nobody and records nobody.",
+   "fieldname": "salesperson_mode",
+   "fieldtype": "Select",
+   "label": "Salesperson at the till",
+   "options": "Optional\nRequired\nOff"
   },
   {
    "default": "1",

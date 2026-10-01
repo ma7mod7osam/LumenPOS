@@ -15,7 +15,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Can",
-   "options": "Edit price / discount\nMake returns\nReturn past the window\nExchange goods\nCash in / out\nReprint a receipt\nOpen the register\nClose the register\nHold goods for a customer",
+   "options": "Edit price / discount\nMake returns\nReturn past the window\nExchange goods\nCash in / out\nReprint a receipt\nOpen the register\nClose the register\nHold goods for a customer\nSee sales by salesperson\nSee the system check",
    "reqd": 1
   },
   {

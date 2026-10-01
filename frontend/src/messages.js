@@ -1532,6 +1532,60 @@ const customerForm = {
 
 // Keys that are not English sentences: ERPNext's invoice statuses and the
 // weekday chips, prefixed so they never collide with a label of the same word.
+// 0.57.0: salespeople at the till, the salesperson report, the system check.
+const salespeopleAndCheck = {
+  "Salespeople": "البائعون",
+  "Sales amount": "مبلغ المبيعات",
+  "Net": "الصافي",
+  "Commission": "العمولة",
+  "No salesperson": "بدون بائع",
+  "Pick the salesperson in the cart first": "اختر البائع في السلة أولا",
+  "By salesperson": "حسب البائع",
+  "Sales by salesperson": "المبيعات حسب البائع",
+  "Before tax, in {currency}. Returns are taken off the salesperson of the sale.": "قبل الضريبة، بعملة {currency}. يخصم الاسترجاع من بائع عملية البيع الأصلية.",
+  "Download CSV": "تنزيل ملف CSV",
+  "This outlet": "هذا الفرع",
+  "Every outlet of {company}": "كل فروع {company}",
+  "This report needs a connection.": "يحتاج هذا التقرير إلى اتصال بالإنترنت.",
+  "No sales in this period.": "لا توجد مبيعات في هذه الفترة.",
+  "to": "إلى",
+  "Each sale counts for the salesperson picked at the till. ERPNext works out the commission at each salesperson's rate (Sales Person, Commission Rate).": "تحسب كل عملية بيع للبائع الذي اختير في نقطة البيع، ويحسب ERPNext العمولة بنسبة كل بائع (Sales Person، Commission Rate).",
+  "Returns amount": "مبلغ الاسترجاع",
+  "Commission rate": "نسبة العمولة",
+  "Pick the salesperson first": "اختر البائع أولا",
+  "Salesperson at the till": "البائع في نقطة البيع",
+  "Optional, the cashier may pick who sold": "اختياري، يمكن للكاشير اختيار من باع",
+  "Required, no sale without a salesperson": "إلزامي، لا تتم عملية بيع بدون بائع",
+  "Off, the till does not ask": "متوقف، لا تطلب نقطة البيع البائع",
+  "Salespeople are ERPNext's Sales Persons. The salesperson is saved on the invoice with ERPNext's commission rate, and the Salespeople page shows sales, returns and commission per person. Required is checked on the server too.": "البائعون هم مندوبو المبيعات (Sales Person) في ERPNext. يحفظ البائع في الفاتورة مع نسبة العمولة المسجلة له في ERPNext، وتعرض صفحة البائعين المبيعات والاسترجاع والعمولة لكل بائع. ويتحقق الخادم أيضا من الخيار الإلزامي.",
+  "System check": "فحص النظام",
+  "What may stop LumenPOS working on this site, and what to do about it. Send a screenshot of this page, or Copy for support, with any problem you report.": "ما قد يمنع LumenPOS من العمل على هذا الموقع، وما يجب فعله لمعالجته. أرسل صورة لهذه الصفحة، أو استخدم زر النسخ للدعم الفني، مع أي مشكلة تبلغ عنها.",
+  "Check again": "إعادة الفحص",
+  "Copy for support": "نسخ للدعم الفني",
+  "The system check needs a connection.": "يحتاج فحص النظام إلى اتصال بالإنترنت.",
+  "Problems: {n}": "مشكلات: {n}",
+  "Attention: {n}": "تحتاج انتباها: {n}",
+  "Notes: {n}": "ملاحظات: {n}",
+  "OK: {n}": "سليم: {n}",
+  "Checked at {time}": "وقت الفحص: {time}",
+  "What to do:": "ما يجب فعله:",
+  "Copied. Paste it into your message to support.": "تم النسخ. الصقه في رسالتك إلى الدعم الفني.",
+  "This browser did not allow copying. Take a screenshot instead.": "لم يسمح هذا المتصفح بالنسخ. التقط صورة للشاشة بدلا من ذلك.",
+  "Today": "اليوم",
+  "Yesterday": "أمس",
+  "Last 7 days": "آخر 7 أيام",
+  "This month": "هذا الشهر",
+  "Custom": "فترة أخرى",
+  "Shifts": "الورديات",
+  "Errors and background jobs": "الأخطاء والمهام الخلفية",
+  "Versions": "الإصدارات",
+  "Problem": "مشكلة",
+  "Attention": "انتباه",
+  "OK": "سليم",
+  "See sales by salesperson": "عرض المبيعات حسب البائع",
+  "See the system check": "عرض فحص النظام",
+}
+
 const prefixedEn = {
   'status:Draft': 'Draft',
   'status:Return': 'Return',
@@ -1706,5 +1760,5 @@ const prefixedAr = {
 
 export const messages = {
   en: { ...prefixedEn },
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...prefixedAr },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...prefixedAr },
 }

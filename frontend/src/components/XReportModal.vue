@@ -53,6 +53,15 @@
             </div>
           </div>
 
+          <!-- Who sold what on this shift (lumenpos.api.salespeople.shift_rows). -->
+          <div v-if="s.salespeople?.length" class="xr-section">
+            <div class="xr-sub">{{ t('By salesperson') }}</div>
+            <div v-for="r in s.salespeople" :key="r.sales_person || '-'" class="row">
+              <span><bdi>{{ r.sales_person ? r.name : t('No salesperson') }}</bdi> <span class="muted">({{ r.sales }})</span></span>
+              <span>{{ money(r.net, local) }}</span>
+            </div>
+          </div>
+
           <div class="xr-section">
             <div class="xr-sub">{{ t('Cash drawer') }}</div>
             <div class="row"><span>{{ t('Opening float') }}</span><span>{{ money(s.opening_float, local) }}</span></div>

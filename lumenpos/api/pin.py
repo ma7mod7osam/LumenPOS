@@ -17,6 +17,8 @@ Storage: PBKDF2-HMAC-SHA256, 60k iterations, per-PIN random salt, stored as
 stored or logged.
 """
 
+from __future__ import annotations
+
 import hashlib
 import secrets
 
@@ -81,7 +83,7 @@ def pin_is_set():
 
 
 @frappe.whitelist()
-def set_pin(pin, current_pin=None):
+def set_pin(pin: str, current_pin: str | None = None):
     """Set or change the caller's own PIN. Changing an existing one requires the
     current PIN, so an unattended unlocked session can't silently re-key it."""
     pin = _validate_pin(pin)
@@ -140,7 +142,7 @@ def request_pin_reset():
 
 
 @frappe.whitelist()
-def reset_pin_with_code(code, new_pin):
+def reset_pin_with_code(code: str, new_pin: str):
     """Set a new PIN using the emailed code."""
     _throttle("reset_use", 8, 60)
     new_pin = _validate_pin(new_pin)

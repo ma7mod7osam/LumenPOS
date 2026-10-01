@@ -70,6 +70,10 @@ onMounted(() => {
 })
 
 async function sell() {
+  if (session.settings.salesperson_mode === 'Required' && session.salesPersons.length && !cart.salesPerson) {
+    session.notify(t('Pick the salesperson in the cart first'), true)
+    return
+  }
   busy.value = true
   try {
     const receipt = await call('lumenpos.api.sales.sell_gift_card', {

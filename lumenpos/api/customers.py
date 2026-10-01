@@ -7,6 +7,8 @@ transactions. Every query is server-paginated and scoped to indexed columns, so
 opening this screen never scans the whole customer or sales table and has no
 effect on the rest of the app (it only runs while the screen is open)."""
 
+from __future__ import annotations
+
 import frappe
 from frappe import _
 from frappe.utils import cint, flt
@@ -25,7 +27,7 @@ def _require_read():
 
 
 @frappe.whitelist()
-def search_customers(search=None, customer_group=None, start=0, limit=30):
+def search_customers(search: str | None = None, customer_group: str | None = None, start: int | str = 0, limit: int | str = 30):
     """Paginated customer list. Light columns only, per-customer totals are
     computed on demand in customer_detail, never per row here. Fetches one extra
     row to report has_more without a separate COUNT. Returns {items, has_more}."""
@@ -72,7 +74,7 @@ def customer_groups():
 
 
 @frappe.whitelist()
-def customer_detail(customer, company=None):
+def customer_detail(customer: str, company: str | None = None):
     """Profile + balances + lifetime POS stats for one customer. The stats are a
     single grouped query scoped to this customer (the `customer` column is
     indexed), so it stays cheap regardless of total invoice volume. They add up

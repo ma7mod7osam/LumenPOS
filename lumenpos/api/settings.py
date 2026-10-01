@@ -4,6 +4,8 @@
 """Settings + back-office endpoints for the in-POS settings page
 (promotions, price books, delivery apps, discount approval)."""
 
+from __future__ import annotations
+
 import json
 
 import frappe
@@ -14,6 +16,7 @@ from frappe.utils.password import get_decrypted_password
 from lumenpos import __version__
 from lumenpos import erpnext_compat
 from lumenpos.api import insights
+from lumenpos.api import salespeople
 from lumenpos import cashback_rules, languages, scope
 
 def _can_manage():
@@ -122,6 +125,7 @@ def get_settings():
         "service_charge_percent": flt(doc.get("service_charge_percent")),
         "service_charge_account": doc.get("service_charge_account") or "",
         "enable_price_checker": 1 if doc.get("enable_price_checker") else 0,
+        "salesperson_mode": salespeople.mode(),
         "enable_insights": 1 if insights.enabled() else 0,
         "enable_cashback": 1 if cashback_rules.enabled() else 0,
         "enable_xreport": 1 if doc.get("enable_xreport") else 0,
@@ -303,7 +307,7 @@ def _sale_currencies(doc):
 
 
 @frappe.whitelist()
-def save_settings(payload):
+def save_settings(payload: dict | str):
     _require_manager()
     if isinstance(payload, str):
         payload = json.loads(payload)
@@ -334,6 +338,8 @@ def save_settings(payload):
     doc.service_charge_percent = flt(payload.get("service_charge_percent"))
     doc.service_charge_account = payload.get("service_charge_account") or None
     doc.enable_price_checker = 1 if payload.get("enable_price_checker") else 0
+    if payload.get("salesperson_mode") in salespeople.MODES:
+        doc.salesperson_mode = payload.get("salesperson_mode")
     doc.enable_insights = 1 if payload.get("enable_insights") else 0
     doc.enable_cashback = 1 if payload.get("enable_cashback") else 0
     doc.enable_xreport = 1 if payload.get("enable_xreport") else 0
@@ -622,7 +628,7 @@ def check_passcode(passcode):
 
 
 @frappe.whitelist()
-def verify_passcode(passcode):
+def verify_passcode(passcode: str):
     result = check_passcode(passcode)
     return {
         "valid": bool(result),
@@ -707,7 +713,7 @@ def effective_receipt(pos_profile):
 
 
 @frappe.whitelist()
-def get_profile_receipt(pos_profile):
+def get_profile_receipt(pos_profile: str):
     """For the Settings receipt editor: the outlet's effective receipt (its
     override if any, else the global default as a starting point) and whether it
     currently has its own override."""
@@ -720,7 +726,7 @@ def get_profile_receipt(pos_profile):
 
 
 @frappe.whitelist()
-def save_profile_receipt(pos_profile, config, custom_fields=None):
+def save_profile_receipt(pos_profile: str, config: dict | str, custom_fields: list | str | None = None):
     """Create or replace an outlet's receipt override + its extra custom fields."""
     _require_manager()
     if not pos_profile:
@@ -749,7 +755,7 @@ def save_profile_receipt(pos_profile, config, custom_fields=None):
 
 
 @frappe.whitelist()
-def clear_profile_receipt(pos_profile):
+def clear_profile_receipt(pos_profile: str):
     """Remove an outlet's override so it falls back to the global receipt."""
     _require_manager()
     doc = frappe.get_doc("LumenPOS Settings")
@@ -803,7 +809,7 @@ def rebuild_indexes():
 
 
 @frappe.whitelist()
-def receipt_field_options(source):
+def receipt_field_options(source: str):
     """Pickable fields for the receipt custom-field builder: fields of the POS
     Profile, or of the sale invoice (POS Invoice + Sales Invoice, deduped), 
     INCLUDING custom fields, which is how a ZATCA-QR / country-specific field
@@ -921,7 +927,7 @@ def list_promotions():
 
 
 @frappe.whitelist()
-def get_promotion(name):
+def get_promotion(name: str):
     doc = frappe.get_doc("POS Promotion", name)
     doc.check_permission("read")
     data = {f: doc.get(f) for f in PROMO_FIELDS}
@@ -945,7 +951,7 @@ def get_promotion(name):
 
 
 @frappe.whitelist()
-def save_promotion(payload):
+def save_promotion(payload: dict | str):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
@@ -1037,7 +1043,7 @@ def _resolve_link(doctype, value):
 
 
 @frappe.whitelist()
-def delete_promotion(name):
+def delete_promotion(name: str):
     _require("POS Promotion", "delete")
     frappe.delete_doc("POS Promotion", name)
 
@@ -1072,7 +1078,7 @@ def list_cashback_rules():
 
 
 @frappe.whitelist()
-def get_cashback_rule(name):
+def get_cashback_rule(name: str):
     doc = frappe.get_doc("POS Cashback Rule", name)
     doc.check_permission("read")
     data = {f: doc.get(f) for f in CASHBACK_FIELDS}
@@ -1094,7 +1100,7 @@ def get_cashback_rule(name):
 
 
 @frappe.whitelist()
-def save_cashback_rule(payload):
+def save_cashback_rule(payload: dict | str):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
@@ -1161,7 +1167,7 @@ def save_cashback_rule(payload):
 
 
 @frappe.whitelist()
-def delete_cashback_rule(name):
+def delete_cashback_rule(name: str):
     _require("POS Cashback Rule", "delete")
     frappe.delete_doc("POS Cashback Rule", name)
 
@@ -1193,7 +1199,7 @@ def list_return_restrictions():
 
 
 @frappe.whitelist()
-def save_return_restriction(payload):
+def save_return_restriction(payload: dict | str):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
@@ -1228,7 +1234,7 @@ def save_return_restriction(payload):
 
 
 @frappe.whitelist()
-def delete_return_restriction(name):
+def delete_return_restriction(name: str):
     _require("POS Return Restriction", "delete")
     frappe.delete_doc("POS Return Restriction", name)
 
@@ -1257,7 +1263,7 @@ def post_cashback_to_gl():
 
 
 @frappe.whitelist()
-def test_promotion(name, items, pos_profile, customer_group=None):
+def test_promotion(name: str, items: list | str, pos_profile: str, customer_group: str | None = None):
     """Dry-run a promotion against a test basket of REAL items, with a
     gate-by-gate diagnosis. Turns 'the promotion is not working' into a
     visible reason: wrong day, wrong outlet, rows matching nothing, items
@@ -1389,7 +1395,7 @@ def list_bundles():
 
 
 @frappe.whitelist()
-def save_bundle(payload):
+def save_bundle(payload: dict | str):
     if isinstance(payload, str):
         payload = json.loads(payload)
     if payload.get("name"):
@@ -1425,7 +1431,7 @@ def save_bundle(payload):
 
 
 @frappe.whitelist()
-def delete_bundle(name):
+def delete_bundle(name: str):
     _require("POS Bundle", "delete")
     frappe.delete_doc("POS Bundle", name)
 
@@ -1461,7 +1467,7 @@ def list_price_books():
 
 
 @frappe.whitelist()
-def save_price_book(payload):
+def save_price_book(payload: dict | str):
     if isinstance(payload, str):
         payload = json.loads(payload)
     if payload.get("name"):
@@ -1493,13 +1499,13 @@ def save_price_book(payload):
 
 
 @frappe.whitelist()
-def delete_price_book(name):
+def delete_price_book(name: str):
     _require("POS Price Book", "delete")
     frappe.delete_doc("POS Price Book", name)
 
 
 @frappe.whitelist()
-def list_price_book_prices(price_list, search="", start=0, limit=50, compare_price_list=None):
+def list_price_book_prices(price_list: str, search: str = "", start: int | str = 0, limit: int | str = 50, compare_price_list: str | None = None):
     """Items priced on a price book's price list, with the default price
     alongside for comparison."""
     # Always apply the search filter (an empty search becomes "%", which matches
@@ -1586,7 +1592,7 @@ def _resolve_item(value):
 
 
 @frappe.whitelist()
-def set_price_book_price(price_list, item_code, rate):
+def set_price_book_price(price_list: str, item_code: str, rate: float | str):
     """Upsert one item's price on a price book's price list."""
     _require("Item Price", "write")
     _block_if_protected(price_list)
@@ -1595,7 +1601,7 @@ def set_price_book_price(price_list, item_code, rate):
 
 
 @frappe.whitelist()
-def export_price_book_prices(price_list, compare_price_list=None):
+def export_price_book_prices(price_list: str, compare_price_list: str | None = None):
     """Download every item priced on this price list as a CSV the user can
     edit in Excel and re-import. Columns: Item Code, Item Name, Barcode,
     Default Price, Book Price."""
@@ -1647,7 +1653,7 @@ def export_price_book_prices(price_list, compare_price_list=None):
 
 
 @frappe.whitelist()
-def import_price_book_prices(price_list, filename, content):
+def import_price_book_prices(price_list: str, filename: str, content: str):
     """Bulk-set prices from an uploaded .xlsx or .csv file. Rows are matched
     to items by code, name or barcode; the price comes from a Book Price /
     Price / Rate column (or the last column if there's no header). Returns a
@@ -1783,7 +1789,7 @@ def _items_with_tag(tag):
 
 
 @frappe.whitelist()
-def resolve_items(brand=None, item_group=None, tag=None):
+def resolve_items(brand: str | None = None, item_group: str | None = None, tag: str | None = None):
     """Sellable item codes matching a brand / item group (incl. sub-groups) /
     tag, for bulk-adding to a price book in one click. Returns
     [{item_code, item_name}]."""
@@ -1837,7 +1843,7 @@ def resolve_items(brand=None, item_group=None, tag=None):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def generate_coupons(promotion, count, prefix=None, usage_limit=1, valid_until=None):
+def generate_coupons(promotion: str, count: int | str, prefix: str | None = None, usage_limit: int | str = 1, valid_until: str | None = None):
     """Create `count` unique random codes for a coupon-locked promotion.
     usage_limit = redemptions allowed per code (0 = unlimited)."""
     _require("POS Coupon", "create")
@@ -1850,7 +1856,7 @@ def generate_coupons(promotion, count, prefix=None, usage_limit=1, valid_until=N
 
 
 @frappe.whitelist()
-def import_coupons(promotion, filename, content, usage_limit=1, valid_until=None):
+def import_coupons(promotion: str, filename: str, content: str, usage_limit: int | str = 1, valid_until: str | None = None):
     """Create coupons from an uploaded .xlsx/.csv of codes (first column)."""
     _require("POS Coupon", "create")
     from lumenpos import coupons
@@ -1863,7 +1869,7 @@ def import_coupons(promotion, filename, content, usage_limit=1, valid_until=None
 
 
 @frappe.whitelist()
-def list_coupons(promotion):
+def list_coupons(promotion: str):
     """Coupon counts for a promotion (total / used / available)."""
     _require("POS Coupon", "read")
     from lumenpos import coupons
@@ -1872,7 +1878,7 @@ def list_coupons(promotion):
 
 
 @frappe.whitelist()
-def export_coupons(promotion):
+def export_coupons(promotion: str):
     """All codes for a promotion, for CSV download / printing."""
     _require("POS Coupon", "read")
     from lumenpos import coupons
@@ -1881,7 +1887,7 @@ def export_coupons(promotion):
 
 
 @frappe.whitelist()
-def delete_coupons(promotion, only_unused=1):
+def delete_coupons(promotion: str, only_unused: int | bool | str = 1):
     """Remove a promotion's coupons (unused only by default)."""
     _require("POS Coupon", "delete")
     filters = {"promotion": promotion}
@@ -1895,7 +1901,7 @@ def delete_coupons(promotion, only_unused=1):
 
 
 @frappe.whitelist()
-def parse_price_rows(filename, content):
+def parse_price_rows(filename: str, content: str):
     """Parse an uploaded .xlsx/.csv into item+price rows for the price-book item
     editor. The rows are merged into the book and saved with it, nothing is
     written to Item Price here."""
@@ -1908,7 +1914,7 @@ def parse_price_rows(filename, content):
 
 
 @frappe.whitelist()
-def remove_price_book_price(price_list, item_code):
+def remove_price_book_price(price_list: str, item_code: str):
     _require("Item Price", "delete")
     _block_if_protected(price_list)
     existing = frappe.db.get_value(
@@ -1921,7 +1927,7 @@ def remove_price_book_price(price_list, item_code):
 
 
 @frappe.whitelist()
-def create_price_list(price_list_name):
+def create_price_list(price_list_name: str):
     """Create a fresh selling Price List from the POS settings page so price
     books never require a trip to the desk."""
     _require("Price List", "create")
@@ -1981,7 +1987,7 @@ def list_loyalty_programs():
 
 
 @frappe.whitelist()
-def create_loyalty_program(payload):
+def create_loyalty_program(payload: dict | str):
     """Simple single-tier program: earn 1 point per {spend_per_point} spent,
     each point worth {point_value} at redemption. Auto opt-in enrolls every
     customer."""
@@ -2065,7 +2071,7 @@ def _loyalty_expense_account(company):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def list_gift_cards(search="", limit=50):
+def list_gift_cards(search: str = "", limit: int | str = 50):
     # Balances and customers of every card: whoever may read gift cards, and
     # only the companies ERPNext's User Permissions allow them.
     _require("POS Gift Card", "read")
@@ -2092,7 +2098,7 @@ def list_gift_cards(search="", limit=50):
 
 
 @frappe.whitelist()
-def disable_gift_card(card_no):
+def disable_gift_card(card_no: str):
     _require("POS Gift Card", "write")
     from lumenpos.api.permissions import allowed_companies
 
@@ -2108,7 +2114,7 @@ def disable_gift_card(card_no):
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def link_options(doctype, search="", company=None, root_type=None):
+def link_options(doctype: str, search: str = "", company: str | None = None, root_type: str | None = None):
     allowed = {
         "Item": ["name", "item_name"],
         "Item Group": ["name"],

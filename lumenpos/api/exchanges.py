@@ -21,6 +21,8 @@ made by the same code path: return restrictions, the return window and its
 approval request, serial checks, bundle groups and the refund method rules.
 """
 
+from __future__ import annotations
+
 import json
 
 import frappe
@@ -90,7 +92,7 @@ def _document_value(doctype, name):
 
 
 @frappe.whitelist()
-def quote_exchange(payload):
+def quote_exchange(payload: dict | str):
     """What the customer pays, or gets back, before anything posts.
 
     Both sides are valued by the code that will actually post them: the credit
@@ -142,7 +144,7 @@ def quote_exchange(payload):
 
 
 @frappe.whitelist()
-def submit_exchange(payload):
+def submit_exchange(payload: dict | str):
     """Post an exchange: the credit note and the replacement sale, settled.
 
     payload = {

@@ -392,6 +392,11 @@ function onSaleDone(saleReceipt) {
 const passcodeOpen = ref(false)
 
 function onPay() {
+  // The server refuses it too (lumenpos.api.salespeople.for_sale).
+  if (session.settings.salesperson_mode === 'Required' && session.salesPersons.length && !cart.salesPerson) {
+    session.notify(t('Pick the salesperson first'), true)
+    return
+  }
   if (cart.appType && cart.activeApp?.require_order_id && !cart.orderId.trim()) {
     session.notify(t('Enter the {channel} order ID first', { channel: cart.appType }), true)
     return

@@ -27,6 +27,8 @@ refund method rules a shop already set apply here too, and closes the order so
 the goods go back on the shelf.
 """
 
+from __future__ import annotations
+
 import json
 
 import frappe
@@ -308,7 +310,7 @@ def _release(doc, reason):
 
 
 @frappe.whitelist()
-def quote_hold(pos_profile, customer=None, items=None):
+def quote_hold(pos_profile: str, customer: str | None = None, items: list | str | None = None):
     """What a hold of these goods would come to, before anyone commits to it.
 
     The till asks this when the Hold modal opens, rather than doing the sums
@@ -363,7 +365,7 @@ def _assert_hold_prices(profile, customer, items):
 
 
 @frappe.whitelist()
-def create_layaway(payload):
+def create_layaway(payload: dict | str):
     """Start a hold: reserve the goods, take the first instalment.
 
     payload = {pos_profile, customer, items:[{item_code, qty, rate}],
@@ -436,7 +438,7 @@ def create_layaway(payload):
 
 
 @frappe.whitelist()
-def add_instalment(layaway, payments, pos_profile=None):
+def add_instalment(layaway: str, payments: list | str, pos_profile: str | None = None):
     """Take another payment against an open hold, at any outlet of its company."""
     if isinstance(payments, str):
         payments = json.loads(payments)
@@ -452,7 +454,7 @@ def add_instalment(layaway, payments, pos_profile=None):
 
 
 @frappe.whitelist()
-def complete_layaway(layaway, payments=None, pos_profile=None):
+def complete_layaway(layaway: str, payments: list | str | None = None, pos_profile: str | None = None):
     """Hand the goods over: the real sale, less what is already paid.
 
     The deposit comes off as a negative line of the SAME item that took it, so
@@ -514,7 +516,7 @@ def complete_layaway(layaway, payments=None, pos_profile=None):
 
 
 @frappe.whitelist()
-def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None, pos_profile=None):
+def cancel_layaway(layaway: str, refund_mode: str | None = None, refund_payments: list | str | None = None, reason: str | None = None, pos_profile: str | None = None):
     """Give the money back and put the goods on the shelf.
 
     Every instalment is refunded through the ordinary return, so the refund
@@ -553,7 +555,7 @@ def cancel_layaway(layaway, refund_mode=None, refund_payments=None, reason=None,
 
 
 @frappe.whitelist()
-def get_layaway(name):
+def get_layaway(name: str):
     _require_layaway_access()
     doc = _load(name)
     return {
@@ -594,7 +596,7 @@ def get_layaway(name):
 
 
 @frappe.whitelist()
-def list_layaways(pos_profile=None, status="Open", search=None, limit=50, scope="company"):
+def list_layaways(pos_profile: str | None = None, status: str = "Open", search: str | None = None, limit: int | str = 50, scope: str = "company"):
     """The holds screen, newest first: every hold of this outlet's company
     (any of its outlets can serve one), or this outlet's alone."""
     _require_layaway_access()

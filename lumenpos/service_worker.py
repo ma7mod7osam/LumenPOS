@@ -19,6 +19,7 @@ without a connection.
 """
 
 import os
+from pathlib import Path
 
 import frappe
 
@@ -40,8 +41,8 @@ class ServiceWorkerPage:
     def render(self):
         from werkzeug.wrappers import Response
 
-        with open(_file(), "rb") as handle:
-            body = handle.read()
+        # A fixed path inside the app (_file), never anything the request names.
+        body = Path(_file()).read_bytes()
         response = Response(body, mimetype="text/javascript")
         # Registered from the root so it can take charge of /pos, and told to
         # stay there: it must never answer for the desk.

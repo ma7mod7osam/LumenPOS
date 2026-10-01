@@ -33,6 +33,8 @@ This module fixes it with a strict state machine on the LumenPOS session:
     shift reaches "Closed", at which point the opening entry is closed too.
 """
 
+from __future__ import annotations
+
 import json
 
 import frappe
@@ -41,6 +43,7 @@ from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from lumenpos.api.session import get_open_session
 from lumenpos import erpnext_compat
+from lumenpos.api import salespeople
 
 LIVE_STATES = ["Open", "Closing"]  # a shift that blocks opening another
 CLOSING_LOCK = "lumenpos_pos_closing"
@@ -205,7 +208,7 @@ def _assert_no_other_open_shift(pos_profile):
 
 
 @frappe.whitelist()
-def open_register(pos_profile, opening_float=0, resume_opening_entry=None, force_new=0, floats=None):
+def open_register(pos_profile: str, opening_float: float | str = 0, resume_opening_entry: str | None = None, force_new: int | bool | str = 0, floats: dict | str | None = None):
     """Opening is ALWAYS a fresh shift. A shift can never be resumed.
 
     The REGISTER SESSION's status is the only truth. Native POS Opening Entries
@@ -546,7 +549,7 @@ def _force_new_after_failure(profile, opening_float, stuck_session, floats=None)
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def add_cash_movement(session, movement_type, amount, reason=None, mode_of_payment=None):
+def add_cash_movement(session: str, movement_type: str, amount: float | str, reason: str | None = None, mode_of_payment: str | None = None):
     if not frappe.has_permission("POS Register Session", "write"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
     from lumenpos.api import permissions
@@ -576,7 +579,7 @@ def add_cash_movement(session, movement_type, amount, reason=None, mode_of_payme
 
 
 @frappe.whitelist()
-def get_session_summary(session):
+def get_session_summary(session: str):
     """Expected takings per payment mode for the close-register screen, and for
     the mid-shift X-report.
 
@@ -674,6 +677,8 @@ def get_session_summary(session):
         "expected": expected,
         # The ERPNext days the shift closed while it sold on past midnight.
         "erpnext_days": _days_info(doc),
+        # Who sold what on this shift (empty when nobody was named).
+        "salespeople": salespeople.shift_rows(doc.name, sale_doctype),
         **totals,
     }
 
@@ -741,7 +746,7 @@ def _has_expected_pending():
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def close_register(session, counted, closing_note=None, expected_invoice_count=None):
+def close_register(session: str, counted: dict | str, closing_note: str | None = None, expected_invoice_count: int | str | None = None):
     """Flip the session to 'Closing' (committed immediately, so it can never be
     sold-on or resumed again), then consolidate in a serialized background job.
     The shift only reaches 'Closed' once consolidation succeeds."""
@@ -951,7 +956,7 @@ def _enqueue_consolidation(session_name, counted=None, after_commit=True):
 
 
 @frappe.whitelist()
-def retry_closing(session):
+def retry_closing(session: str):
     """Re-run consolidation for a session stuck in 'Closing' (manual retry)."""
     if not frappe.has_permission("POS Closing Entry", "create"):
         frappe.throw(_("You are not permitted to close a register"), frappe.PermissionError)
@@ -2032,7 +2037,7 @@ def _days_info(session_doc):
 
 
 @frappe.whitelist()
-def retry_days(session):
+def retry_days(session: str):
     """Book again the ERPNext days of a shift that did not reach the books
     (roll_day), once whatever stopped them is put right. Queued, like
     retry_closing, and allowed to the same people."""
@@ -2158,7 +2163,7 @@ def _release_lock():
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def closing_entry_status(session):
+def closing_entry_status(session: str):
     """Poll the close/consolidation state for a session."""
     if not frappe.has_permission("POS Register Session", "read"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
@@ -2180,7 +2185,7 @@ def closing_entry_status(session):
 
 
 @frappe.whitelist()
-def list_open_shifts(pos_profile):
+def list_open_shifts(pos_profile: str):
     """For a manager: the shifts still open at this outlet that the Register
     page does not already show them, so one can be closed from there. In "Per
     cashier" scope each cashier holds their own, and a manager had no way to
@@ -2211,7 +2216,7 @@ def list_open_shifts(pos_profile):
 
 
 @frappe.whitelist()
-def list_sessions(pos_profile, limit=20):
+def list_sessions(pos_profile: str, limit: int | str = 20):
     """Closed + still-finalising register sessions for the history panel, with
     their native POS Opening/Closing Entry links and count differences."""
     if not frappe.has_permission("POS Register Session", "read"):

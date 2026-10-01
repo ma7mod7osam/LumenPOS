@@ -23,6 +23,8 @@ Reports, and no code crosses in either direction. The module is resolved by
 name at call time, never imported.
 """
 
+from __future__ import annotations
+
 import frappe
 from frappe import _
 from frappe.utils import cint
@@ -147,7 +149,7 @@ def status():
 
 
 @frappe.whitelist()
-def ensure_dashboard(lang=None):
+def ensure_dashboard(lang: str | None = None):
     """Ask Lumen Reports to create the POS sales dashboard. Their side is
     idempotent and never overwrites a dashboard that already exists, so this is
     safe to call repeatedly. Returns the fresh status()."""

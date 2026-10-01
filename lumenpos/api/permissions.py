@@ -34,6 +34,8 @@ REPRINT = "Reprint a receipt"
 OPEN_REGISTER = "Open the register"
 CLOSE_REGISTER = "Close the register"
 HOLD_GOODS = "Hold goods for a customer"
+SALES_BY_PERSON = "See sales by salesperson"
+SYSTEM_CHECK = "See the system check"
 
 LEGACY_FIELD = {
     PRICE_EDIT: "price_edit_role",
@@ -44,7 +46,9 @@ LEGACY_FIELD = {
 
 # Capabilities nobody holds until someone is named. Everything else is open
 # until a shop decides otherwise, so installing LumenPOS never locks a till.
-CLOSED_BY_DEFAULT = {RETURN_EXCEED}
+# The two reports added in 0.57.0 show staff performance and the state of the
+# whole site, so they stay with the managers until a shop names someone.
+CLOSED_BY_DEFAULT = {RETURN_EXCEED, SALES_BY_PERSON, SYSTEM_CHECK}
 
 
 def _roles(user=None):
@@ -194,6 +198,18 @@ def can_reprint(user=None):
 def can_open_register(user=None):
     """Open a shift. ERPNext's own document permissions still apply on top."""
     return allowed(OPEN_REGISTER, user)
+
+
+def can_see_sales_by_person(user=None):
+    """The sales by salesperson report, with each person's commission. Nobody
+    but a manager until a shop names someone."""
+    return allowed(SALES_BY_PERSON, user)
+
+
+def can_see_system_check(user=None):
+    """The system check (versions, outlet setup, stuck shifts, recent errors).
+    Nobody but a manager until a shop names someone."""
+    return allowed(SYSTEM_CHECK, user)
 
 
 def can_close_register(user=None):

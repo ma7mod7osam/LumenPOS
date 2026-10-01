@@ -65,8 +65,12 @@
       {{ t('Prices from') }} <strong>{{ cart.activePriceList }}</strong>
     </div>
 
-    <div v-if="session.salesPersons.length" class="salesperson-row">
-      <span class="muted small">{{ t('Salesperson') }}</span>
+    <div
+      v-if="session.salesPersons.length && session.settings.salesperson_mode !== 'Off'"
+      class="salesperson-row"
+      :class="{ needed: session.settings.salesperson_mode === 'Required' && !cart.salesPerson }"
+    >
+      <span class="muted small">{{ t('Salesperson') }}<template v-if="session.settings.salesperson_mode === 'Required'"> *</template></span>
       <template v-if="cart.salesPerson">
         <span class="sp-chip">
           {{ selectedSalesPersonLabel }}
@@ -550,6 +554,7 @@ function discard() {
   border-bottom: 1px solid var(--border);
 }
 .salesperson-row input { flex: 1; padding: 6px 10px; font-size: 13px; }
+.salesperson-row.needed input { border-color: var(--amber); }
 .sp-chip {
   display: inline-flex;
   align-items: center;

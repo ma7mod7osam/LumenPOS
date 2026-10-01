@@ -8,6 +8,8 @@ and never blocks the action it records (a failed write is swallowed so a sale is
 never lost to an audit problem). Reads are manager-only.
 """
 
+from __future__ import annotations
+
 import frappe
 from frappe.utils import cint, flt
 
@@ -63,7 +65,7 @@ def log(
 
 
 @frappe.whitelist()
-def list_logs(action=None, user=None, from_date=None, to_date=None, start=0, limit=50):
+def list_logs(action: str | None = None, user: str | None = None, from_date: str | None = None, to_date: str | None = None, start: int | str = 0, limit: int | str = 50):
     """Manager-only reader for the Settings → Audit log viewer."""
     from lumenpos.api import permissions
 

@@ -13,6 +13,8 @@ is single-use: it is consumed by the sale / credit note it authorizes, and it
 expires if the register closes before it's approved.
 """
 
+from __future__ import annotations
+
 import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, get_fullname, now_datetime, nowdate
@@ -77,15 +79,15 @@ def _has_restricted_items(return_invoice, pos_profile=None):
 
 @frappe.whitelist()
 def create_request(
-    request_type,
-    pos_profile,
-    reason=None,
-    customer=None,
-    customer_name=None,
-    discount_percent=0,
-    cart_total=0,
-    return_invoice=None,
-    details=None,
+    request_type: str,
+    pos_profile: str,
+    reason: str | None = None,
+    customer: str | None = None,
+    customer_name: str | None = None,
+    discount_percent: float | str = 0,
+    cart_total: float | str = 0,
+    return_invoice: str | None = None,
+    details: dict | str | None = None,
 ):
     """Cashier drops an approval request tied to the open register session.
     request_type is 'Discount' or 'Return'. Returns {name, status}.
@@ -167,7 +169,7 @@ def create_request(
 
 
 @frappe.whitelist()
-def request_status(name):
+def request_status(name: str):
     """Poll a request, the cashier who raised it (or any approver) may read."""
     doc = frappe.get_doc(REQUEST_DOCTYPE, name)
     if doc.cashier != frappe.session.user and not can_approve():
@@ -183,7 +185,7 @@ def request_status(name):
 
 
 @frappe.whitelist()
-def cancel_request(name):
+def cancel_request(name: str):
     """Cashier withdraws their own still-pending request."""
     doc = frappe.get_doc(REQUEST_DOCTYPE, name)
     if doc.cashier != frappe.session.user and not can_approve():
@@ -195,7 +197,7 @@ def cancel_request(name):
 
 
 @frappe.whitelist()
-def pending_requests(pos_profile=None):
+def pending_requests(pos_profile: str | None = None):
     """Requests an approver can act on right now. Pending and whose register
     session is still Open. Returns the list (its length is the badge count)."""
     _require_approver()
@@ -229,12 +231,12 @@ def pending_requests(pos_profile=None):
 
 
 @frappe.whitelist()
-def approve_request(name):
+def approve_request(name: str):
     return _decide(name, "Approved")
 
 
 @frappe.whitelist()
-def reject_request(name, note=None):
+def reject_request(name: str, note: str | None = None):
     return _decide(name, "Rejected", note)
 
 
@@ -321,7 +323,7 @@ def consume(request_name, invoice_name):
 
 
 @frappe.whitelist()
-def expire_session_requests(session_name):
+def expire_session_requests(session_name: str):
     """Void every request on a shift that is closing. Pending AND
     Approved-but-unused.
 

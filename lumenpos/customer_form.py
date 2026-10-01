@@ -14,6 +14,8 @@ rules as the screen, so a stale tab or a direct call cannot skip a required
 field.
 """
 
+from __future__ import annotations
+
 import frappe
 from frappe import _
 from frappe.utils import cint
@@ -161,7 +163,7 @@ def field_choices():
 
 
 @frappe.whitelist()
-def link_values(fieldname, search=""):
+def link_values(fieldname: str, search: str = ""):
     """Values for a Link field the shop put on the form (a customer group, a
     city list of its own), for the cashier to pick from. Only for fields on
     the form, and through the user's own permissions."""
