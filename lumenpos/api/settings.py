@@ -111,6 +111,7 @@ def get_settings():
         "shift_scope": doc.get("shift_scope") or "Per outlet",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
         "carry_shift_past_midnight": 1 if _carry_past_midnight() else 0,
+        "warn_locked_periods": 1 if offline_switch("warn_locked_periods") else 0,
         # ERPNext 16 and later take sales only on a shift opened the same day,
         # the only place "Keep a shift open past midnight" does anything.
         "same_day_shifts": 1 if erpnext_compat.one_open_shift_per_outlet() else 0,
@@ -331,6 +332,9 @@ def save_settings(payload: dict | str):
     for field in ("help_in_till", "help_offer_tour", "help_whats_new"):
         if field in payload:
             doc.set(field, 1 if payload.get(field) else 0)
+    # And before 0.58.1.
+    if "warn_locked_periods" in payload:
+        doc.warn_locked_periods = 1 if payload.get("warn_locked_periods") else 0
     doc.variance_alert_enabled = 1 if payload.get("variance_alert_enabled") else 0
     doc.variance_alert_threshold = flt(payload.get("variance_alert_threshold"))
     doc.variance_alert_role = payload.get("variance_alert_role") or None

@@ -107,6 +107,9 @@ export const useSessionStore = defineStore('session', {
     bundles: [],
     permissions: {},
     pendingClosing: null,
+    // An ERPNext accounting period that locks Sales Invoices today at this
+    // outlet's company (lumenpos.accounting_periods): {period, from, to, ended}.
+    periodLock: null,
     offline: false,
     queuedCount: 0,
     // Of those, sales the server refused (offline.queueBreakdown): they never
@@ -277,6 +280,7 @@ export const useSessionStore = defineStore('session', {
       this.bundles = data.bundles || []
       this.permissions = data.permissions || {}
       this.pendingClosing = data.pending_closing || null
+      this.periodLock = data.period_lock || null
       this.pinSet = data.pin_set !== false
       syncFromErp(data.desk_theme) // follow ERPNext theme unless overridden in LumenPOS
       setCurrency(data.currency)

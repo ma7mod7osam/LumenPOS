@@ -1683,4 +1683,13 @@ export default {
   "Refunds to store credit": "退款到店内余额",
   "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "在 0.58.0 之前，保存常规设置会关闭“允许退款到店内余额”。如果您的门店会退款到店内余额，请在 设置、常规、退货与退款 中重新开启。",
   "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "销售只能退款到客户实际使用的支付方式。可在下方添加例外。",
+  "ERPNext's accounting period {period} ({from} to {to}) locks sales invoices today, so no sale can be posted. Tell whoever looks after the accounts.": "ERPNext 的会计期间 {period}（{from} 至 {to}）今天锁定了销售发票，因此任何销售都无法过账。请告知负责账务的人员。",
+  "ERPNext's accounting period {period} ({from} to {to}) locks sales invoices today. You can sell, but this shift will not be able to close until the period is changed in ERPNext. Tell whoever looks after the accounts.": "ERPNext 的会计期间 {period}（{from} 至 {to}）今天锁定了销售发票。您可以继续销售，但在 ERPNext 中修改该期间之前，此班次将无法关闭。请告知负责账务的人员。",
+  "ERPNext's accounting period {period} ({from} to {to}) locks sales invoices, so the sales of this shift cannot be posted.": "ERPNext 的会计期间 {period}（{from} 至 {to}）锁定了销售发票，因此此班次的销售无法过账。",
+  "In ERPNext, open this period (Accounting Period), untick Sales Invoice and press Retry closing, then tick it again.": "在 ERPNext 中打开此期间（会计期间），取消勾选 销售发票 并点击 重试关闭，之后再重新勾选。",
+  "An accounting period is meant to lock a month that is over. Delete this one in ERPNext (Accounting Period), then press Retry closing.": "会计期间用于锁定已经结束的月份。请在 ERPNext 中删除此期间（会计期间），然后点击 重试关闭。",
+  "Warn about locked accounting periods": "提醒已锁定的会计期间",
+  "When an ERPNext accounting period locks sales invoices, say so as a shift opens, and explain a close it stops. The system check lists such periods either way.": "当 ERPNext 的会计期间锁定销售发票时，在开班时提示，并说明因此失败的关闭。无论如何，系统检查都会列出此类期间。",
+  "Locked accounting periods": "已锁定的会计期间",
+  "When an ERPNext accounting period locks sales invoices, the till now says so as a shift opens and explains a close it stops. Settings, System check lists such periods too.": "当 ERPNext 的会计期间锁定销售发票时，收银台现在会在开班时提示，并说明因此失败的关闭。设置、系统检查 也会列出此类期间。",
 }

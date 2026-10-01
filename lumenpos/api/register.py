@@ -1793,7 +1793,12 @@ def _opening_closed(opening_name):
 
 
 def _short(value, length=480):
-    return str(value)[:length] if value is not None else None
+    # Kept as plain text: ERPNext's refusals carry HTML (the name of a closed
+    # accounting period in <strong>), which the Register page showed tags and
+    # all until 0.58.1.
+    from lumenpos.accounting_periods import plain
+
+    return plain(value, length)
 
 
 # ---------------------------------------------------------------------------
@@ -2031,6 +2036,9 @@ def _days_info(session_doc):
             "sales_count": cint(r.sales_count),
             "closing_status": r.closing_status,
             "closing_error": r.closing_error,
+            "closing_hint": _closing_hint(session_doc.pos_profile, r.closing_error)
+            if r.closing_status == "Failed"
+            else None,
         }
         for r in session_doc.get("erpnext_days") or []
     ]
@@ -2173,15 +2181,30 @@ def closing_entry_status(session: str):
     doc = frappe.db.get_value(
         "POS Register Session",
         session,
-        ["status", "closing_status", "closing_error", "pos_closing_entry"],
+        ["status", "closing_status", "closing_error", "pos_closing_entry", "pos_profile"],
         as_dict=True,
     ) or frappe._dict()
     return {
         "status": doc.status,
         "closing_status": doc.closing_status,
         "closing_error": doc.closing_error,
+        "closing_hint": _closing_hint(doc.pos_profile, doc.closing_error),
         "pos_closing_entry": doc.pos_closing_entry,
     }
+
+
+def _closing_hint(pos_profile, error):
+    """The ERPNext accounting period a failed close names, for the till to
+    explain (lumenpos.accounting_periods), or None."""
+    if not error or not pos_profile:
+        return None
+    from lumenpos import accounting_periods
+
+    try:
+        return accounting_periods.till_hint(frappe.get_cached_value("POS Profile", pos_profile, "company"), error)
+    except Exception:
+        # An explanation is a courtesy: never let it break the status itself.
+        return None
 
 
 @frappe.whitelist()

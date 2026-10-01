@@ -129,6 +129,7 @@ def ensure_setup():
     default_carry_past_midnight_on()
     default_offline_switches_on()
     default_help_switches_on()
+    default_period_switches_on()
     recost_open_holds()
     ensure_currencies()
     ensure_hot_indexes()
@@ -259,6 +260,9 @@ def default_carry_past_midnight_on():
 OFFLINE_SWITCHES = ("offline_returns", "background_upload", "warn_unprotected_storage")
 # And the help for staff (0.58.0, lumenpos.api.help).
 HELP_SWITCHES = ("help_in_till", "help_offer_tour", "help_whats_new")
+# And the warning about ERPNext accounting periods that lock sales (0.58.1,
+# lumenpos.accounting_periods).
+PERIOD_SWITCHES = ("warn_locked_periods",)
 
 
 def _switches_on_once(fields):
@@ -284,6 +288,11 @@ def default_offline_switches_on():
 def default_help_switches_on():
     """The three switches of the help for staff ship ON."""
     _switches_on_once(HELP_SWITCHES)
+
+
+def default_period_switches_on():
+    """The warning about locked accounting periods ships ON."""
+    _switches_on_once(PERIOD_SWITCHES)
 
 
 def backfill_store_credit_references():

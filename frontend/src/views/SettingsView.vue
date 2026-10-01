@@ -1370,6 +1370,14 @@
               <span class="setting-desc">{{ t('ERPNext 16 takes sales only on a shift opened the same day. On (the default): at the first sale after midnight LumenPOS closes the day in ERPNext and opens the next one by itself, and the shift carries on and is counted once, at its own close. Off: a shift from an earlier day has to be closed before it can sell again.') }}</span>
             </span>
           </label>
+          <!-- lumenpos.accounting_periods (0.58.1) -->
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.warn_locked_periods" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Warn about locked accounting periods') }}</span>
+              <span class="setting-desc">{{ t('When an ERPNext accounting period locks sales invoices, say so as a shift opens, and explain a close it stops. The system check lists such periods either way.') }}</span>
+            </span>
+          </label>
           <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.variance_alert_enabled" :true-value="1" :false-value="0" />
             <span class="setting-text">
@@ -2475,6 +2483,7 @@ const generalForm = ref({
   shift_scope: 'Per outlet',
   one_shift_per_user: 0,
   carry_shift_past_midnight: 1,
+  warn_locked_periods: 1,
   variance_alert_enabled: 0,
   variance_alert_threshold: 0,
   variance_alert_role: '',
@@ -3132,6 +3141,8 @@ async function load() {
     one_shift_per_user: info.one_shift_per_user ? 1 : 0,
     // A server from before 0.55.0 does not send it: on, its default.
     carry_shift_past_midnight: info.carry_shift_past_midnight === 0 ? 0 : 1,
+    // And before 0.58.1.
+    warn_locked_periods: info.warn_locked_periods === 0 ? 0 : 1,
     variance_alert_enabled: info.variance_alert_enabled || 0,
     variance_alert_threshold: info.variance_alert_threshold || 0,
     variance_alert_role: info.variance_alert_role || '',

@@ -16,7 +16,7 @@ import sys
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, add_to_date, cint, flt, get_datetime, now_datetime, nowdate
+from frappe.utils import add_days, add_to_date, cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from lumenpos import __version__, erpnext_compat
 from lumenpos.api import permissions
@@ -147,10 +147,12 @@ def _check_shifts():
     seen = {r.name for r in stuck}
     stuck += [r for r in failed if r.name not in seen]
     if stuck:
+        from lumenpos.accounting_periods import plain
+
         out.append(_row("shifts", PROBLEM, _("Shifts stuck in Closing: {0}").format(len(stuck)),
                         _("Their sales are not in the books yet."),
-                        items=["%s, %s: %s" % (r.name, r.pos_profile, (r.closing_error or "").strip().splitlines()[-1][:140]
-                                                if (r.closing_error or "").strip() else _("no reason recorded")) for r in stuck],
+                        items=["%s, %s: %s" % (r.name, r.pos_profile, plain(r.closing_error).splitlines()[-1][:140]
+                                                if plain(r.closing_error) else _("no reason recorded")) for r in stuck],
                         fix=_("Register page, Retry. If it fails again, send this screen.")))
     old = frappe.get_all(
         "POS Register Session",
@@ -195,6 +197,44 @@ def _check_shifts():
                         items=pending, fix=_("Register page, Retry, or wait for the next background run.")))
     if not out:
         out.append(_row("shifts", OK, _("No shift needs attention")))
+    return out
+
+
+def _check_periods():
+    """ERPNext Accounting Periods that lock what LumenPOS posts (0.58.1): the
+    close posts a shift's sales as a Sales Invoice, and cashback and group
+    balances post Journal Entries. A period made ahead of time "to open" a
+    month locks it instead (the Zimbabwe shop, 2026-10-01)."""
+    from lumenpos import accounting_periods
+
+    companies = sorted({c for c in frappe.get_all("POS Profile", filters={"disabled": 0}, pluck="company") if c})
+    rows = accounting_periods.periods(companies, until=nowdate())
+    if not rows:
+        return [_row("shifts", OK, _("No accounting period locks sales"))]
+    today = getdate(nowdate())
+
+    def item(p):
+        text = _("{0} ({1}): {2} to {3}, locks {4}").format(
+            p.name, p.company, p.start_date, p.end_date, ", ".join(_(d) for d in p.doctypes))
+        if p.exempted_role:
+            text += ". " + _("Not for the role {0}").format(_(p.exempted_role))
+        return text
+
+    out = []
+    now_ = [p for p in rows if p.start_date <= today]
+    later = [p for p in rows if p.start_date > today]
+    fix = _("An accounting period is meant to lock a month that is over. In ERPNext, Accounting Period: delete one made "
+            "ahead of time (ERPNext 15 and 16 do not let anyone edit a period that has not ended), or untick Sales "
+            "Invoice and Journal Entry in it.")
+    if now_:
+        out.append(_row("shifts", PROBLEM, _("Accounting periods locking sales today: {0}").format(len(now_)),
+                        _("ERPNext refuses what an accounting period locks on its dates. A shift cannot close, because "
+                          "the close posts its sales as a Sales Invoice."),
+                        items=[item(p) for p in now_], fix=fix))
+    if later:
+        out.append(_row("shifts", WARN, _("Accounting periods that will lock sales: {0}").format(len(later)),
+                        _("From their first day, shifts cannot close."),
+                        items=[item(p) for p in later], fix=fix))
     return out
 
 
@@ -311,7 +351,7 @@ def _check_jobs(since):
     return out
 
 
-CHECKS = (_check_pos_settings, _check_outlets, _check_shifts, _check_settings, _check_errors)
+CHECKS = (_check_pos_settings, _check_outlets, _check_shifts, _check_periods, _check_settings, _check_errors)
 
 
 @frappe.whitelist()

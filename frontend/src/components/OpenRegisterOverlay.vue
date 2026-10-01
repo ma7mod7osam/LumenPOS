@@ -15,8 +15,9 @@
             <div class="muted small" style="margin-top: 4px">
               {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being finalised') }}<span v-if="pending.closing_status === 'Failed'">&nbsp;{{ t('and the last attempt') }} <b>{{ t('failed') }}</b></span>. {{ t('You can open a new shift now, it keeps finalising in the background.') }}
             </div>
-            <div v-if="pending.closing_error" class="err-detail">{{ pending.closing_error }}</div>
+            <div v-if="pending.closing_error" class="err-detail">{{ plainText(pending.closing_error) }}</div>
           </div>
+          <PeriodHint v-if="pending.closing_hint" :hint="pending.closing_hint" />
           <button
             v-if="canClose"
             class="btn btn-outline choice-btn"
@@ -77,6 +78,14 @@
       <!-- Step 1: float entry -->
       <template v-else>
         <div class="modal-body">
+          <!-- An ERPNext accounting period locks sales invoices today: the
+               shift can sell, but its close would fail (0.58.1). -->
+          <PeriodHint
+            v-if="session.periodLock"
+            :hint="session.periodLock"
+            when="today"
+            :invoice-mode="session.invoiceMode"
+          />
           <!-- Shifts this person still holds at other outlets. A reminder, or,
                when the shop allows one open shift per person, the reason this
                one cannot open yet, with a way to get to the open one. -->
@@ -185,7 +194,8 @@ import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
 import { call } from '../api'
 import { t } from '../i18n'
-import { parseMoney } from '../format'
+import { parseMoney, plainText } from '../format'
+import PeriodHint from './PeriodHint.vue'
 
 const session = useSessionStore()
 const catalog = useCatalogStore()
@@ -305,7 +315,7 @@ function startPoll(sessionName) {
         busy.value = false
       } else if (res.closing_status === 'Failed') {
         clearInterval(poll)
-        pending.value = { ...pending.value, closing_status: 'Failed', closing_error: res.closing_error }
+        pending.value = { ...pending.value, closing_status: 'Failed', closing_error: res.closing_error, closing_hint: res.closing_hint }
         session.notify(t('Closing failed again. Check the error and retry'), true)
         busy.value = false
       }

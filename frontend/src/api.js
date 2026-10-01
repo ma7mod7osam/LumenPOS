@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
 import { locale } from './i18n'
+import { plainText } from './format'
 
 export class ApiError extends Error {}
 
@@ -119,7 +120,5 @@ function extractMessage(data) {
 }
 
 function stripHtml(text) {
-  const el = document.createElement('div')
-  el.innerHTML = text
-  return el.textContent || el.innerText || text
+  return plainText(text) || String(text ?? '')
 }

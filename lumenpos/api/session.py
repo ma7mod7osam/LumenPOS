@@ -114,6 +114,7 @@ def get_bootstrap(pos_profile: str | None = None):
         "register_session": session,
         "other_open_registers": _other_open_registers(profile_name),
         "pending_closing": _pending_closing(profile_name),
+        "period_lock": _period_lock(profile),
         "permissions": {
             **get_user_permissions(),
             # Typing a price on a line: this outlet's own switch and the rule.
@@ -247,13 +248,31 @@ def _pending_closing(pos_profile):
     )
     if not row:
         return None
+    from lumenpos.api.register import _closing_hint
+
     return {
         "session": row.name,
         "closing_status": row.closing_status,
         "closing_error": row.closing_error,
+        # An ERPNext accounting period the failed close names (0.58.1).
+        "closing_hint": _closing_hint(pos_profile, row.closing_error) if row.closing_status == "Failed" else None,
         "pos_closing_entry": row.pos_closing_entry,
         "closed_at": str(row.closed_at) if row.closed_at else None,
     }
+
+
+def _period_lock(profile):
+    """An ERPNext accounting period that locks Sales Invoices today at this
+    outlet's company (0.58.1): the till says so when a shift opens, because the
+    close posts the shift's sales as one (and a Sales Invoice outlet's every
+    sale is one). None when nothing locks today, or the shop switched it off."""
+    from lumenpos import accounting_periods
+
+    try:
+        return accounting_periods.till_lock(profile.company)
+    except Exception:
+        frappe.log_error(title="LumenPOS: reading accounting periods", message=frappe.get_traceback())
+        return None
 
 
 def get_bundles(pos_profile=None):
@@ -354,7 +373,7 @@ def _client_settings(profile_name=None):
 
     from frappe.utils import cint
 
-    from lumenpos import languages
+    from lumenpos import accounting_periods, languages
     from lumenpos.api import approval_requests
 
     doc = frappe.get_cached_doc("LumenPOS Settings")
@@ -369,6 +388,7 @@ def _client_settings(profile_name=None):
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
         "shift_scope": doc.get("shift_scope") or "Per outlet",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
+        "warn_locked_periods": 1 if accounting_periods.switch() else 0,
         "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
         "enable_service_charge": 1 if doc.get("enable_service_charge") else 0,
         "service_charge_percent": flt(doc.get("service_charge_percent")),

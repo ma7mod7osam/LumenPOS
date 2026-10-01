@@ -18,6 +18,7 @@
   "shift_scope",
   "one_shift_per_user",
   "carry_shift_past_midnight",
+  "warn_locked_periods",
   "variance_alert_enabled",
   "variance_alert_threshold",
   "variance_alert_role",
@@ -711,6 +712,13 @@
    "label": "Keep a shift open past midnight"
   },
   {
+   "default": "1",
+   "description": "When an ERPNext Accounting Period locks Sales Invoices today, the till says so as a shift opens (the close posts the shift's sales as a Sales Invoice, so it would fail), and a close it stopped names the period and how to unlock it. The system check lists such periods either way. Set from the till: Settings, General, Register and shifts.",
+   "fieldname": "warn_locked_periods",
+   "fieldtype": "Check",
+   "label": "Warn about locked accounting periods"
+  },
+  {
    "default": "0",
    "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies, it never blocks the close.",
    "fieldname": "variance_alert_enabled",
@@ -875,7 +883,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-01 18:00:00.000000",
+ "modified": "2026-10-01 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

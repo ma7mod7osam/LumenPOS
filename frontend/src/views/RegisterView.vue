@@ -12,7 +12,8 @@
           {{ t('Session') }} <b>{{ pending.session }}</b> {{ t('was closed but its sales are still being consolidated') }}<span v-if="pending.closing_status === 'Failed'">&nbsp;{{ t('and the last attempt') }}
           <b class="neg">{{ t('failed') }}</b></span>.
         </p>
-        <pre v-if="pending.closing_error" class="err-detail">{{ pending.closing_error }}</pre>
+        <pre v-if="pending.closing_error" class="err-detail">{{ plainText(pending.closing_error) }}</pre>
+        <PeriodHint v-if="pending.closing_hint" :hint="pending.closing_hint" />
         <button
           v-if="session.permissions.close_register !== false"
           class="btn btn-primary"
@@ -77,7 +78,8 @@
             <span class="muted"><Icon name="hourglass" /> {{ t('Consolidating invoices in the background… this usually takes a few seconds.') }}</span>
           </template>
         </p>
-        <pre v-if="closeState.closing_error" class="err-detail">{{ closeState.closing_error }}</pre>
+        <pre v-if="closeState.closing_error" class="err-detail">{{ plainText(closeState.closing_error) }}</pre>
+        <PeriodHint v-if="closeState.closing_hint" :hint="closeState.closing_hint" />
         <div v-if="closedResult.expected_pending" class="summary-error">
           {{ t("The expected takings could not be worked out at the close. They are filled in from the shift's POS Closing Entry when it consolidates.") }}
         </div>
@@ -168,7 +170,8 @@
               <span v-else class="muted">{{ t('Posting…') }}</span>
             </div>
             <template v-if="failedDay">
-              <pre class="err-detail">{{ failedDay.closing_error }}</pre>
+              <pre class="err-detail">{{ plainText(failedDay.closing_error) }}</pre>
+              <PeriodHint v-if="failedDay.closing_hint" :hint="failedDay.closing_hint" />
               <button v-if="canClose" class="btn btn-outline" :disabled="retryingDays" @click="retryDays">
                 <Icon name="refresh" /> {{ t('Try again') }}
               </button>
@@ -412,7 +415,8 @@ import SalespeopleTable from '../components/SalespeopleTable.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
-import { money, shortTime, parseMoney } from '../format'
+import { money, shortTime, parseMoney, plainText } from '../format'
+import PeriodHint from '../components/PeriodHint.vue'
 import { t } from '../i18n'
 
 const session = useSessionStore()
@@ -618,7 +622,7 @@ function pollCloseState(sessionName) {
         clearInterval(closingPoll)
         retrying.value = null
         if (pending.value && pending.value.session === sessionName) {
-          pending.value = { ...pending.value, closing_status: 'Failed', closing_error: res.closing_error }
+          pending.value = { ...pending.value, closing_status: 'Failed', closing_error: res.closing_error, closing_hint: res.closing_hint }
         }
         session.notify(t('Consolidation failed. Check the error and retry'), true)
         loadHistory()

@@ -1783,6 +1783,20 @@ const helpForStaff = {
   "Take the tour now": "ابدأ الجولة الآن",
 }
 
+// 0.58.1: ERPNext accounting periods that lock sales invoices
+// (lumenpos.accounting_periods, PeriodHint.vue).
+const lockedPeriods = {
+  "ERPNext's accounting period {period} ({from} to {to}) locks sales invoices today, so no sale can be posted. Tell whoever looks after the accounts.": "الفترة المحاسبية {period} في ERPNext (من {from} إلى {to}) تقفل فواتير المبيعات اليوم، فلا يمكن ترحيل أي عملية بيع. أبلغ المسؤول عن الحسابات.",
+  "ERPNext's accounting period {period} ({from} to {to}) locks sales invoices today. You can sell, but this shift will not be able to close until the period is changed in ERPNext. Tell whoever looks after the accounts.": "الفترة المحاسبية {period} في ERPNext (من {from} إلى {to}) تقفل فواتير المبيعات اليوم. يمكنك البيع، لكن هذه الوردية لن تتمكن من الإغلاق حتى تعدل الفترة في ERPNext. أبلغ المسؤول عن الحسابات.",
+  "ERPNext's accounting period {period} ({from} to {to}) locks sales invoices, so the sales of this shift cannot be posted.": "الفترة المحاسبية {period} في ERPNext (من {from} إلى {to}) تقفل فواتير المبيعات، لذلك لا يمكن ترحيل مبيعات هذه الوردية.",
+  "In ERPNext, open this period (Accounting Period), untick Sales Invoice and press Retry closing, then tick it again.": "في ERPNext افتح هذه الفترة (فترة المحاسبة)، وأزل العلامة عن فاتورة مبيعات، ثم اضغط إعادة محاولة الإغلاق، وبعدها أعد العلامة.",
+  "An accounting period is meant to lock a month that is over. Delete this one in ERPNext (Accounting Period), then press Retry closing.": "الفترة المحاسبية تستخدم لإقفال شهر انتهى. احذف هذه الفترة من ERPNext (فترة المحاسبة)، ثم اضغط إعادة محاولة الإغلاق.",
+  "Warn about locked accounting periods": "التنبيه على الفترات المحاسبية المقفلة",
+  "When an ERPNext accounting period locks sales invoices, say so as a shift opens, and explain a close it stops. The system check lists such periods either way.": "عندما تقفل فترة محاسبية في ERPNext فواتير المبيعات، ينبه إلى ذلك عند فتح الوردية، ويشرح سبب تعذر الإغلاق. ويعرض فحص النظام هذه الفترات في كل الأحوال.",
+  "Locked accounting periods": "الفترات المحاسبية المقفلة",
+  "When an ERPNext accounting period locks sales invoices, the till now says so as a shift opens and explains a close it stops. Settings, System check lists such periods too.": "عندما تقفل فترة محاسبية في ERPNext فواتير المبيعات، أصبحت نقطة البيع تنبه إلى ذلك عند فتح الوردية، وتشرح سبب تعذر إغلاقها. ويعرض فحص النظام في الإعدادات هذه الفترات أيضا.",
+}
+
 const prefixedEn = {
   'status:Draft': 'Draft',
   'status:Return': 'Return',
@@ -1969,5 +1983,5 @@ const prefixedAr = {
 
 export const messages = {
   en: { ...prefixedEn },
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...prefixedAr },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...prefixedAr },
 }
