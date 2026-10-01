@@ -105,6 +105,9 @@ def get_settings():
         "offline_returns": 1 if offline_switch("offline_returns") else 0,
         "background_upload": 1 if offline_switch("background_upload") else 0,
         "warn_unprotected_storage": 1 if offline_switch("warn_unprotected_storage") else 0,
+        "help_in_till": 1 if offline_switch("help_in_till") else 0,
+        "help_offer_tour": 1 if offline_switch("help_offer_tour") else 0,
+        "help_whats_new": 1 if offline_switch("help_whats_new") else 0,
         "shift_scope": doc.get("shift_scope") or "Per outlet",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
         "carry_shift_past_midnight": 1 if _carry_past_midnight() else 0,
@@ -322,6 +325,10 @@ def save_settings(payload: dict | str):
         doc.carry_shift_past_midnight = 1 if payload.get("carry_shift_past_midnight") else 0
     # And before 0.56.0.
     for field in ("offline_returns", "background_upload", "warn_unprotected_storage"):
+        if field in payload:
+            doc.set(field, 1 if payload.get(field) else 0)
+    # And before 0.58.0.
+    for field in ("help_in_till", "help_offer_tour", "help_whats_new"):
         if field in payload:
             doc.set(field, 1 if payload.get(field) else 0)
     doc.variance_alert_enabled = 1 if payload.get("variance_alert_enabled") else 0

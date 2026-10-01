@@ -22,7 +22,7 @@
     </div>
     <section class="catalog">
       <div class="search-row">
-        <div class="search-box">
+        <div class="search-box" data-tour="sell-search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input
             ref="searchInput"
@@ -50,12 +50,12 @@
         >
           <Icon name="store" /> {{ t('Display') }}
         </button>
-        <button class="btn btn-outline" @click="parkedOpen = true">
+        <button class="btn btn-outline" data-tour="sell-parked" @click="parkedOpen = true">
           {{ t('Retrieve Sale') }}
         </button>
       </div>
 
-      <div class="group-bar">
+      <div class="group-bar" data-tour="sell-groups">
         <button
           v-if="session.settings.enable_quick_keys"
           class="chip chip-fav"
@@ -121,7 +121,7 @@
         </button>
         <div v-if="!favourites.length" class="muted">{{ favLoading ? t('Loading…') : t('No favourites configured. Add some in Settings → Features.') }}</div>
       </div>
-      <ProductGrid v-else @select="addToCart" />
+      <ProductGrid v-else data-tour="sell-products" @select="addToCart" />
     </section>
 
     <CartPanel @pay="onPay" @park="parkOpen = true" @hold="holdOpen = true" @receipt="receipt = $event" />

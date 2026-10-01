@@ -10,6 +10,9 @@
   "offline_returns",
   "background_upload",
   "warn_unprotected_storage",
+  "help_in_till",
+  "help_offer_tour",
+  "help_whats_new",
   "show_out_of_stock",
   "serial_scan_only",
   "shift_scope",
@@ -150,6 +153,27 @@
    "fieldname": "warn_unprotected_storage",
    "fieldtype": "Check",
    "label": "Warn when offline sales are not protected"
+  },
+  {
+   "default": "1",
+   "description": "On (the default): a ? button on every screen of the till opens that screen's help, with short tours over the real buttons.",
+   "fieldname": "help_in_till",
+   "fieldtype": "Check",
+   "label": "Help in the till"
+  },
+  {
+   "default": "1",
+   "description": "On (the default): someone who has not seen the help yet is offered a short tour the first time they open the till.",
+   "fieldname": "help_offer_tour",
+   "fieldtype": "Check",
+   "label": "Offer the tour to new staff"
+  },
+  {
+   "default": "1",
+   "description": "On (the default): after an update, each person sees once what is new for them, with a Show me where a tour exists.",
+   "fieldname": "help_whats_new",
+   "fieldtype": "Check",
+   "label": "Show what is new after an update"
   },
   {
    "default": "0",
@@ -851,7 +875,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-30 18:00:00.000000",
+ "modified": "2026-10-01 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

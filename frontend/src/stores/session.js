@@ -64,6 +64,9 @@ export const useSessionStore = defineStore('session', {
     // currencies: [{currency, symbol, walk_in_customer, walk_in_name,
     // walk_in_group, cash_mode, show_equivalent, rate}]}
     multiCurrency: { enabled: 0, currencies: [] },
+    // Help for staff (lumenpos.api.help): the shop's three switches and what
+    // this person has seen. A bootstrap without it (an older cache) is off.
+    help: { in_till: 0, offer_tour: 0, whats_new: 0, seen_version: '', tours_done: [] },
     settings: {
       delivery_apps: [],
       discount_limit_percent: 0,
@@ -268,6 +271,7 @@ export const useSessionStore = defineStore('session', {
       this.salesPersons = data.sales_persons || []
       this.allowNegativeStock = Boolean(data.allow_negative_stock)
       this.multiCurrency = data.multi_currency || { enabled: 0, currencies: [] }
+      this.help = data.help || { in_till: 0, offer_tour: 0, whats_new: 0, seen_version: '', tours_done: [] }
       this.settings = data.settings || { delivery_apps: [], discount_limit_percent: 0 }
       setOffered(this.settings.till_languages)
       this.bundles = data.bundles || []

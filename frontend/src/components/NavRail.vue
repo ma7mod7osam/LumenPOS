@@ -2,7 +2,7 @@
      SPDX-License-Identifier: AGPL-3.0-only
      "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
 <template>
-  <nav class="rail">
+  <nav class="rail" data-tour="nav-rail">
     <div class="logo">
       <svg viewBox="0 0 100 100" width="32" height="32" aria-label="LumenPOS">
         <defs><linearGradient id="lp-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A7BFF"/><stop offset="1" stop-color="#0B43B8"/></linearGradient></defs>

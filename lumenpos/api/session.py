@@ -9,6 +9,7 @@ from frappe.utils import flt
 
 from lumenpos.promotions.loader import get_active_promotions
 from lumenpos.api import salespeople
+from lumenpos.api.help import state as help_state
 
 
 @frappe.whitelist()
@@ -138,6 +139,9 @@ def get_bootstrap(pos_profile: str | None = None):
         # Other currencies: which ones, their walk-in customer and drawer, and
         # the rate this shift sells at (lumenpos.currency).
         "multi_currency": _multi_currency(profile, session),
+        # Help for staff: the shop's switches and what this person has seen
+        # (lumenpos.api.help).
+        "help": help_state(),
     }
 
 

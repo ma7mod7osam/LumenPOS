@@ -4,7 +4,7 @@
 <template>
   <div class="history">
     <div class="card list">
-      <div class="list-head">
+      <div class="list-head" data-tour="history-search">
         <div class="search-box">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input
@@ -159,6 +159,7 @@
         v-for="sale in sales"
         :key="sale.name"
         class="sale-row"
+        data-tour="history-row"
         :class="{ active: receipt?.name === sale.name }"
         @click="show(sale.name)"
       >

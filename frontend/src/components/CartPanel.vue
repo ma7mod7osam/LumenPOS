@@ -3,7 +3,7 @@
      "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
 <template>
   <aside class="cart card">
-    <div class="customer-row" role="button" tabindex="0" @click="customerOpen = true" @keydown.enter="customerOpen = true">
+    <div class="customer-row" data-tour="cart-customer" role="button" tabindex="0" @click="customerOpen = true" @keydown.enter="customerOpen = true">
       <div class="avatar">{{ customerInitials }}</div>
       <div class="customer-meta">
         <div class="customer-name">{{ cart.customer?.customer_name || t('Add a customer') }}</div>
@@ -36,6 +36,7 @@
       <select
         v-if="session.saleCurrencies.length"
         class="currency-select"
+        data-tour="cart-currency"
         :value="cart.saleCurrency.currency"
         :disabled="!cart.currencySwitchable"
         :title="cart.currencySwitchable ? t('Sell in') : t('This customer buys in {currency}', { currency: cart.saleCurrency.currency })"
@@ -68,6 +69,7 @@
     <div
       v-if="session.salesPersons.length && session.settings.salesperson_mode !== 'Off'"
       class="salesperson-row"
+      data-tour="cart-salesperson"
       :class="{ needed: session.settings.salesperson_mode === 'Required' && !cart.salesPerson }"
     >
       <span class="muted small">{{ t('Salesperson') }}<template v-if="session.settings.salesperson_mode === 'Required'"> *</template></span>
@@ -90,7 +92,7 @@
       </template>
     </div>
 
-    <div class="lines">
+    <div class="lines" data-tour="cart-lines">
       <div v-if="!cart.lines.length" class="empty">
         <p>{{ t('Cart is empty') }}</p>
         <p class="muted small">{{ t('Search or tap a product to add it') }}</p>
@@ -126,7 +128,7 @@
 
       <!-- Coupon, order discount and note: one tap opens the field. A button
            that holds something (a coupon, a discount, a note) stays lit. -->
-      <div class="cart-tools">
+      <div class="cart-tools" data-tour="cart-tools">
         <button
           type="button"
           class="tool"
@@ -205,7 +207,7 @@
         />
       </div>
 
-      <div class="totals">
+      <div class="totals" data-tour="cart-totals">
         <!-- The breakdown folds away under one line: the total, with what was
              saved beside the toggle. Opened or not, it is remembered here. -->
         <div v-if="cart.lines.length" class="totals-head">
@@ -264,7 +266,7 @@
     </div>
 
     <div class="actions">
-      <button class="btn btn-outline" :disabled="!cart.lines.length" @click="$emit('park')">
+      <button class="btn btn-outline" data-tour="cart-park" :disabled="!cart.lines.length" @click="$emit('park')">
         {{ t('Park') }}
       </button>
       <!-- Parking keeps a basket for later today. A HOLD keeps the goods for a
@@ -292,6 +294,7 @@
     </div>
     <button
       class="btn btn-primary btn-lg pay"
+      data-tour="cart-pay"
       :disabled="!cart.lines.length || !session.registerOpen || session.permissions.sell === false || !!session.sellBlockedBy"
       :title="session.permissions.sell === false ? t('You do not have permission to make sales') : ''"
       @click="$emit('pay')"

@@ -1608,6 +1608,40 @@
         </p>
       </div>
 
+      <!-- Help for staff (0.58.0) -->
+      <div class="sec-card" v-show="generalSection === 'help'">
+        <div class="sec-title"><Icon name="help" /> {{ t('Help for staff') }}</div>
+        <p class="sec-note">{{ t('Help on every screen of the till, in the language each person picks. It only shows and explains: nothing is sold or changed.') }}</p>
+        <div class="setting-list">
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.help_in_till" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Help in the till') }}</span>
+              <span class="setting-desc">{{ t('A ? button on every screen opens that screen\'s help, with short tours over the real buttons.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.help_offer_tour" :true-value="1" :false-value="0" :disabled="!generalForm.help_in_till" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Offer the tour to new staff') }}</span>
+              <span class="setting-desc">{{ t('Someone who has not seen the help yet is offered a one-minute tour the first time they open the till.') }}</span>
+            </span>
+          </label>
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.help_whats_new" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Show what is new after an update') }}</span>
+              <span class="setting-desc">{{ t('After an update, each person sees once what is new for them, with a Show me where a tour exists.') }}</span>
+            </span>
+          </label>
+        </div>
+        <p class="muted hint-row" style="margin-top: 12px">
+          <button type="button" class="btn btn-outline" :disabled="!session.help.in_till" @click="help.startTour('basics')">
+            <Icon name="play" /> {{ t('Take the tour now') }}
+          </button>
+        </p>
+      </div>
+
       <!-- Receipt -->
       <div class="sec-card" v-show="generalSection === 'receipt'">
         <div class="sec-title"><Icon name="image" /> {{ t('Receipt') }}</div>
@@ -2291,6 +2325,7 @@ import { call } from '../api'
 import { money, shortTime, parseMoney, isolate, rateText } from '../format'
 import { useSessionStore } from '../stores/session'
 import { useCatalogStore } from '../stores/catalog'
+import { useHelpStore } from '../stores/help'
 import { catalogCount, storagePersisted, customerCount } from '../offline'
 import LinkPicker from '../components/LinkPicker.vue'
 import ScopePicker from '../components/ScopePicker.vue'
@@ -2299,6 +2334,7 @@ import ReceiptView from '../components/ReceiptView.vue'
 import { t, LANGUAGES } from '../i18n'
 
 const session = useSessionStore()
+const help = useHelpStore()
 const catalog = useCatalogStore()
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -2433,6 +2469,9 @@ const generalForm = ref({
   offline_returns: 1,
   background_upload: 1,
   warn_unprotected_storage: 1,
+  help_in_till: 1,
+  help_offer_tour: 1,
+  help_whats_new: 1,
   shift_scope: 'Per outlet',
   one_shift_per_user: 0,
   carry_shift_past_midnight: 1,
@@ -2503,6 +2542,7 @@ const generalSections = [
   { key: 'holds', label: 'Holds and deposits', icon: 'bookmark' },
   { key: 'receipt', label: 'Receipt', icon: 'image' },
   { key: 'languages', label: 'Languages', icon: 'globe' },
+  { key: 'help', label: 'Help for staff', icon: 'help' },
   { key: 'money', label: 'Accounts and gift cards', icon: 'bank' },
   { key: 'approvals', label: 'Approvals and access', icon: 'shield' },
 ]
@@ -3084,6 +3124,10 @@ async function load() {
     offline_returns: info.offline_returns === 0 ? 0 : 1,
     background_upload: info.background_upload === 0 ? 0 : 1,
     warn_unprotected_storage: info.warn_unprotected_storage === 0 ? 0 : 1,
+    // A server from before 0.58.0 does not send these: on, their default.
+    help_in_till: info.help_in_till === 0 ? 0 : 1,
+    help_offer_tour: info.help_offer_tour === 0 ? 0 : 1,
+    help_whats_new: info.help_whats_new === 0 ? 0 : 1,
     shift_scope: info.shift_scope || 'Per outlet',
     one_shift_per_user: info.one_shift_per_user ? 1 : 0,
     // A server from before 0.55.0 does not send it: on, its default.
@@ -3867,6 +3911,13 @@ async function saveGeneral() {
     session.settings.service_charge_percent = info.service_charge_percent || 0
     session.settings.enable_price_checker = info.enable_price_checker ?? 1
     session.settings.salesperson_mode = info.salesperson_mode || 'Optional'
+    // The "?" comes and goes with the switch, no reload needed.
+    session.help = {
+      ...session.help,
+      in_till: info.help_in_till ? 1 : 0,
+      offer_tour: info.help_offer_tour ? 1 : 0,
+      whats_new: info.help_whats_new ? 1 : 0,
+    }
     session.settings.enable_insights = info.enable_insights ?? 1
     session.settings.enable_cashback = info.enable_cashback ?? 1
     session.settings.enable_xreport = info.enable_xreport ?? 1

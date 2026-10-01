@@ -128,6 +128,7 @@ def ensure_setup():
     default_cashback_on()
     default_carry_past_midnight_on()
     default_offline_switches_on()
+    default_help_switches_on()
     recost_open_holds()
     ensure_currencies()
     ensure_hot_indexes()
@@ -256,21 +257,33 @@ def default_carry_past_midnight_on():
 # Switches that ship ON (0.56.0). Each is written once, the first time a
 # release carrying it migrates, and never again, so a shop's OFF stays off.
 OFFLINE_SWITCHES = ("offline_returns", "background_upload", "warn_unprotected_storage")
+# And the help for staff (0.58.0, lumenpos.api.help).
+HELP_SWITCHES = ("help_in_till", "help_offer_tour", "help_whats_new")
 
 
-def default_offline_switches_on():
-    """The three switches for working without a connection ship ON. A loaded
-    Single zeroes a missing Check, so only the tabSingles row can tell "never
-    stored" from "switched off". Write the ON down once, per switch."""
+def _switches_on_once(fields):
+    """A loaded Single zeroes a missing Check, so only the tabSingles row can
+    tell "never stored" from "switched off". Write the ON down once, per
+    switch."""
     from lumenpos.api.insights import set_setting
 
-    for field in OFFLINE_SWITCHES:
+    for field in fields:
         stored = frappe.db.sql(
             "select value from tabSingles where doctype=%s and field=%s",
             ("LumenPOS Settings", field),
         )
         if not stored:
             set_setting(field, 1)
+
+
+def default_offline_switches_on():
+    """The three switches for working without a connection ship ON."""
+    _switches_on_once(OFFLINE_SWITCHES)
+
+
+def default_help_switches_on():
+    """The three switches of the help for staff ship ON."""
+    _switches_on_once(HELP_SWITCHES)
 
 
 def backfill_store_credit_references():

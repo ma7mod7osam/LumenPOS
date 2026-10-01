@@ -45,6 +45,7 @@
         <button
           v-if="!receipt.is_return && !receipt.offline && canRefund && !otherCompany"
           class="btn btn-outline refund-btn"
+          data-tour="receipt-refund"
           @click="$emit('refund', receipt.name)"
         >
           {{ t('Refund…') }}
@@ -54,6 +55,7 @@
         <button
           v-if="!receipt.is_return && !receipt.offline && canExchange && !soldInOtherCurrency && !otherCompany"
           class="btn btn-outline"
+          data-tour="receipt-exchange"
           @click="$emit('exchange', receipt.name)"
         >
           <Icon name="exchange" /> {{ t('Exchange…') }}
@@ -75,7 +77,7 @@
         >
           {{ emailing ? t('Sending…') : t('Email receipt') }}
         </button>
-        <button class="btn btn-outline" :disabled="printing" @click="print">
+        <button class="btn btn-outline" data-tour="receipt-print" :disabled="printing" @click="print">
           {{ printing ? t('Printing…') : t('Print receipt') }}
         </button>
         <button class="btn btn-primary" @click="$emit('close')">

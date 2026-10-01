@@ -18,9 +18,21 @@
           </span>
         </div>
         <div class="topbar-right">
+          <!-- Help for this screen (0.58.0, Settings, General, Help for staff). -->
+          <button
+            v-if="help.inTill"
+            class="lang-pill help-pill"
+            data-tour="help-button"
+            :title="t('Help for this screen')"
+            :aria-label="t('Help for this screen')"
+            @click="help.togglePanel()"
+          >
+            <Icon name="help" /><span class="help-word">{{ t('Help') }}</span>
+          </button>
           <button
             v-if="session.settings.enable_xreport && session.registerOpen"
             class="lang-pill"
+            data-tour="xreport"
             :title="t('X-report (mid-shift read)')"
             :disabled="xreportLoading"
             @click="openXReport"
@@ -39,13 +51,14 @@
           <button
             v-if="offeredLanguages.length === 2"
             class="lang-pill"
+            data-tour="language"
             :title="t('Language')"
             :lang="otherLanguage.code"
             @click="setLocale(otherLanguage.code)"
           >
             {{ otherLanguage.name }}
           </button>
-          <div v-else-if="offeredLanguages.length > 2" ref="langMenu" class="lang-menu">
+          <div v-else-if="offeredLanguages.length > 2" ref="langMenu" class="lang-menu" data-tour="language">
             <button
               class="lang-pill"
               :title="t('Language')"
@@ -87,6 +100,7 @@
           </button>
           <button
             class="register-pill"
+            data-tour="register-pill"
             :class="{ open: session.registerOpen }"
             :title="session.registerOpen ? t('Go to the Register page to close it') : t('Open the register')"
             @click="$router.push('/register')"
@@ -115,7 +129,8 @@
         <router-view :key="session.posProfile" />
         <!-- The open-register prompt only blocks the Sell screen; the nav
              rail and other tabs (Register, History, Settings) stay usable. -->
-        <OpenRegisterOverlay v-if="!session.registerOpen && route.path === '/'" />
+        <!-- A tour shows the Sell screen under it, so the prompt steps aside. -->
+        <OpenRegisterOverlay v-if="!session.registerOpen && route.path === '/' && !help.tourId" />
       </main>
     </div>
     <div v-if="session.toast" class="toast" :class="{ error: session.toast.isError }">
@@ -126,6 +141,9 @@
     <LockOverlay v-if="session.locked" />
     <XReportModal v-if="xreportOpen && xreportSummary" :summary="xreportSummary" @close="xreportOpen = false" />
     <OfflineLogModal v-if="offlineLogOpen" @close="offlineLogOpen = false" />
+    <HelpPanel />
+    <HelpCard v-if="!session.locked" />
+    <TourOverlay />
   </div>
 
   <div v-else-if="!isDisplay && session.error" class="boot-error">
@@ -157,8 +175,13 @@ import LockOverlay from './components/LockOverlay.vue'
 import XReportModal from './components/XReportModal.vue'
 import OfflineLogModal from './components/OfflineLogModal.vue'
 import StorageWarning from './components/StorageWarning.vue'
+import HelpPanel from './components/HelpPanel.vue'
+import HelpCard from './components/HelpCard.vue'
+import TourOverlay from './components/TourOverlay.vue'
+import { useHelpStore } from './stores/help'
 
 const session = useSessionStore()
+const help = useHelpStore()
 const catalog = useCatalogStore()
 const cart = useCartStore()
 
@@ -286,7 +309,9 @@ const pageTitle = computed(
       '/': t('Sell'),
       '/history': t('Sales History'),
       '/customers': t('Customers'),
+      '/holds': t('Holds'),
       '/register': t('Register'),
+      '/insights': t('Insights'),
       '/settings': t('Settings'),
     })[route.path] || t('Sell')
 )
@@ -312,6 +337,8 @@ onMounted(async () => {
     onDisplayRequest(publishDisplaySnapshot)
     watch(() => session.settings?.enable_customer_display, publishDisplaySnapshot)
     setupAutoLock()
+    // Who sees the welcome, or what is new since their last visit.
+    help.init()
   }
 })
 
@@ -416,6 +443,7 @@ function setupAutoLock() {
   .topbar { padding: 0 10px; gap: 8px; }
   .topbar-title { font-size: 15px; }
   .tb-clock, .tb-shift { display: none; }
+  .help-word { display: none; }
   .topbar-right {
     flex: 1 1 auto;
     flex-shrink: 1;
@@ -452,6 +480,11 @@ function setupAutoLock() {
   cursor: pointer;
 }
 .lang-pill:hover { background: rgba(255, 255, 255, 0.26); }
+.help-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 .lang-menu { position: relative; }
 .lang-menu .lang-pill {
   display: inline-flex;

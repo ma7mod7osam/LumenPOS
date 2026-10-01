@@ -109,7 +109,7 @@
       </div>
     </div>
 
-    <div v-if="!session.registerOpen && !closedResult && !pending" class="card panel">
+    <div v-if="!session.registerOpen && !closedResult && !pending" class="card panel" data-tour="register-open">
       <div class="panel-head">{{ t('Open register') }}</div>
       <div class="panel-body">
         <p class="muted">{{ session.posProfile }}. {{ t('Enter the opening cash float to start selling.') }}</p>
@@ -125,7 +125,7 @@
     </div>
 
     <template v-if="session.registerOpen">
-      <div class="card panel">
+      <div class="card panel" data-tour="register-summary">
         <div class="panel-head">{{ t('Session') }} {{ session.registerSession.name }}</div>
         <div class="panel-body" v-if="summary">
           <div class="stat-row">
@@ -177,7 +177,7 @@
         </div>
       </div>
 
-      <div v-if="session.permissions.can_move_cash !== false" class="card panel">
+      <div v-if="session.permissions.can_move_cash !== false" class="card panel" data-tour="register-cash">
         <div class="panel-head">{{ t('Cash in / out') }}</div>
         <div class="panel-body">
           <div class="cash-form" :class="{ 'with-drawer': foreignDrawers.length }">
@@ -245,7 +245,7 @@
             {{ t('Need to fix a wrong payment method? Do the return + corrected sale') }}
             <b>{{ t('before') }}</b> {{ t("closing, they're picked up automatically. Once you close, the shift can't be sold on again.") }}
           </p>
-          <table class="count-table">
+          <table class="count-table" data-tour="register-count">
             <thead>
               <tr><th>{{ t('Payment') }}</th><th class="right">{{ t('Expected') }}</th><th class="right">{{ t('Counted') }}</th><th class="right">{{ t('Difference') }}</th></tr>
             </thead>
@@ -274,7 +274,7 @@
             </tbody>
           </table>
           <input v-model="closingNote" :placeholder="t('Closing note (optional)')" style="width: 100%; margin-top: 12px" />
-          <button class="btn btn-danger btn-lg" style="width: 100%; margin-top: 14px" :disabled="closing || !canClose" @click="close">
+          <button class="btn btn-danger btn-lg" data-tour="register-close" style="width: 100%; margin-top: 14px" :disabled="closing || !canClose" @click="close">
             {{ closing ? t('Closing…') : t('Close Register') }}
           </button>
           <p v-if="!canClose" class="muted small">{{ t("You don't have permission to close the register.") }}</p>
