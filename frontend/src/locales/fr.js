@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Afficher les nouveautés après une mise à jour",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "Après une mise à jour, chaque personne voit une fois les nouveautés qui la concernent, avec un bouton Voir comment là où une visite guidée existe.",
   "Take the tour now": "Faire la visite guidée maintenant",
+  "Refunds to store credit": "Remboursements en crédit magasin",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "Avant la 0.58.0, enregistrer les paramètres Général désactivait « Autoriser le remboursement en crédit magasin ». Si votre magasin rembourse en crédit magasin, réactivez-le dans Paramètres, Général, Retours et remboursements.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Une vente ne peut être remboursée que sur un mode de paiement réellement utilisé par le client. Ajoutez des exceptions ci-dessous.",
 }

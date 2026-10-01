@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Mostrar las novedades después de una actualización",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "Después de una actualización, cada persona ve una vez las novedades que le corresponden, con un botón Ver cómo donde haya un recorrido.",
   "Take the tour now": "Hacer el recorrido ahora",
+  "Refunds to store credit": "Reembolsos como saldo a favor",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "Antes de la 0.58.0, guardar la configuración General desactivaba «Permitir reembolsar como saldo a favor». Si su tienda reembolsa como saldo a favor, vuelva a activarlo en Configuración, General, Devoluciones y reembolsos.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Una venta solo se puede reembolsar en una forma de pago que el cliente realmente usó. Agregue excepciones abajo.",
 }

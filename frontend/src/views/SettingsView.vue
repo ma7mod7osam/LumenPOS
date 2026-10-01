@@ -1899,7 +1899,7 @@
             <input type="checkbox" class="setting-toggle" v-model="generalForm.restrict_refund_to_paid_mode" :true-value="1" :false-value="0" />
             <span class="setting-text">
               <span class="setting-title">{{ t('Restrict refunds to the original payment method') }}</span>
-              <span class="setting-desc">{{ t('A sale can only be refunded to a method the customer actually paid with (Store Credit is always allowed). Add exceptions below.') }}</span>
+              <span class="setting-desc">{{ t('A sale can only be refunded to a method the customer actually paid with. Add exceptions below.') }}</span>
             </span>
           </label>
           <label class="setting-row">
@@ -3180,6 +3180,8 @@ async function load() {
     gift_card_account: info.gift_card_account || '',
     gift_card_item: info.gift_card_item || '',
     restrict_refund_to_paid_mode: info.restrict_refund_to_paid_mode ?? 1,
+    // Not read here from 0.29.0 to 0.57.0: every Save of this tab switched it off.
+    allow_store_credit_refund: info.allow_store_credit_refund ? 1 : 0,
     refund_rules: JSON.parse(JSON.stringify(info.refund_rules || [])),
     return_reasons: [...(info.return_reasons || [])],
     approvers: (info.approvers || []).map((approver) => ({

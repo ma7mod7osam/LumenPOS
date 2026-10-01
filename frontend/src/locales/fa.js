@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "نمایش تازه‌ها پس از به‌روزرسانی",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "پس از به‌روزرسانی، هر کس یک بار تازه‌های مربوط به خودش را می‌بیند، با دکمه نشانم بده هر جا تور وجود داشته باشد.",
   "Take the tour now": "شروع تور همین حالا",
+  "Refunds to store credit": "استرداد به اعتبار فروشگاه",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "پیش از نسخه 0.58.0، ذخیره تنظیمات عمومی گزینه «اجازه استرداد به اعتبار فروشگاه» را خاموش می‌کرد. اگر فروشگاه شما وجه را به اعتبار فروشگاه برمی‌گرداند، آن را دوباره از تنظیمات، عمومی، مرجوعی و استرداد وجه روشن کنید.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "وجه یک فروش فقط با روشی مسترد می‌شود که مشتری واقعا با آن پرداخت کرده است. استثناها را در زیر اضافه کنید.",
 }

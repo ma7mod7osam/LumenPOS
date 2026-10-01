@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Показывать новое после обновления",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "После обновления каждый один раз видит, что нового для него, с кнопкой Показать там, где есть тур.",
   "Take the tour now": "Пройти тур сейчас",
+  "Refunds to store credit": "Возвраты на депозит",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "До версии 0.58.0 сохранение общих настроек выключало «Разрешить возврат на депозит». Если ваш магазин возвращает деньги на депозит, включите это снова в разделе Настройки, Общие, Возвраты товаров и денег.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Деньги за продажу можно вернуть только тем способом, которым клиент действительно платил. Исключения добавьте ниже.",
 }

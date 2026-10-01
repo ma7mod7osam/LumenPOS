@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "แสดงสิ่งใหม่หลังการอัปเดต",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "หลังการอัปเดต แต่ละคนจะเห็นสิ่งใหม่ที่เกี่ยวกับตนหนึ่งครั้ง พร้อมปุ่ม “แสดงให้ดู” หากมีทัวร์แนะนำ",
   "Take the tour now": "เริ่มทัวร์แนะนำตอนนี้",
+  "Refunds to store credit": "การคืนเงินเป็นเครดิตร้าน",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "ก่อนเวอร์ชัน 0.58.0 การบันทึกการตั้งค่าทั่วไปจะปิด \"อนุญาตให้คืนเงินเป็นเครดิตร้าน\" หากร้านของคุณคืนเงินเป็นเครดิตร้าน ให้เปิดอีกครั้งที่ การตั้งค่า, ทั่วไป, การคืนสินค้าและการคืนเงิน",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "คืนเงินได้เฉพาะเป็นวิธีการชำระเงินที่ลูกค้าจ่ายจริงเท่านั้น เพิ่มข้อยกเว้นด้านล่าง",
 }

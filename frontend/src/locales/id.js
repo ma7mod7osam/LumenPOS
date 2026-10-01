@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Tampilkan yang baru setelah pembaruan",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "Setelah pembaruan, setiap orang sekali melihat apa yang baru baginya, dengan tombol Tunjukkan jika ada tur.",
   "Take the tour now": "Ikuti tur sekarang",
+  "Refunds to store credit": "Pengembalian dana ke Saldo toko",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "Sebelum 0.58.0, menyimpan pengaturan Umum mematikan \"Izinkan pengembalian dana ke Saldo toko\". Jika toko Anda mengembalikan dana ke saldo toko, aktifkan lagi di Pengaturan, Umum, Retur dan pengembalian dana.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Dana penjualan hanya bisa dikembalikan lewat metode yang benar-benar dipakai pelanggan untuk membayar. Tambahkan pengecualian di bawah.",
 }

@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Güncellemeden sonra yenilikleri göster",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "Güncellemeden sonra her kişi kendisi için yeni olanları bir kez görür, tur olan yerlerde Göster düğmesiyle birlikte.",
   "Take the tour now": "Turu şimdi başlat",
+  "Refunds to store credit": "Mağaza Bakiyesine iadeler",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "0.58.0 öncesinde Genel ayarları kaydetmek \"Mağaza Bakiyesine iadeye izin ver\" seçeneğini kapatıyordu. Mağazanız Mağaza Bakiyesine iade yapıyorsa, Ayarlar, Genel, İadeler ve para iadeleri altından yeniden açın.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Bir satışın parası yalnızca müşterinin gerçekten kullandığı yönteme iade edilebilir. İstisnaları aşağıya ekleyin.",
 }

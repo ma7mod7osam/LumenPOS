@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Hiển thị điểm mới sau khi cập nhật",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "Sau mỗi lần cập nhật, mỗi người sẽ thấy một lần các điểm mới liên quan đến mình, kèm nút “Chỉ cho tôi” nếu có hướng dẫn nhanh.",
   "Take the tour now": "Xem hướng dẫn nhanh ngay",
+  "Refunds to store credit": "Hoàn tiền trả hàng vào Số dư cửa hàng",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "Trước bản 0.58.0, việc lưu cài đặt Chung đã tắt \"Cho phép hoàn tiền trả hàng vào Số dư cửa hàng\". Nếu cửa hàng của bạn hoàn tiền vào số dư cửa hàng, hãy bật lại trong Cài đặt, Chung, Trả hàng và hoàn tiền trả hàng.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Giao dịch chỉ được hoàn tiền trả hàng qua phương thức khách hàng đã thực sự dùng để thanh toán. Thêm ngoại lệ bên dưới.",
 }

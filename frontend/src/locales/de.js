@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "Neuigkeiten nach einem Update anzeigen",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "Nach einem Update sieht jede Person einmal, was für sie neu ist, mit einer Schaltfläche Zeigen, wo es eine Tour gibt.",
   "Take the tour now": "Tour jetzt starten",
+  "Refunds to store credit": "Erstattungen als Guthaben",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "Vor 0.58.0 hat das Speichern der allgemeinen Einstellungen „Erstattung als Guthaben erlauben“ ausgeschaltet. Wenn Ihr Geschäft als Guthaben erstattet, schalten Sie es unter Einstellungen, Allgemein, Rückgaben und Erstattungen wieder ein.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "Ein Verkauf kann nur auf eine Zahlungsart erstattet werden, mit der der Kunde tatsächlich bezahlt hat. Fügen Sie unten Ausnahmen hinzu.",
 }

@@ -1680,4 +1680,7 @@ export default {
   "Show what is new after an update": "更新后显示新功能",
   "After an update, each person sees once what is new for them, with a Show me where a tour exists.": "每次更新后，每个人会看到一次与自己相关的新功能，有导览的会附带“带我看看”按钮。",
   "Take the tour now": "立即开始导览",
+  "Refunds to store credit": "退款到店内余额",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "在 0.58.0 之前，保存常规设置会关闭“允许退款到店内余额”。如果您的门店会退款到店内余额，请在 设置、常规、退货与退款 中重新开启。",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "销售只能退款到客户实际使用的支付方式。可在下方添加例外。",
 }

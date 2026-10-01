@@ -1589,6 +1589,9 @@ const salespeopleAndCheck = {
 // Help for staff (0.58.0): the "?" panel, the tours and what is new
 // (help/content.js).
 const helpForStaff = {
+  "Refunds to store credit": "الاسترجاع إلى رصيد المتجر",
+  "Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.": "قبل الإصدار 0.58.0 كان حفظ الإعدادات العامة يطفئ خيار \"السماح بالاسترجاع إلى رصيد المتجر\". إذا كان متجرك يرد المبالغ إلى رصيد المتجر، ففعله مرة أخرى من الإعدادات، عام، الاسترجاع ورد المبلغ.",
+  "A sale can only be refunded to a method the customer actually paid with. Add exceptions below.": "لا يمكن استرجاع البيع إلا إلى طريقة دفع استخدمها العميل فعليا. أضف الاستثناءات أدناه.",
   "Add products": "إضافة المنتجات",
   "Type part of a product's name or code in the search box, or scan its barcode.": "اكتب جزءا من اسم المنتج أو رمزه في خانة البحث، أو امسح الباركود الخاص به.",
   "Tap a group above the products to see that group only.": "اضغط على مجموعة فوق المنتجات لعرض منتجاتها فقط.",
