@@ -14,7 +14,6 @@ import CustomersView from './views/CustomersView.vue'
 import HoldsView from './views/HoldsView.vue'
 import RegisterView from './views/RegisterView.vue'
 import InsightsView from './views/InsightsView.vue'
-import SalespeopleView from './views/SalespeopleView.vue'
 import SettingsView from './views/SettingsView.vue'
 import CustomerDisplayView from './views/CustomerDisplayView.vue'
 import './styles.css'
@@ -28,7 +27,6 @@ const router = createRouter({
     { path: '/holds', component: HoldsView },
     { path: '/register', component: RegisterView },
     { path: '/insights', component: InsightsView },
-    { path: '/salespeople', component: SalespeopleView },
     { path: '/settings', component: SettingsView },
     // Second-screen customer-facing display, chrome-free, no bootstrap.
     { path: '/display', component: CustomerDisplayView },

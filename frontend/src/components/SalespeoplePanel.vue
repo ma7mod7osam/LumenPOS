@@ -1,9 +1,10 @@
 <!-- Copyright (c) 2026 Lumen Solutions
      SPDX-License-Identifier: AGPL-3.0-only
      "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
-<!-- Sales by salesperson over a period (0.57.0): one outlet or every outlet of
-     its company, with the commission ERPNext works out. The server decides
-     who may see it (lumenpos.api.salespeople.report). -->
+<!-- The Salespeople tab of Insights (0.57.0): sales by salesperson over a
+     period, one outlet or every outlet of its company, with the commission
+     ERPNext works out. The server decides who may see it
+     (lumenpos.api.salespeople.report). -->
 <template>
   <div class="salespeople">
     <div class="card sp-card">
@@ -53,8 +54,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import Icon from '../components/Icon.vue'
-import SalespeopleTable from '../components/SalespeopleTable.vue'
+import Icon from './Icon.vue'
+import SalespeopleTable from './SalespeopleTable.vue'
 import { call } from '../api'
 import { t } from '../i18n'
 import { useSessionStore } from '../stores/session'
@@ -150,7 +151,7 @@ onMounted(() => pick('today'))
 </script>
 
 <style scoped>
-.salespeople { flex: 1; display: flex; padding: 14px; overflow: auto; }
+.salespeople { flex: 1; display: flex; min-height: 0; overflow: auto; }
 .sp-card { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .sp-head { display: flex; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border); }
 .sp-title { font-weight: 700; font-size: 16px; }
@@ -164,7 +165,6 @@ onMounted(() => pick('today'))
 .empty { padding: 26px; text-align: center; }
 .note { padding: 10px 14px 14px; }
 @media (max-width: 600px) {
-  .salespeople { padding: 8px; }
   .sp-head { flex-wrap: wrap; }
 }
 </style>

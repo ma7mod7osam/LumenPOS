@@ -3,8 +3,26 @@
      "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md. -->
 <template>
   <div class="insights">
+    <!-- Two tabs when the person may see both: the Lumen Reports dashboard
+         (managers) and the salesperson report (managers and anyone named for
+         it). One of them alone shows without a tab bar. -->
+    <div v-if="tabs.length > 1" class="ins-tabs">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        class="ins-tab"
+        :class="{ on: active === tab.key }"
+        @click="pick(tab.key)"
+      >
+        {{ t(tab.label) }}
+      </button>
+    </div>
+
+    <SalespeoplePanel v-if="active === 'salespeople'" />
+
     <!-- Loading -->
-    <div v-if="loading" class="state-card">
+    <div v-else-if="loading" class="state-card">
       <div class="spinner" aria-hidden="true"></div>
       <p class="muted">{{ t('Loading…') }}</p>
     </div>
@@ -48,6 +66,34 @@ import { computed, h, onMounted, ref } from 'vue'
 import { call } from '../api'
 import { t, locale } from '../i18n'
 import { theme } from '../theme'
+import { useSessionStore } from '../stores/session'
+import SalespeoplePanel from '../components/SalespeoplePanel.vue'
+
+const session = useSessionStore()
+const tabs = computed(() =>
+  [
+    session.permissions.insights && { key: 'dashboard', label: 'Sales dashboard' },
+    session.permissions.sales_by_person &&
+      (session.settings.salesperson_mode || 'Optional') !== 'Off' && { key: 'salespeople', label: 'Salespeople' },
+  ].filter(Boolean)
+)
+// The tab last opened on this device, a convenience only.
+const TAB_KEY = 'lumenpos-insights-tab'
+const active = ref(null)
+let dashboardLoaded = false
+
+function pick(key) {
+  active.value = key
+  try {
+    localStorage.setItem(TAB_KEY, key)
+  } catch {
+    /* private window or blocked storage: the default tab next time */
+  }
+  if (key === 'dashboard' && !dashboardLoaded) {
+    dashboardLoaded = true
+    load()
+  }
+}
 
 const loading = ref(true)
 const error = ref('')
@@ -189,7 +235,16 @@ async function create() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  let saved = null
+  try {
+    saved = localStorage.getItem(TAB_KEY)
+  } catch {
+    saved = null
+  }
+  const keys = tabs.value.map((x) => x.key)
+  pick(keys.includes(saved) ? saved : keys[0] || 'dashboard')
+})
 </script>
 
 <style scoped>
@@ -204,6 +259,28 @@ onMounted(load)
   padding: 16px;
   overflow: hidden;
 }
+.ins-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--card-bg);
+}
+.ins-tab {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.ins-tab.on { background: var(--brand); color: #fff; }
 .state-card {
   margin: auto;
   max-width: 460px;
