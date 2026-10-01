@@ -874,7 +874,7 @@ const features = {
 // Sell screen, cart, product grid.
 const sell = {
   "Search products or scan a barcode": "ابحث عن المنتجات أو امسح الباركود",
-  "Retrieve Sale": "البيوع المعلقة",
+  "Retrieve Sale": "المبيعات المعلقة",
   "BUNDLE": "باقة",
   "No bundles configured": "لا توجد باقات معدة",
   "Park this sale": "تعليق هذا البيع",
