@@ -1440,7 +1440,7 @@ const currencies = {
   "Show the equivalent at the till": "عرض المعادل في الصندوق",
   "Set up when you save": "تجهز عند الحفظ",
   "Add a currency": "إضافة عملة",
-  "The selling rate from today on, kept in ERPNext (Currency Exchange). A shift keeps the rate it started selling at; the next shift takes the new one.":
+  "The selling rate from today on, kept in ERPNext (Currency Exchange). A shift keeps the rate it started selling at. The next shift takes the new one.":
     "سعر البيع من اليوم، ويحفظ في ERPNext (Currency Exchange). تحتفظ الوردية بالسعر الذي بدأت البيع به، والوردية التالية تأخذ السعر الجديد.",
   "Save the currencies first, then set their rates here.": "احفظ العملات أولا، ثم حدد أسعارها هنا.",
   "No rate yet: the till cannot sell in it": "لا يوجد سعر بعد: لا يستطيع الصندوق البيع بها",
@@ -1467,7 +1467,7 @@ const currencies = {
 // The shop's own new-customer form (0.51.0).
 const customerForm = {
   "New customer form": "نموذج العميل الجديد",
-  "What the till asks when a cashier adds a customer. Each field can be hidden, optional or required, for individuals and for companies apart. The address is the Saudi national address; a shop elsewhere can keep only the parts it needs.":
+  "What the till asks when a cashier adds a customer. Each field can be hidden, optional or required, for individuals and for companies apart. The address is the Saudi national address. A shop elsewhere can keep only the parts it needs.":
     "ما يطلبه الصندوق عند إضافة عميل. كل حقل يمكن إخفاؤه أو جعله اختياريا أو إلزاميا، للأفراد وللشركات كل على حدة. العنوان هو العنوان الوطني السعودي، والمحل خارج المملكة يبقي ما يحتاجه منه فقط.",
   "Field": "الحقل",
   "Individual customers": "العملاء الأفراد",

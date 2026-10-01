@@ -1201,7 +1201,7 @@
       <!-- The new-customer form (lumenpos.customer_form) -->
       <div class="sec-card" v-show="generalSection === 'customers'">
         <div class="sec-title"><Icon name="person" /> {{ t('New customer form') }}</div>
-        <p class="sec-note">{{ t('What the till asks when a cashier adds a customer. Each field can be hidden, optional or required, for individuals and for companies apart. The address is the Saudi national address; a shop elsewhere can keep only the parts it needs.') }}</p>
+        <p class="sec-note">{{ t('What the till asks when a cashier adds a customer. Each field can be hidden, optional or required, for individuals and for companies apart. The address is the Saudi national address. A shop elsewhere can keep only the parts it needs.') }}</p>
         <div class="cf-table">
           <div class="cf-head">
             <span>{{ t('Field') }}</span>
@@ -1318,7 +1318,7 @@
 
           <div class="sub-label">{{ t('Exchange rates') }}</div>
           <p class="muted small" style="margin: 0 0 8px">
-            {{ t('The selling rate from today on, kept in ERPNext (Currency Exchange). A shift keeps the rate it started selling at; the next shift takes the new one.') }}
+            {{ t('The selling rate from today on, kept in ERPNext (Currency Exchange). A shift keeps the rate it started selling at. The next shift takes the new one.') }}
           </p>
           <div v-if="!rateRows.length" class="muted small">{{ t('Save the currencies first, then set their rates here.') }}</div>
           <p v-if="settingsInfo.auto_rates_enabled && rateRows.some((r) => r.auto)" class="muted small" style="margin: 0 0 8px">
