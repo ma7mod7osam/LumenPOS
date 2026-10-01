@@ -151,7 +151,9 @@ onMounted(() => pick('today'))
 </script>
 
 <style scoped>
-.salespeople { flex: 1; display: flex; min-height: 0; overflow: auto; }
+/* The card keeps its own height and the tab scrolls as one: stretched to the
+   tab, the table shrank to a box of two rows on a phone. */
+.salespeople { flex: 1; display: flex; align-items: flex-start; min-height: 0; overflow: auto; }
 .sp-card { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .sp-head { display: flex; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border); }
 .sp-title { font-weight: 700; font-size: 16px; }

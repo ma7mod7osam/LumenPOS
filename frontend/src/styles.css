@@ -67,6 +67,9 @@
   --shadow-brand: 0 14px 34px rgba(20, 99, 255, 0.42);
 }
 :root[data-theme='dark'] img.tile-fallback { opacity: 0.85; }
+/* Dark theme scrollbars in its own colours: the browser's default ones are light
+   grey bars across a dark page (Settings, tables). Only the bars change. */
+:root[data-theme='dark'] * { scrollbar-color: #3a4356 transparent; }
 
 * { box-sizing: border-box; }
 
