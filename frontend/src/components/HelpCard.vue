@@ -12,10 +12,10 @@
         <div class="hc-badge"><Icon name="help" :size="26" /></div>
         <h2 id="hc-title" class="hc-title">{{ t('Help on every screen') }}</h2>
         <p class="hc-lead">{{ t('Tap ? at the top of any screen for its help. A one-minute tour shows you around the till.') }}</p>
-        <template v-if="help.switches.whats_new && items.length">
+        <template v-if="help.switches.whats_new && recent.length">
           <div class="hc-sub">{{ t('Recently added') }}</div>
           <ul class="hc-list compact">
-            <li v-for="item in items.slice(0, 4)" :key="item.version + item.title">
+            <li v-for="item in recent" :key="item.version + item.title">
               <b>{{ t(item.title) }}</b>
               <span class="muted">{{ t(item.text) }}</span>
             </li>
@@ -33,9 +33,11 @@
         <h2 id="hc-title" class="hc-title">{{ t('What is new in LumenPOS') }}</h2>
         <p class="hc-lead muted">LumenPOS {{ help.version }}</p>
         <ul class="hc-list">
-          <li v-for="item in items" :key="item.version + item.title">
-            <div class="hc-item-title">{{ t(item.title) }}</div>
-            <div class="hc-item-text">{{ t(item.text) }}</div>
+          <li v-for="item in items" :key="item.version + item.title" class="hc-item">
+            <div class="hc-item-body">
+              <div class="hc-item-title">{{ t(item.title) }}</div>
+              <div class="hc-item-text">{{ t(item.text) }}</div>
+            </div>
             <button
               v-if="canShow(item)"
               type="button"
@@ -66,6 +68,8 @@ const help = useHelpStore()
 const router = useRouter()
 
 const items = computed(() => (help.card === 'all-news' ? help.allNews : help.news))
+// The welcome card is itself about the help: its news leaves that one out.
+const recent = computed(() => help.news.filter((item) => item.tour !== 'basics').slice(0, 4))
 const canShow = (item) => Boolean((item.tour && help.inTill && TOURS[item.tour]) || item.route)
 </script>
 
@@ -123,7 +127,16 @@ const canShow = (item) => Boolean((item.tour && help.inTill && TOURS[item.tour])
 .hc-list.compact li b { display: block; }
 .hc-item-title { font-weight: 700; margin-bottom: 2px; }
 .hc-item-text { font-size: 13.5px; line-height: 1.5; color: var(--text); }
-.hc-show { margin-top: 8px; }
+.hc-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hc-item-body { flex: 1; min-width: 0; }
+.hc-show { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 480px) {
+  .hc-item { flex-wrap: wrap; }
+}
 .hc-actions {
   display: flex;
   justify-content: flex-end;

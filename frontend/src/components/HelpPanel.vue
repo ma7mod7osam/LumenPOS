@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { t } from '../i18n'
 import { SCREENS } from '../help/content'
@@ -59,17 +59,25 @@ import Icon from './Icon.vue'
 const help = useHelpStore()
 const route = useRoute()
 
+// Esc closes the panel, as it ends a tour.
+function onKey(event) {
+  if (event.key === 'Escape' && help.panelOpen && !help.tourId) help.closePanel()
+}
+window.addEventListener('keydown', onKey)
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
 const screenTitle = computed(() => t(SCREENS[route.path] || 'Sell'))
 const topics = computed(() => help.topicsFor(route.path))
 const tourIds = computed(() => help.availableTours.map((tour) => tour.id))
 
 // A step is a text, or a text and the labels it names, each in the till's
-// own words for that button.
+// own words for that button. A label's "…" (Refund…) stays on the button:
+// inside a sentence it would read "Refund…."
 function say(line) {
   if (!Array.isArray(line)) return t(line)
   const [text, labels] = line
   const params = {}
-  for (const [key, label] of Object.entries(labels || {})) params[key] = t(label)
+  for (const [key, label] of Object.entries(labels || {})) params[key] = t(label).replace(/\s*…$/, '')
   return t(text, params)
 }
 </script>

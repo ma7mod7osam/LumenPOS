@@ -159,7 +159,7 @@
         v-for="sale in sales"
         :key="sale.name"
         class="sale-row"
-        data-tour="history-row"
+        :data-tour="!sale.is_return && sale.docstatus === 1 ? 'history-row' : undefined"
         :class="{ active: receipt?.name === sale.name }"
         @click="show(sale.name)"
       >
