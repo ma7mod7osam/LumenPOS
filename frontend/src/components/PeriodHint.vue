@@ -45,11 +45,15 @@ const props = defineProps({
   invoiceMode: { type: String, default: 'POS Invoice' },
 })
 
-// The period's name and dates stay in one piece on an Arabic or Persian screen.
+// The period's name and dates stay in one piece on an Arabic or Persian screen,
+// and a date is never cut at its hyphens on a narrow one ("2026-" / "10-31"):
+// a word joiner on each side of a hyphen holds it together.
+const JOIN = String.fromCharCode(0x2060)
+const day = (value) => isolate(String(value || '').split('-').join(JOIN + '-' + JOIN))
 const vars = computed(() => ({
   period: isolate(props.hint.period),
-  from: isolate(props.hint.from),
-  to: isolate(props.hint.to),
+  from: day(props.hint.from),
+  to: day(props.hint.to),
 }))
 </script>
 
