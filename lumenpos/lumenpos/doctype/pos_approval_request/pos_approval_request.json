@@ -19,6 +19,8 @@
   "customer_name",
   "return_invoice",
   "invoice_age_days",
+  "cash_amount",
+  "cash_drawer",
   "reason",
   "request_details",
   "decision_section",
@@ -43,7 +45,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Request Type",
-   "options": "Discount\nReturn",
+   "options": "Discount\nReturn\nCash Out",
    "reqd": 1
   },
   {
@@ -120,6 +122,19 @@
    "read_only": 1
   },
   {
+   "fieldname": "cash_amount",
+   "fieldtype": "Currency",
+   "label": "Cash out amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cash_drawer",
+   "fieldtype": "Link",
+   "label": "Drawer",
+   "options": "Mode of Payment",
+   "read_only": 1
+  },
+  {
    "fieldname": "reason",
    "fieldtype": "Small Text",
    "label": "Reason",
@@ -192,7 +207,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-06-17 00:00:00.000000",
+ "modified": "2026-10-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Approval Request",

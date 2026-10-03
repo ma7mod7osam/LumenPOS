@@ -210,6 +210,8 @@ def get_user_permissions():
         "can_exchange": caps_mod.can_exchange(),
         "can_exceed_return_window": caps_mod.can_exceed_return_window(),
         "can_move_cash": caps_mod.can_move_cash(),
+        "can_cash_in": caps_mod.can_cash_in(),
+        "can_cash_out": caps_mod.can_cash_out(),
         "can_hold_goods": caps_mod.can_hold_goods(),
         "can_reprint": caps_mod.can_reprint(),
         "sales_by_person": caps_mod.can_see_sales_by_person(),
@@ -377,7 +379,7 @@ def _client_settings(profile_name=None):
 
     from frappe.utils import cint
 
-    from lumenpos import accounting_periods, credit_sales, languages, variance
+    from lumenpos import accounting_periods, cash_out, credit_sales, languages, variance
     from lumenpos.api import approval_requests
 
     doc = frappe.get_cached_doc("LumenPOS Settings")
@@ -433,6 +435,8 @@ def _client_settings(profile_name=None):
         **variance.client_facts(),
         # Sales on account (lumenpos.credit_sales, 0.60.0).
         **credit_sales.client_facts(),
+        # Taking money out of the drawer (lumenpos.cash_out, 0.61.0).
+        **cash_out.client_facts(),
         "delivery_apps": [
             {
                 "app_name": row.app_name,

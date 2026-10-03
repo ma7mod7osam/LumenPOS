@@ -202,9 +202,10 @@
         <div class="panel-head">{{ t('Cash in / out') }}</div>
         <div class="panel-body">
           <div class="cash-form" :class="{ 'with-drawer': foreignDrawers.length }">
+            <!-- Two permissions since 0.61.0: only what this person may do. -->
             <select v-model="movement.movement_type">
-              <option value="Cash In">{{ t('Cash In') }}</option>
-              <option value="Cash Out">{{ t('Cash Out') }}</option>
+              <option v-if="canCashIn" value="Cash In">{{ t('Cash In') }}</option>
+              <option v-if="canCashOut" value="Cash Out">{{ t('Cash Out') }}</option>
             </select>
             <!-- A drawer in another currency keeps its own cash in and out. -->
             <select v-if="foreignDrawers.length" v-model="movement.mode_of_payment">
@@ -214,12 +215,13 @@
               </option>
             </select>
             <input type="text" inputmode="decimal" v-model="movement.amount" :placeholder="t('Amount')" />
-            <input v-model="movement.reason" :placeholder="t('Reason')" />
-            <button class="btn btn-outline" :disabled="!movement.amount" @click="addMovement">{{ t('Add') }}</button>
+            <input v-model="movement.reason" :placeholder="reasonNeeded ? t('Reason (required)') : t('Reason')" />
+            <button class="btn btn-outline" :disabled="!movement.amount || (reasonNeeded && !movement.reason.trim()) || movementBusy" @click="addMovement">{{ t('Add') }}</button>
           </div>
+          <p v-if="cashOutHint" class="muted small cash-hint">{{ cashOutHint }}</p>
           <div v-for="(m, i) in summary?.cash_movements || []" :key="i" class="movement-row">
             <span :class="m.movement_type === 'Cash In' ? 'in' : 'out'">{{ t(m.movement_type) }}</span>
-            <span class="muted">{{ m.reason }}<template v-if="m.currency && m.currency !== local"> · {{ m.mode_of_payment }}</template></span>
+            <span class="muted">{{ m.reason }}<template v-if="m.currency && m.currency !== local"> · {{ m.mode_of_payment }}</template><template v-if="m.approved_by"> · {{ t('approved by {name}', { name: m.approved_by }) }}</template></span>
             <span class="right">{{ money(m.amount, m.currency || local) }}</span>
           </div>
         </div>
@@ -451,6 +453,15 @@
         </div>
       </div>
     </div>
+    <CashOutApproval
+      v-if="approving"
+      :amount="approving.amount"
+      :currency="approving.currency"
+      :drawer="approving.mode_of_payment"
+      :reason="approving.reason"
+      @close="approving = null"
+      @approved="onCashOutApproved"
+    />
   </div>
 </template>
 
@@ -463,6 +474,7 @@ import { useSessionStore } from '../stores/session'
 import { money, shortTime, parseMoney, plainText } from '../format'
 import PeriodHint from '../components/PeriodHint.vue'
 import VarianceReason from '../components/VarianceReason.vue'
+import CashOutApproval from '../components/CashOutApproval.vue'
 import { t } from '../i18n'
 
 const session = useSessionStore()
@@ -471,7 +483,25 @@ const counted = ref({})
 const closingNote = ref('')
 const closing = ref(false)
 const uploading = ref(false)
-const movement = ref({ movement_type: 'Cash In', amount: null, reason: '', mode_of_payment: null })
+// Cash in and cash out are two permissions since 0.61.0 (an older server
+// sends neither key: both allowed, as can_move_cash already said).
+const canCashIn = computed(() => session.permissions.can_cash_in !== false)
+const canCashOut = computed(() => session.permissions.can_cash_out !== false)
+const freshMovement = () => ({ movement_type: canCashIn.value ? 'Cash In' : 'Cash Out', amount: null, reason: '', mode_of_payment: null })
+const movement = ref(freshMovement())
+const movementBusy = ref(false)
+// A cash out waiting for a manager's approval (CashOutApproval.vue).
+const approving = ref(null)
+const reasonNeeded = computed(() => movement.value.movement_type === 'Cash Out' && Boolean(session.settings?.cash_out_reason_required))
+const cashOutHint = computed(() => {
+  if (movement.value.movement_type !== 'Cash Out' || session.permissions?.is_manager) return ''
+  const mode = session.settings?.cash_out_approval || 'Off'
+  if (mode === 'Always') return t('A manager approves every cash out.')
+  if (mode === 'Above an amount') {
+    return t('A manager approves a cash out above {amount}.', { amount: money(session.settings?.cash_out_approval_amount || 0, local.value) })
+  }
+  return ''
+})
 
 // Shift figures are in the company currency; each drawer in another currency
 // ("Cash USD") keeps its own float, movements and count (lumenpos.currency).
@@ -779,6 +809,34 @@ async function addMovement() {
     session.notify(t('Enter the amount as a number, e.g. 250 or 250.50'), true)
     return
   }
+  const m = movement.value
+  if (m.movement_type === 'Cash Out') {
+    if (reasonNeeded.value && !m.reason.trim()) {
+      session.notify(t('Write why the money is taken out.'), true)
+      return
+    }
+    // The server says whether a manager must approve it (lumenpos.cash_out).
+    try {
+      const check = await call('lumenpos.api.register.cash_out_check', {
+        session: session.registerSession.name,
+        amount,
+        mode_of_payment: m.mode_of_payment || null,
+      })
+      if (check.needed) {
+        const drawer = foreignDrawers.value.find((d) => d.mode_of_payment === m.mode_of_payment)
+        approving.value = { amount, currency: drawer ? drawer.account_currency : local.value, mode_of_payment: m.mode_of_payment || null, reason: m.reason }
+        return
+      }
+    } catch (e) {
+      session.notify(e.message, true)
+      return
+    }
+  }
+  await postMovement(amount, {})
+}
+
+async function postMovement(amount, approval) {
+  movementBusy.value = true
   try {
     await call('lumenpos.api.register.add_cash_movement', {
       session: session.registerSession.name,
@@ -786,12 +844,22 @@ async function addMovement() {
       amount,
       reason: movement.value.reason,
       mode_of_payment: movement.value.mode_of_payment || null,
+      approval_passcode: approval.passcode || null,
+      approval_request: approval.request || null,
     })
-    movement.value = { movement_type: 'Cash In', amount: null, reason: '', mode_of_payment: null }
+    movement.value = freshMovement()
     await load()
   } catch (e) {
     session.notify(e.message, true)
+  } finally {
+    movementBusy.value = false
   }
+}
+
+async function onCashOutApproved(approval) {
+  const amount = approving.value.amount
+  approving.value = null
+  await postMovement(amount, approval)
 }
 
 function dismissClosed() {
@@ -990,6 +1058,7 @@ async function close() {
 }
 .movement-row .in { color: var(--brand-dark); font-weight: 700; }
 .movement-row .out { color: var(--red); font-weight: 700; }
+.cash-hint { margin: 6px 0 0; }
 .count-table { width: 100%; border-collapse: collapse; }
 .count-table th {
   text-align: left;

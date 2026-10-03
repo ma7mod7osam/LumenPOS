@@ -16,8 +16,8 @@
         <div v-else class="req-list">
           <div v-for="r in requests" :key="r.name" class="req card">
             <div class="req-top">
-              <span class="type-chip" :class="r.request_type === 'Return' ? 'ret' : 'disc'">
-                {{ r.request_type === 'Return' ? t('Return') : t('Discount') }}
+              <span class="type-chip" :class="r.request_type === 'Return' ? 'ret' : r.request_type === 'Cash Out' ? 'cash' : 'disc'">
+                {{ r.request_type === 'Return' ? t('Return') : r.request_type === 'Cash Out' ? t('Cash Out') : t('Discount') }}
               </span>
               <span class="muted small">{{ clock(r.creation) }}</span>
             </div>
@@ -25,6 +25,12 @@
               <div>{{ t('Cashier') }}: <strong>{{ r.cashier_name || r.cashier }}</strong></div>
               <div v-if="r.request_type === 'Discount'" class="headline">
                 {{ r.discount_percent }}%<span v-if="r.cart_total" class="muted"> · {{ money(r.cart_total) }}</span>
+              </div>
+              <!-- Money taken out of a drawer (0.61.0): a drawer in another
+                   currency is named, its amount is in that money. -->
+              <div v-else-if="r.request_type === 'Cash Out'" class="headline">
+                <template v-if="r.cash_drawer">{{ r.cash_amount }} · {{ r.cash_drawer }}</template>
+                <template v-else>{{ money(r.cash_amount) }}</template>
               </div>
               <div v-else class="headline">
                 {{ r.return_invoice }}<span v-if="r.invoice_age_days != null" class="muted"> · {{ t('{n} days old', { n: r.invoice_age_days }) }}</span>
@@ -138,6 +144,7 @@ onUnmounted(() => clearInterval(timer))
 }
 .type-chip.disc { background: rgba(20, 99, 255, 0.14); color: var(--brand-dark); }
 .type-chip.ret { background: rgba(245, 166, 35, 0.16); color: #9a6a0a; }
+.type-chip.cash { background: rgba(226, 48, 48, 0.12); color: var(--red); }
 .headline { font-size: 18px; font-weight: 800; margin: 2px 0; }
 .req-meta { font-size: 13px; line-height: 1.5; }
 .reason { font-style: italic; color: var(--text-muted); margin-top: 4px; }

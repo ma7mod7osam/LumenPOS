@@ -1,11 +1,13 @@
 # Copyright (c) 2026 Lumen Solutions
 # SPDX-License-Identifier: AGPL-3.0-only
 # "LumenPOS" is a trademark of Lumen Solutions. See TRADEMARKS.md.
-"""POS approval requests, a generic, role-approved request used for two cases:
+"""POS approval requests, a generic, role-approved request used for three cases:
 
 - **Discount**: a manual discount above LumenPOS Settings → Discount Limit, when the
   approval method allows requests.
 - **Return**: a regular return after the configured return window has passed.
+- **Cash Out**: money taken out of a drawer mid-shift, when LumenPOS Settings
+  asks for an approval (lumenpos.cash_out, 0.61.0).
 
 In both cases the cashier drops a request that a user holding the configured
 **Approver Role** approves while the cashier's register is still OPEN. A request
@@ -24,7 +26,7 @@ REQUEST_DOCTYPE = "POS Approval Request"
 SESSION_DOCTYPE = "POS Register Session"
 INVOICE_DOCTYPE = "POS Invoice"
 
-REQUEST_TYPES = ("Discount", "Return")
+REQUEST_TYPES = ("Discount", "Return", "Cash Out")
 
 
 def _settings():
@@ -88,9 +90,11 @@ def create_request(
     cart_total: float | str = 0,
     return_invoice: str | None = None,
     details: dict | str | None = None,
+    amount: float | str = 0,
+    mode_of_payment: str | None = None,
 ):
     """Cashier drops an approval request tied to the open register session.
-    request_type is 'Discount' or 'Return'. Returns {name, status}.
+    request_type is 'Discount', 'Return' or 'Cash Out'. Returns {name, status}.
 
     `details` is a short human-readable summary of WHAT is being approved (the
     cart lines, or the invoice being returned). Without it an approver was being
@@ -112,6 +116,13 @@ def create_request(
             frappe.throw(
                 _("This discount is within the {0}% limit, no approval needed.").format(limit)
             )
+    elif request_type == "Cash Out":
+        from lumenpos import cash_out
+
+        if cash_out.mode() == "Off":
+            frappe.throw(_("Cash out needs no approval at this shop."))
+        if flt(amount) <= 0:
+            frappe.throw(_("Enter an amount above zero."))
     else:  # Return
         if not return_invoice:
             frappe.throw(_("Select the invoice to return."))
@@ -134,9 +145,22 @@ def create_request(
         if posting:
             age = date_diff(nowdate(), posting)
 
-    session = frappe.db.get_value(
-        SESSION_DOCTYPE, {"pos_profile": pos_profile, "status": "Open"}, "name"
-    )
+    if request_type == "Cash Out":
+        # The cashier's own shift: the money leaves that drawer, and in "Per
+        # cashier" scope an outlet can hold several open shifts.
+        from lumenpos.api.session import get_open_session
+
+        session = (get_open_session(pos_profile) or {}).get("name")
+        if session:
+            # Only whoever opened the shift (or a manager) takes money out of its
+            # drawer (register.add_cash_movement): nobody else may ask for it.
+            from lumenpos.api.register import _assert_owner_or_manager
+
+            _assert_owner_or_manager(frappe.get_doc(SESSION_DOCTYPE, session))
+    else:
+        session = frappe.db.get_value(
+            SESSION_DOCTYPE, {"pos_profile": pos_profile, "status": "Open"}, "name"
+        )
     if not session:
         frappe.throw(_("Open the register before requesting approval."))
 
@@ -156,6 +180,8 @@ def create_request(
             "invoice_age_days": age,
             "reason": (reason or "").strip() or None,
             "request_details": (details or "")[:2000] or None,
+            "cash_amount": flt(amount, 2) if request_type == "Cash Out" else 0,
+            "cash_drawer": (mode_of_payment or None) if request_type == "Cash Out" else None,
             "status": "Pending",
         }
     )
@@ -181,6 +207,7 @@ def request_status(name: str):
         "approver_name": doc.approver_name,
         "decision_note": doc.decision_note,
         "discount_percent": doc.discount_percent,
+        "cash_amount": doc.get("cash_amount"),
     }
 
 
@@ -220,6 +247,7 @@ def pending_requests(pos_profile: str | None = None):
             "name", "request_type", "register_session", "pos_profile", "cashier",
             "cashier_name", "customer_name", "discount_percent", "cart_total",
             "return_invoice", "invoice_age_days", "reason", "request_details", "creation",
+            "cash_amount", "cash_drawer",
         ],
         order_by="creation asc",
         limit_page_length=50,
@@ -307,6 +335,19 @@ def validate_return(request_name, return_invoice):
     doc = _validate(request_name, "Return")
     if doc.return_invoice and doc.return_invoice != return_invoice:
         frappe.throw(_("This return approval is for invoice {0}.").format(doc.return_invoice))
+    return doc.approver_name
+
+
+def validate_cash_out(request_name, session_name, amount, drawer=None):
+    """Submit-time check for a Cash Out request: this shift, this drawer, and
+    an amount no larger than approved. Returns the approver name."""
+    doc = _validate(request_name, "Cash Out")
+    if doc.register_session != session_name:
+        frappe.throw(_("This approval is for another shift."))
+    if (doc.get("cash_drawer") or None) != (drawer or None):
+        frappe.throw(_("This approval is for another drawer."))
+    if flt(amount) > flt(doc.get("cash_amount")) + 0.005:
+        frappe.throw(_("The approval covers {0}, not {1}.").format(flt(doc.get("cash_amount")), flt(amount)))
     return doc.approver_name
 
 

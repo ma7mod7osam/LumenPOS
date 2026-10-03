@@ -54,6 +54,10 @@
   "discount_passcode",
   "approvers_section",
   "discount_approvers",
+  "cash_out_section",
+  "cash_out_reason_required",
+  "cash_out_approval",
+  "cash_out_approval_amount",
   "permissions_section",
   "price_edit_role",
   "return_role",
@@ -355,6 +359,33 @@
    "fieldtype": "Table",
    "label": "Approvers",
    "options": "POS Discount Approver"
+  },
+  {
+   "fieldname": "cash_out_section",
+   "fieldtype": "Section Break",
+   "label": "Cash out"
+  },
+  {
+   "default": "1",
+   "description": "Every cash out needs a reason written down.",
+   "fieldname": "cash_out_reason_required",
+   "fieldtype": "Check",
+   "label": "A reason for every cash out"
+  },
+  {
+   "default": "Off",
+   "description": "Off: as before. Above an amount: a manager approves a cash out above the amount set. Always: every cash out. A manager approves with their passcode at the till, or a request from the Approvals tray. Managers need nobody's approval.",
+   "fieldname": "cash_out_approval",
+   "fieldtype": "Select",
+   "label": "Manager approval for cash out",
+   "options": "Off\nAbove an amount\nAlways"
+  },
+  {
+   "depends_on": "eval:doc.cash_out_approval=='Above an amount'",
+   "description": "In the company currency. A drawer in another currency is valued at the shift's rate.",
+   "fieldname": "cash_out_approval_amount",
+   "fieldtype": "Currency",
+   "label": "Approval above"
   },
   {
    "description": "Restrict till actions to staff holding a role. Leave a role blank to allow everyone. System / LumenPOS Managers always pass.",
@@ -943,7 +974,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-03 16:00:00.000000",
+ "modified": "2026-10-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

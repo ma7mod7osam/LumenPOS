@@ -279,6 +279,8 @@ export const TOPICS = [
     steps: [
       'Record cash put into or taken out of the drawer, with the amount and a reason.',
       'It counts in the cash expected at the close.',
+      'Putting money in and taking it out are two permissions, and your shop may ask for a reason for every cash out.',
+      'Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.',
     ],
   },
   {
@@ -432,6 +434,7 @@ export const TOURS = {
 // What is new, newest first. Shown once per person after an update, only the
 // entries newer than what they last saw and that apply to them.
 export const WHATS_NEW = [
+  { version: '0.61.0', title: 'Cash out under control', text: 'Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager\'s approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.', route: '/settings', when: manager },
   { version: '0.60.0', title: 'Sales on account', text: 'A customer can take the goods now and pay later. Turn it on in Settings, General, Sales on account, which says how it works, and name who may sell on account in Approvals and access, Permissions.', route: '/settings', when: manager },
   { version: '0.60.0', title: 'Selling on account', text: 'At the payment screen, On account leaves what the customer does not pay now on their account. Their payments are taken in Customers.', route: '/', when: sellsOnAccount },
   { version: '0.59.0', title: 'A reason for a short or over', text: 'When a count at the close is short or over, the till asks why and keeps the reason with the shift. The shop sets the list in Settings, General, Register and shifts, and can make it required.', route: '/register', when: (s) => (s.settings.variance_reason_mode || 'Optional') !== 'Off' },

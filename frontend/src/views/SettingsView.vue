@@ -2164,8 +2164,9 @@
         </div>
         <p class="muted hint-row">{{ modeHint }}</p>
 
-        <!-- Passcode-based approval (a manager is at the till) -->
-        <template v-if="generalForm.discount_approval_mode !== 'Request only'">
+        <!-- Passcode-based approval (a manager is at the till). The same PINs
+             approve a cash out (0.61.0) whatever the discount method. -->
+        <template v-if="generalForm.discount_approval_mode !== 'Request only' || generalForm.cash_out_approval !== 'Off'">
           <div class="field-grid">
             <label class="field">
               <span>{{ t('Master passcode') }} {{ settingsInfo.has_passcode ? t('(set. Leave blank to keep)') : t('(optional)') }}</span>
@@ -2195,7 +2196,7 @@
 
         <!-- Request-based approval (a role-holder approves remotely). The same
              role approves both discount AND return requests. -->
-        <template v-if="generalForm.discount_approval_mode !== 'Passcode only' || generalForm.restrict_returns_to_window">
+        <template v-if="generalForm.discount_approval_mode !== 'Passcode only' || generalForm.restrict_returns_to_window || generalForm.cash_out_approval !== 'Off'">
           <div class="sub-label">{{ t('Approver role for requests') }}</div>
           <div class="field-grid">
             <label class="field">
@@ -2207,6 +2208,38 @@
             {{ t('Holders of this role (plus LumenPOS / System Managers) get an Approvals tray in the POS and can approve requests while the cashier\'s register is still open.') }}
           </p>
         </template>
+      </div>
+
+      <!-- Cash out (lumenpos.cash_out, 0.61.0) -->
+      <div class="sec-card" v-show="generalSection === 'approvals'" data-tour="settings-cash-out">
+        <div class="sec-title"><Icon name="cash" /> {{ t('Cash out') }}</div>
+        <p class="sec-note">{{ t('Money taken out of the drawer during a shift.') }}</p>
+        <div class="setting-list">
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.cash_out_reason_required" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('A reason for every cash out') }}</span>
+              <span class="setting-desc">{{ t('On (the default): the cashier writes why the money is taken out. It is kept with the shift and in the audit log.') }}</span>
+            </span>
+          </label>
+        </div>
+        <div class="field-grid" style="margin-top: 16px">
+          <label class="field">
+            <span>{{ t('Manager approval for cash out') }}</span>
+            <select v-model="generalForm.cash_out_approval">
+              <option value="Off">{{ t('Off') }}</option>
+              <option value="Above an amount">{{ t('Above an amount') }}</option>
+              <option value="Always">{{ t('Always') }}</option>
+            </select>
+            <span class="setting-desc">{{ t("A manager approves with their passcode at the till (the approvers above) or a request from the Approvals tray. Managers need nobody's approval.") }}</span>
+          </label>
+          <label v-if="generalForm.cash_out_approval === 'Above an amount'" class="field">
+            <span>{{ t('Approval above') }}</span>
+            <input type="number" min="0" step="0.01" v-model.number="generalForm.cash_out_approval_amount" />
+            <span class="setting-desc">{{ t("In the company's currency. A drawer in another currency is valued at the shift's rate.") }}</span>
+          </label>
+        </div>
+        <p class="muted hint-row">{{ t('Who may put money in and who may take it out are two permissions, below.') }}</p>
       </div>
 
       <!-- Permissions -->
@@ -2519,7 +2552,8 @@ const capabilityOptions = [
   'Make returns',
   'Return past the window',
   'Exchange goods',
-  'Cash in / out',
+  'Cash in',
+  'Cash out',
   'Reprint a receipt',
   'Open the register',
   'Close the register',
@@ -2542,6 +2576,9 @@ const generalForm = ref({
   discount_passcode: '',
   discount_approval_mode: 'Passcode only',
   approver_role: '',
+  cash_out_reason_required: 1,
+  cash_out_approval: 'Off',
+  cash_out_approval_amount: 0,
   price_edit_role: '',
   return_role: '',
   return_exceed_role: '',
@@ -3222,6 +3259,9 @@ async function load() {
     discount_passcode: '',
     discount_approval_mode: info.discount_approval_mode || 'Passcode only',
     approver_role: info.approver_role || '',
+    cash_out_reason_required: info.cash_out_reason_required ? 1 : 0,
+    cash_out_approval: info.cash_out_approval || 'Off',
+    cash_out_approval_amount: info.cash_out_approval_amount || 0,
     price_edit_role: info.price_edit_role || '',
     return_role: info.return_role || '',
     return_exceed_role: info.return_exceed_role || '',
@@ -4033,6 +4073,9 @@ async function saveGeneral() {
     session.settings.delivery_apps = info.delivery_apps
     session.settings.discount_limit_percent = info.discount_limit_percent
     session.settings.discount_approval_mode = info.discount_approval_mode || 'Passcode only'
+    session.settings.cash_out_reason_required = info.cash_out_reason_required ? 1 : 0
+    session.settings.cash_out_approval = info.cash_out_approval || 'Off'
+    session.settings.cash_out_approval_amount = info.cash_out_approval_amount || 0
     session.settings.restrict_returns_to_window = info.restrict_returns_to_window || 0
     session.settings.return_window_days = info.return_window_days || 0
     session.settings.return_reasons = info.return_reasons || []

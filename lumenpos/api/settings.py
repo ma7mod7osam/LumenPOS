@@ -17,7 +17,7 @@ from lumenpos import __version__
 from lumenpos import erpnext_compat
 from lumenpos.api import insights
 from lumenpos.api import salespeople
-from lumenpos import cashback_rules, credit_sales, languages, scope, variance
+from lumenpos import cash_out, cashback_rules, credit_sales, languages, scope, variance
 
 def _can_manage():
     """Can the user change LumenPOS-wide settings (the General tab)?"""
@@ -202,6 +202,8 @@ def get_settings():
         # set up for them in each company that has an outlet.
         **credit_sales.client_facts(),
         "credit_setup": _credit_setup(),
+        # Taking money out of the drawer (lumenpos.cash_out, 0.61.0).
+        **cash_out.client_facts(),
         "discount_limit_percent": flt(doc.discount_limit_percent),
         "discount_approval_mode": doc.get("discount_approval_mode") or "Passcode only",
         "approver_role": doc.get("approver_role") or "",
@@ -475,6 +477,14 @@ def save_settings(payload: dict | str):
             if reason and reason.casefold() not in seen_reasons:
                 seen_reasons.add(reason.casefold())
                 doc.append("variance_reasons", {"reason": reason})
+    # Taking money out of the drawer (lumenpos.cash_out, 0.61.0). A screen from
+    # before sends none of these: leave them alone.
+    if "cash_out_reason_required" in payload:
+        doc.cash_out_reason_required = 1 if payload.get("cash_out_reason_required") else 0
+    if payload.get("cash_out_approval") in cash_out.MODES:
+        doc.cash_out_approval = payload.get("cash_out_approval")
+    if "cash_out_approval_amount" in payload:
+        doc.cash_out_approval_amount = max(flt(payload.get("cash_out_approval_amount")), 0)
     # Sales on account (lumenpos.credit_sales, 0.60.0). A screen from before
     # sends none of these: leave them alone.
     if "credit_sales_enabled" in payload:

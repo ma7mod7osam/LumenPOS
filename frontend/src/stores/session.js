@@ -170,7 +170,8 @@ export const useSessionStore = defineStore('session', {
     canApprove: (s) =>
       Boolean(s.settings?.can_approve_requests) &&
       ((s.settings?.discount_approval_mode || 'Passcode only') !== 'Passcode only' ||
-        Boolean(s.settings?.restrict_returns_to_window)),
+        Boolean(s.settings?.restrict_returns_to_window) ||
+        (s.settings?.cash_out_approval || 'Off') !== 'Off'),
     // The Settings gear is worth showing only if the user can manage at least
     // one back-office area.
     canManageAny: (s) => {

@@ -131,6 +131,7 @@ def ensure_setup():
     default_offline_switches_on()
     default_help_switches_on()
     default_period_switches_on()
+    default_cash_out_switches_on()
     recost_open_holds()
     ensure_currencies()
     ensure_hot_indexes()
@@ -264,6 +265,8 @@ HELP_SWITCHES = ("help_in_till", "help_offer_tour", "help_whats_new")
 # And the warning about ERPNext accounting periods that lock sales (0.58.1,
 # lumenpos.accounting_periods).
 PERIOD_SWITCHES = ("warn_locked_periods",)
+# A reason for every cash out (0.61.0, lumenpos.cash_out): the owner asked for it.
+CASH_OUT_SWITCHES = ("cash_out_reason_required",)
 
 
 def _switches_on_once(fields):
@@ -294,6 +297,11 @@ def default_help_switches_on():
 def default_period_switches_on():
     """The warning about locked accounting periods ships ON."""
     _switches_on_once(PERIOD_SWITCHES)
+
+
+def default_cash_out_switches_on():
+    """A reason for every cash out ships ON."""
+    _switches_on_once(CASH_OUT_SWITCHES)
 
 
 def backfill_store_credit_references():

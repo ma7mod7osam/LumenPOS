@@ -27,6 +27,9 @@ TILL_UNLOCK = "Till unlock"
 # Sales on account (0.60.0): a customer's payment taken at the till, and a
 # manager's switch or limit on a customer's card.
 CUSTOMER_PAYMENT = "Customer payment"
+# Money put in or taken out of a drawer mid-shift (0.61.0, lumenpos.cash_out).
+CASH_IN = "Cash in"
+CASH_OUT = "Cash out"
 CUSTOMER_CREDIT = "Customer credit"
 # A receipt printed again after the sale's own print (api.printing, 0.60.0).
 REPRINT = "Reprint"

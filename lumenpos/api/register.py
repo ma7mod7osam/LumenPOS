@@ -588,13 +588,36 @@ def _force_new_after_failure(profile, opening_float, stuck_session, floats=None)
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def add_cash_movement(session: str, movement_type: str, amount: float | str, reason: str | None = None, mode_of_payment: str | None = None):
+def add_cash_movement(
+    session: str,
+    movement_type: str,
+    amount: float | str,
+    reason: str | None = None,
+    mode_of_payment: str | None = None,
+    approval_passcode: str | None = None,
+    approval_request: str | None = None,
+):
+    """Money put in or taken out of a drawer mid-shift. Since 0.61.0 cash in
+    and cash out are two permissions, an amount must be above zero (a negative
+    cash in was a cash out nobody checked), and a cash out may need a reason
+    and a manager's approval (lumenpos.cash_out); the approver is kept."""
     if not frappe.has_permission("POS Register Session", "write"):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
-    from lumenpos.api import permissions
+    from lumenpos import cash_out
+    from lumenpos.api import approval_requests, audit, permissions
 
-    if not permissions.can_move_cash():
-        frappe.throw(_("You are not allowed to put money in or take it out"), frappe.PermissionError)
+    if movement_type not in ("Cash In", "Cash Out"):
+        frappe.throw(_("Choose cash in or cash out."))
+    taking = movement_type == "Cash Out"
+    if not (permissions.can_cash_out() if taking else permissions.can_cash_in()):
+        frappe.throw(
+            _("You are not allowed to take money out of the drawer.") if taking
+            else _("You are not allowed to put money in the drawer."),
+            frappe.PermissionError,
+        )
+    amount = flt(amount, 2)
+    if amount <= 0:
+        frappe.throw(_("Enter an amount above zero."))
     doc = frappe.get_doc("POS Register Session", session)
     _assert_owner_or_manager(doc)
     if doc.status != "Open":
@@ -603,18 +626,62 @@ def add_cash_movement(session: str, movement_type: str, amount: float | str, rea
     # outlet ("Cash USD"), the amount in its money (lumenpos.currency).
     if mode_of_payment and mode_of_payment not in _foreign_drawers(doc.pos_profile):
         mode_of_payment = None
+    reason = (reason or "").strip()[:140]
+    approver, request = None, None
+    if taking:
+        if cash_out.reason_required() and not reason:
+            frappe.throw(_("Write why the money is taken out."), title=_("Cash out"))
+        approver, request = cash_out.approve(doc, amount, mode_of_payment, approval_passcode, approval_request)
     doc.append(
         "cash_movements",
         {
             "movement_type": movement_type,
             "mode_of_payment": mode_of_payment,
-            "amount": flt(amount),
-            "reason": reason,
+            "amount": amount,
+            "reason": reason or None,
             "recorded_at": now_datetime(),
             "recorded_by": frappe.session.user,
+            "approved_by": approver,
+            "approval_request": request,
         },
     )
     doc.save()
+    if request:
+        approval_requests.consume(request, doc.name)
+    drawer_name = mode_of_payment or _drawer_mode(doc.pos_profile) or ""
+    detail = (
+        _("{0} taken out of {1}: {2}") if taking else _("{0} put in {1}: {2}")
+    ).format(amount, drawer_name, reason or "-")
+    if approver:
+        detail += " " + _("(approved by {0})").format(approver)
+    audit.log(
+        audit.CASH_OUT if taking else audit.CASH_IN,
+        detail=detail,
+        amount=amount,
+        reference_doctype="POS Register Session",
+        reference_name=doc.name,
+        pos_profile=doc.pos_profile,
+    )
+
+
+@frappe.whitelist()
+def cash_out_check(session: str, amount: float | str, mode_of_payment: str | None = None):
+    """Before a cash out: does it need a manager's approval? The till asks, and
+    opens the approval window when it does (the rule lives here only)."""
+    from lumenpos import cash_out
+    from lumenpos.api import permissions
+
+    if not frappe.has_permission("POS Register Session", "read") or not permissions.can_cash_out():
+        frappe.throw(_("You are not allowed to take money out of the drawer."), frappe.PermissionError)
+    doc = frappe.get_doc("POS Register Session", session)
+    if mode_of_payment and mode_of_payment not in _foreign_drawers(doc.pos_profile):
+        mode_of_payment = None
+    return {
+        "needed": 1 if cash_out.needs_approval(doc, flt(amount, 2), mode_of_payment) else 0,
+        "mode": cash_out.mode(),
+        "threshold": cash_out.threshold(),
+        "value": cash_out.company_value(doc, flt(amount, 2), mode_of_payment),
+    }
 
 
 @frappe.whitelist()
@@ -714,6 +781,8 @@ def get_session_summary(session: str):
                 "amount": m.amount,
                 "reason": m.reason,
                 "recorded_at": str(m.recorded_at),
+                "recorded_by": m.get("recorded_by"),
+                "approved_by": m.get("approved_by"),
                 "mode_of_payment": m.get("mode_of_payment") or drawer,
                 "currency": foreign.get(m.get("mode_of_payment")) or ccy,
             }

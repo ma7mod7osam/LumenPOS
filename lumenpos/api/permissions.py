@@ -30,6 +30,11 @@ RETURN = "Make returns"
 RETURN_EXCEED = "Return past the window"
 EXCHANGE = "Exchange goods"
 CASH_MOVEMENT = "Cash in / out"
+# Since 0.61.0 apart (lumenpos.cash_out): taking money out is the risk, putting
+# it in is not. A site's rows on CASH_MOVEMENT still count for both until the
+# patch v0_61.split_cash_capability turns them into one row of each.
+CASH_IN = "Cash in"
+CASH_OUT = "Cash out"
 REPRINT = "Reprint a receipt"
 OPEN_REGISTER = "Open the register"
 CLOSE_REGISTER = "Close the register"
@@ -189,9 +194,28 @@ def can_hold_goods(user=None):
     return allowed(HOLD_GOODS, user)
 
 
-def can_move_cash(user=None):
-    """Put money in the drawer or take it out mid-shift."""
+def _cash_allowed(capability, user=None):
+    """CASH_IN or CASH_OUT by its own rows; a site that has none yet but kept a
+    row on the old CASH_MOVEMENT (an update that did not migrate) is held to
+    that row, so a shop that had locked the drawer is never opened up."""
+    if is_manager(user) or _rules(capability):
+        return allowed(capability, user)
     return allowed(CASH_MOVEMENT, user)
+
+
+def can_cash_in(user=None):
+    """Put money in the drawer mid-shift."""
+    return _cash_allowed(CASH_IN, user)
+
+
+def can_cash_out(user=None):
+    """Take money out of the drawer mid-shift."""
+    return _cash_allowed(CASH_OUT, user)
+
+
+def can_move_cash(user=None):
+    """Either of the two (the Register page shows the card)."""
+    return can_cash_in(user) or can_cash_out(user)
 
 
 def can_reprint(user=None):

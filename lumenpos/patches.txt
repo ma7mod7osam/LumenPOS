@@ -4,3 +4,4 @@ lumenpos.patches.v0_48.capability_rules
 lumenpos.patches.v0_50.unindexable_index_marks
 lumenpos.patches.v0_51.wallet_companies
 lumenpos.patches.v0_60.keep_shift_scope
+lumenpos.patches.v0_61.split_cash_capability

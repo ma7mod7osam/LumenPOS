@@ -1831,6 +1831,32 @@ const varianceReasons = {
   "Your shop may make the reason required: the register then closes only with one.": "قد يجعل المتجر السبب إلزاميا، فلا يغلق الصندوق إلا به.",
 }
 // 0.60.0: sales on account (lumenpos.credit_sales) and reprints kept to whoever may.
+// 0.61.0: taking money out of the drawer (lumenpos.cash_out).
+const cashOut = {
+  "Cash out approval needed": "مطلوب اعتماد السحب النقدي",
+  "Taking {amount} out of the drawer needs a manager's approval.": "سحب {amount} من الدرج يحتاج اعتماد المدير.",
+  "The manager rejected this cash out.": "رفض المدير هذا السحب.",
+  "Reason (required)": "السبب (إلزامي)",
+  "approved by {name}": "اعتمده {name}",
+  "A manager approves every cash out.": "كل سحب نقدي يحتاج اعتماد المدير.",
+  "A manager approves a cash out above {amount}.": "السحب النقدي فوق {amount} يحتاج اعتماد المدير.",
+  "Write why the money is taken out.": "اكتب سبب سحب المبلغ.",
+  "Money taken out of the drawer during a shift.": "المبالغ التي تسحب من الدرج أثناء الوردية.",
+  "A reason for every cash out": "سبب لكل سحب نقدي",
+  "On (the default): the cashier writes why the money is taken out. It is kept with the shift and in the audit log.": "مفعل (الافتراضي): يكتب الكاشير سبب سحب المبلغ، ويحفظ مع الوردية وفي سجل التدقيق.",
+  "Manager approval for cash out": "اعتماد المدير للسحب النقدي",
+  "Above an amount": "فوق مبلغ معين",
+  "Always": "دائما",
+  "A manager approves with their passcode at the till (the approvers above) or a request from the Approvals tray. Managers need nobody's approval.": "يعتمد المدير برمزه عند الكاشير (المعتمدون أعلاه)، أو يعتمد طلبا من الاعتمادات. ولا يحتاج المدراء اعتماد أحد.",
+  "Approval above": "حد الاعتماد",
+  "In the company's currency. A drawer in another currency is valued at the shift's rate.": "بعملة الشركة. ويحسب الدرج بعملة أخرى بسعر صرف الوردية.",
+  "Who may put money in and who may take it out are two permissions, below.": "الإيداع والسحب صلاحيتان منفصلتان، في الصلاحيات أدناه.",
+  "Putting money in and taking it out are two permissions, and your shop may ask for a reason for every cash out.": "الإيداع والسحب صلاحيتان منفصلتان، وقد يطلب متجرك سببا لكل سحب نقدي.",
+  "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "إذا طلب متجرك ذلك، يعتمد المدير السحب النقدي: برمزه عند الكاشير، أو بطلب يعتمده من الاعتمادات.",
+  "Cash out under control": "ضبط السحب النقدي",
+  "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "الإيداع في الدرج والسحب منه صلاحيتان منفصلتان الآن. وقد يحتاج السحب النقدي سببا واعتماد المدير، بالرمز أو بطلب. اضبطه من الإعدادات، عام، الاعتمادات والصلاحيات، سحب نقدي.",
+}
+
 const creditSales = {
   "On account": "آجل",
   "Not on account": "لا يشتري بالآجل",
@@ -2106,5 +2132,5 @@ const prefixedAr = {
 
 export const messages = {
   en: { ...prefixedEn },
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...creditSales, ...prefixedAr },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...creditSales, ...cashOut, ...prefixedAr },
 }
