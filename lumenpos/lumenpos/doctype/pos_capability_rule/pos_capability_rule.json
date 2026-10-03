@@ -15,7 +15,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Can",
-   "options": "Edit price / discount\nMake returns\nReturn past the window\nExchange goods\nCash in / out\nReprint a receipt\nOpen the register\nClose the register\nHold goods for a customer\nSee sales by salesperson\nSee the system check",
+   "options": "Edit price / discount\nMake returns\nReturn past the window\nExchange goods\nCash in / out\nReprint a receipt\nOpen the register\nClose the register\nHold goods for a customer\nSee sales by salesperson\nSee the system check\nSell on account\nTake customer payments\nSet a customer's credit",
    "reqd": 1
   },
   {
@@ -38,7 +38,7 @@
  "index_web_pages_for_search": 0,
  "istable": 1,
  "links": [],
- "modified": "2026-09-23 00:00:00.000000",
+ "modified": "2026-10-03 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Capability Rule",

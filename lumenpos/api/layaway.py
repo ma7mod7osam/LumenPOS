@@ -147,6 +147,9 @@ def _post_sale(profile, customer, lines, payments, note, with_taxes, tax_include
     the same builder a gift card sale uses: explicit lines, the shop's tender
     rows, one invoice tied to the open shift, so the drawer and the Z-report
     see it like any other sale."""
+    from lumenpos import credit_sales
+
+    credit_sales.refuse_tender(payments, _("A hold"))
     session = sales._open_session(profile.name)
     invoice = _build_sale(profile, customer, lines, note, with_taxes, tax_included)
     sales._set_custom(invoice, ("lumenpos_session",), session["name"])

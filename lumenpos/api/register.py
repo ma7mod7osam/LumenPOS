@@ -42,7 +42,7 @@ from frappe import _
 from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowdate, nowtime
 
 from lumenpos.api.session import get_open_session
-from lumenpos import erpnext_compat
+from lumenpos import credit_sales, erpnext_compat
 from lumenpos.api import salespeople
 
 LIVE_STATES = ["Open", "Closing"]  # a shift that blocks opening another
@@ -116,6 +116,38 @@ def _in_window(recorded_at, since=None, until=None):
     if since is not None and when <= get_datetime(since):
         return False
     return until is None or when <= get_datetime(until)
+
+
+def _customer_payments(session_name, since=None, until=None):
+    """Customers' payments of what they owe taken in this shift (lumenpos.api.
+    credit, 0.60.0, a Cash or Bank Entry each): ({mode: amount}, the list).
+    Each lies in the drawer of its payment method, so the close expects it
+    there. `since` and `until` keep to one ERPNext day of a shift that ran
+    past midnight (roll_day)."""
+    if not frappe.get_meta("Journal Entry").has_field("lumenpos_session"):
+        return {}, []  # not migrated yet
+    by_mode, listed = {}, []
+    for row in frappe.get_all(
+        "Journal Entry",
+        filters={"lumenpos_session": session_name, "docstatus": 1, "lumenpos_credit_kind": "Payment"},
+        fields=["name", "mode_of_payment", "total_debit", "lumenpos_credit_customer", "creation"],
+        order_by="creation asc",
+    ):
+        if not _in_window(row.creation, since, until):
+            continue
+        amount = flt(row.total_debit, 2)
+        by_mode[row.mode_of_payment] = flt(flt(by_mode.get(row.mode_of_payment)) + amount, 2)
+        listed.append(
+            {
+                "name": row.name,
+                "mode_of_payment": row.mode_of_payment,
+                "amount": amount,
+                "customer": row.lumenpos_credit_customer,
+                "customer_name": frappe.db.get_value("Customer", row.lumenpos_credit_customer, "customer_name"),
+                "recorded_at": str(row.creation),
+            }
+        )
+    return by_mode, listed
 
 
 def _drawer_movements(session_doc, mode, main_drawer, since=None, until=None):
@@ -615,6 +647,12 @@ def get_session_summary(session: str):
     foreign = _foreign_drawers(doc.pos_profile)
     floats = _foreign_floats(doc)
     payments = _payments_by_mode(doc.name, sale_doctype, drawer)
+    # What was sold on account is owed, not in any drawer: shown, never
+    # counted (lumenpos.credit_sales). What customers paid of their debts is.
+    on_account = flt(payments.pop(credit_sales.MODE_OF_PAYMENT, 0), 2)
+    received, received_rows = _customer_payments(doc.name)
+    for mode, amount in received.items():
+        payments[mode] = flt(flt(payments.get(mode)) + amount, 2)
     cash_in, cash_out = _drawer_movements(doc, drawer, drawer)
 
     expected, seen = [], set()
@@ -682,6 +720,11 @@ def get_session_summary(session: str):
             for m in (doc.cash_movements or [])
         ],
         "expected": expected,
+        # Sold on account in this shift (returns taken off), and customers'
+        # payments of their debts, already inside the expected figures above.
+        "on_account": on_account,
+        "customer_payments": received_rows,
+        "customer_payments_total": flt(sum(row["amount"] for row in received_rows), 2),
         # The ERPNext days the shift closed while it sold on past midnight.
         "erpnext_days": _days_info(doc),
         # Who sold what on this shift (empty when nobody was named).
@@ -760,6 +803,7 @@ def close_register(
     expected_invoice_count: int | str | None = None,
     variance_reason: str | None = None,
     variance_action: str | None = None,
+    expected_payment_count: int | str | None = None,
 ):
     """Flip the session to 'Closing' (committed immediately, so it can never be
     sold-on or resumed again), then consolidate in a serialized background job.
@@ -811,6 +855,18 @@ def close_register(
                 ),
                 title=_("Closing figures out of date"),
             )
+    # The same for a customer's payment taken into a drawer from another till
+    # after the screen loaded (0.60.0).
+    if expected_payment_count not in (None, "") and cint(expected_payment_count) != len(
+        _customer_payments(doc.name)[1]
+    ):
+        frappe.throw(
+            _(
+                "A customer's payment was taken after the closing screen was loaded. "
+                "Refresh the closing screen, re-check the counts, then close again."
+            ),
+            title=_("Closing figures out of date"),
+        )
 
     # What each drawer should hold. Working it out must never keep a shift
     # open: with 0.52.0 on ERPNext 16 it failed right here on every shift, so
@@ -1114,6 +1170,8 @@ def _fill_pending_figures(session_name, closing=None, quiet=False):
             recon = {r.mode_of_payment: flt(r.expected_amount) for r in closing.get("payment_reconciliation") or []}
         else:
             recon = {r["mode_of_payment"]: flt(r["expected_amount"]) for r in get_session_summary(session_name)["expected"]}
+        # Sold on account is owed, not counted (lumenpos.credit_sales).
+        recon.pop(credit_sales.MODE_OF_PAYMENT, None)
         counted_modes = set()
         for row in doc.get("payment_counts") or []:
             counted_modes.add(row.mode_of_payment)
@@ -1587,6 +1645,10 @@ def _build_closing(session_doc, opening, counted=None, until=None):
     for mode, amount in _payments_by_mode(session_doc.name, sale_doctype, drawer, exclude=held).items():
         if amount:
             _accumulate_payment(closing, mode, amount)
+    # Customers' payments of their debts lie in the drawers too (0.60.0).
+    for mode, amount in _customer_payments(session_doc.name, since, until)[0].items():
+        if amount:
+            _accumulate_payment(closing, mode, amount)
 
     cash_modes = _cash_modes()
     foreign = _foreign_drawers(session_doc.pos_profile)
@@ -1629,7 +1691,8 @@ def _build_closing(session_doc, opening, counted=None, until=None):
                 break
 
     for row in closing.payment_reconciliation:
-        if counted is None:
+        # Nobody counts what was sold on account: it closes at what it is.
+        if counted is None or row.mode_of_payment == credit_sales.MODE_OF_PAYMENT:
             row.closing_amount = flt(row.expected_amount)
         else:
             row.closing_amount = flt(counted.get(row.mode_of_payment))
@@ -1928,6 +1991,8 @@ def _carried_opening(opening, closing, now):
     method opening at what the day just closed says it should hold, cash or
     not, since the shift is counted once at its own close."""
     carried = {r.mode_of_payment: flt(r.expected_amount) for r in closing.payment_reconciliation}
+    # What was sold on account is owed, not held: nothing to carry.
+    carried.pop(credit_sales.MODE_OF_PAYMENT, None)
     modes = [r.mode_of_payment for r in opening.balance_details]
     modes += [mode for mode in carried if mode not in modes]
     entry = frappe.get_doc(

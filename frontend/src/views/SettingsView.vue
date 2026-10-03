@@ -3018,6 +3018,7 @@ const previewReceipt = computed(() => ({
 const AUDIT_ACTIONS = [
   'Sale', 'Return', 'Over-limit discount', 'Price edit',
   'Register open', 'Register close', 'ERPNext day closed', 'Settings change', 'Email receipt', 'Till unlock',
+  'Customer payment', 'Customer credit',
 ]
 const auditLogs = ref([])
 const auditFilter = ref({ action: '', from_date: '', to_date: '' })

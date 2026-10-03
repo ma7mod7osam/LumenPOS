@@ -11,7 +11,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, date_diff, flt, now_datetime, nowdate
 
-from lumenpos import cashback, cashback_rules, coupons, currency, deposits, gift_cards, store_credit
+from lumenpos import cashback, cashback_rules, coupons, credit_sales, currency, deposits, gift_cards, store_credit
 from lumenpos.price_books import effective_prices, resolve_price_list, standard_prices
 from lumenpos.promotions.engine import evaluate
 from lumenpos.promotions.loader import get_active_promotions
@@ -183,6 +183,8 @@ def _offline_return_facts(name):
             "refund_modes": _cashier_refund_modes(doc),
             "blocked": return_restrictions.blocked_items(_restriction_items(doc), doc.get("pos_profile")),
             "rounding": rounding_rule(doc.currency, doc=doc),
+            # Its debt lives on the server: such a return needs a connection.
+            "on_account": 1 if credit_sales.on_account_part(doc) else 0,
         }
     except Exception:
         return None
@@ -585,6 +587,9 @@ def quote_sale(payload: dict | str):
         "blocked_modes": blocked_payment_modes(
             profile.name, [i.get("item_code") for i in payload.get("items") or []]
         ),
+        # Sales on account: may this customer, and how much is left
+        # (lumenpos.credit_sales). Fresh each time the payment screen opens.
+        "on_account": credit_sales.facts(_customer, profile.company) if credit_sales.enabled() else None,
     }
 
 
@@ -662,11 +667,20 @@ def submit_sale(payload: dict | str):
     gc_account = None
     sc_account = None
     cb_account = None
+    cr_account = None
     paid_total = 0.0
     for payment in payload.get("payments", []):
         amount = flt(payment.get("amount"))
         if not amount:
             continue
+        if payment["mode_of_payment"] == credit_sales.MODE_OF_PAYMENT:
+            # A sale on account (lumenpos.credit_sales): checked against the
+            # shop's rules and the customer's limit once the tenders settle.
+            if cint(payload.get("queued_offline")):
+                frappe.throw(_("A sale on account needs a connection."), title=_("Sales on account"))
+            if amount < 0:
+                frappe.throw(_("A payment cannot be negative."))
+            cr_account = credit_sales.ensure_setup(profile.company)
         if payment["mode_of_payment"] == store_credit.MODE_OF_PAYMENT:
             balance = store_credit.get_balance(customer, profile.company)
             if store_credit_used + amount > balance + 0.005:
@@ -695,6 +709,8 @@ def submit_sale(payload: dict | str):
 
     _reconcile_payment(invoice, profile)
     _drop_empty_payments(invoice)
+    if cr_account:
+        _assert_on_account(invoice, customer, profile)
     # Change comes from ONE account per sale currency and shift, never per
     # tender: local money from the company's cash, or the sale's own currency
     # from its drawer when the shop gives change in it (set by
@@ -722,6 +738,8 @@ def submit_sale(payload: dict | str):
         pin_accounts[store_credit.MODE_OF_PAYMENT] = sc_account
     if cb_account:
         pin_accounts[cashback.MODE_OF_PAYMENT] = cb_account
+    if cr_account:
+        pin_accounts[credit_sales.MODE_OF_PAYMENT] = cr_account
     if pin_accounts:
         for row in invoice.payments:
             if row.mode_of_payment in pin_accounts:
@@ -738,6 +756,10 @@ def submit_sale(payload: dict | str):
     invoice.submit()
     t_submit = _perf_now()
 
+    # The customer's debt for the part on account, in this same transaction:
+    # if it cannot be booked, the sale does not stand either.
+    if cr_account:
+        credit_sales.book_sale(invoice)
     if store_credit_used:
         # Across the group: this company's credit first, another company's
         # part recorded for settlement (lumenpos.inter_company).
@@ -805,6 +827,7 @@ def sell_gift_card(payload: dict | str):
     amount = flt(payload.get("amount"))
     if amount <= 0:
         frappe.throw(_("Enter the gift card amount"))
+    credit_sales.refuse_tender(payload.get("payments"), _("A gift card"))
 
     gift_card_account = gift_cards.ensure_setup(profile.company)
     customer = payload.get("customer") or profile.customer
@@ -1502,6 +1525,30 @@ def _reconcile_payment(invoice, profile):
         invoice.run_method("calculate_taxes_and_totals")
 
 
+def _assert_on_account(invoice, customer, profile):
+    """A sale on account (lumenpos.credit_sales): the part on account is what
+    the other tenders leave, never more, since no change comes out of a debt,
+    and the shop's rules and the customer's limit allow it."""
+    part = credit_sales.on_account_part(invoice)
+    if part <= 0:
+        return
+    target = flt(invoice.rounded_total or invoice.grand_total, 2)
+    loyalty = flt(invoice.loyalty_amount) if invoice.get("redeem_loyalty_points") else 0
+    paid = flt(sum(flt(p.amount) for p in invoice.payments), 2)
+    if flt(paid + loyalty - target, 2) > credit_sales.EPSILON:
+        frappe.throw(
+            _("Put on account only what is not paid now: this sale would give change out of a debt."),
+            title=_("Sales on account"),
+        )
+    credit_sales.assert_sale(
+        customer,
+        profile.company,
+        flt(part * flt(invoice.conversion_rate or 1), 2),
+        invoice.currency,
+        currency.company_currency(profile.company),
+    )
+
+
 def _restriction_items(doc):
     """Cart lines as {item_code, item_group, brand, tags} for payment-restriction
     matching. Read from the built invoice so it reflects exactly what will post."""
@@ -1978,6 +2025,8 @@ def get_receipt(invoice: str):
         "paid_amount": doc.paid_amount,
         "change_amount": doc.change_amount,
         "payments": [tender(p) for p in (doc.payments or []) if p.amount],
+        # The part on account and what is still owed (lumenpos.credit_sales).
+        "on_account": credit_sales.receipt_facts(doc),
         "applied_promotions": json.loads(
             _get_custom(doc, ("lumenpos_promotions",)) or "[]"
         ),
@@ -2438,6 +2487,9 @@ def get_returnable(invoice: str, pos_profile: str | None = None):
         "company_currency": currency.company_currency(doc.company),
         "conversion_rate": flt(doc.conversion_rate) or 1,
         "allowed_refund_modes": _cashier_refund_modes(doc),
+        # A sale on account: what is still owed on it, which a return takes off
+        # before any money goes back (lumenpos.credit_sales).
+        "on_account_owed": credit_sales.owed_on_sale(doc) if doc.get("lumenpos_credit_entry") else 0,
         "return_window": _return_window(doc),
         "restrictions": return_restrictions.blocked_items(
             _restriction_items_for_codes([row["item_code"] for row in items]),
@@ -2639,7 +2691,7 @@ def _cashier_refund_modes(original):
         return None
     from lumenpos import exchanges
 
-    return [mode for mode in modes if mode != exchanges.MODE_OF_PAYMENT]
+    return [mode for mode in modes if mode not in (exchanges.MODE_OF_PAYMENT, credit_sales.MODE_OF_PAYMENT)]
 
 
 def _wallet_modes():
@@ -2660,8 +2712,19 @@ def _allowed_refund_modes(original):
     if not settings.get("restrict_refund_to_paid_mode"):
         return None
     paid = {p.mode_of_payment for p in (original.payments or []) if flt(p.amount) > 0}
+    # The part on account is never a refund tender: a return takes it off the
+    # debt by itself (create_return). What the customer paid on it came later,
+    # with any tender, so money back beyond the debt goes out of the drawer.
+    on_account = credit_sales.MODE_OF_PAYMENT in paid
+    paid.discard(credit_sales.MODE_OF_PAYMENT)
     wallets = _wallet_modes()
     allowed = set(paid) - wallets
+    if on_account:
+        from lumenpos.api.register import _drawer_mode
+
+        drawer = _drawer_mode(original.get("pos_profile"))
+        if drawer:
+            allowed.add(drawer)
     for rule in settings.get("refund_rules") or []:
         if rule.paid_mode in paid and rule.refund_mode and rule.refund_mode not in wallets:
             allowed.add(rule.refund_mode)
@@ -2920,6 +2983,12 @@ def create_return(
     # not be greater than Grand Total".
     invoice_total = return_doc.rounded_total or return_doc.grand_total
     refund_amount = flt(invoice_total, return_doc.precision("grand_total"))  # negative
+    # A sale on account (lumenpos.credit_sales): what comes back goes first off
+    # what the customer still owes on it; only the rest goes back as money. The
+    # debt lives on the server, so such a return is never made offline.
+    on_account = credit_sales.debt_part(original, abs(refund_amount)) if original.get("lumenpos_credit_entry") else 0.0
+    if on_account and offline:
+        frappe.throw(_("A sale on account needs a connection to refund."), title=_("Sales on account"))
     if _split_fn:
         refund_payments = _split_fn(abs(refund_amount))
     tolerance = None
@@ -2934,7 +3003,13 @@ def create_return(
                     paid_out, abs(refund_amount)
                 )
             )
-    splits = _refund_splits(refund_payments, refund_amount, refund_mode, allowed_modes, absorb=tolerance)
+    money_back = flt(abs(refund_amount) - on_account, 2)
+    splits = []
+    if money_back > 0.005:
+        splits = _refund_splits(refund_payments, -money_back, refund_mode, allowed_modes, absorb=tolerance)
+    if on_account:
+        credit_sales.ensure_setup(original.company)
+        splits.append({"mode_of_payment": credit_sales.MODE_OF_PAYMENT, "amount": -on_account, "reference_no": None})
     if any(r["mode_of_payment"] in _wallet_modes() for r in splits):
         frappe.throw(
             _("A refund does not go back onto a gift card or cashback. Refund that part as store credit."),
@@ -2984,6 +3059,8 @@ def create_return(
     if posted:
         return get_receipt(posted)
     return_doc.submit()
+    if on_account:
+        credit_sales.book_return(return_doc, original)
     gap = flt(abs(refund_amount) - flt(offline_refund), 2) if offline else 0
     if offline and abs(gap) > 0.005:
         return_doc.add_comment(

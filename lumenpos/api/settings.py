@@ -17,7 +17,7 @@ from lumenpos import __version__
 from lumenpos import erpnext_compat
 from lumenpos.api import insights
 from lumenpos.api import salespeople
-from lumenpos import cashback_rules, languages, scope, variance
+from lumenpos import cashback_rules, credit_sales, languages, scope, variance
 
 def _can_manage():
     """Can the user change LumenPOS-wide settings (the General tab)?"""
@@ -198,6 +198,10 @@ def get_settings():
         ],
         # A reason for a short or over at the close (lumenpos.variance, 0.59.0).
         **variance.client_facts(),
+        # Sales on account (lumenpos.credit_sales, 0.60.0), with what LumenPOS
+        # set up for them in each company that has an outlet.
+        **credit_sales.client_facts(),
+        "credit_setup": _credit_setup(),
         "discount_limit_percent": flt(doc.discount_limit_percent),
         "discount_approval_mode": doc.get("discount_approval_mode") or "Passcode only",
         "approver_role": doc.get("approver_role") or "",
@@ -471,6 +475,14 @@ def save_settings(payload: dict | str):
             if reason and reason.casefold() not in seen_reasons:
                 seen_reasons.add(reason.casefold())
                 doc.append("variance_reasons", {"reason": reason})
+    # Sales on account (lumenpos.credit_sales, 0.60.0). A screen from before
+    # sends none of these: leave them alone.
+    if "credit_sales_enabled" in payload:
+        doc.credit_sales_enabled = 1 if payload.get("credit_sales_enabled") else 0
+    if payload.get("credit_customers") in credit_sales.WHO:
+        doc.credit_customers = payload.get("credit_customers")
+    if "credit_default_limit" in payload:
+        doc.credit_default_limit = max(flt(payload.get("credit_default_limit")), 0)
     doc.discount_limit_percent = flt(payload.get("discount_limit_percent"))
     doc.discount_approval_mode = payload.get("discount_approval_mode") or "Passcode only"
     doc.approver_role = payload.get("approver_role") or None
@@ -627,10 +639,53 @@ def save_settings(payload: dict | str):
             currency.refresh_auto_rates()
         except Exception:
             frappe.log_error(title="LumenPOS: exchange rates update failed", message=frappe.get_traceback())
+    if doc.get("credit_sales_enabled"):
+        # The Credit Sale tender and its clearing account in each company with
+        # an outlet, now, so a clash shows on this screen and not at a sale.
+        _set_up_credit_sales()
     from lumenpos.api import audit
 
     audit.log(audit.SETTINGS_CHANGE, detail="LumenPOS Settings updated")
     return get_settings()
+
+
+def _outlet_companies():
+    return sorted(set(frappe.get_all("POS Profile", filters={"disabled": 0}, pluck="company")) - {None, ""})
+
+
+def _set_up_credit_sales():
+    """ensure_setup per company, each in its own savepoint: one company's
+    clash (a payment method of that name the shop made) stops no other."""
+    for company in _outlet_companies():
+        try:
+            frappe.db.savepoint("lumenpos_credit_setup")
+            credit_sales.ensure_setup(company)
+        except Exception:
+            frappe.db.rollback(save_point="lumenpos_credit_setup")
+            # The clash is shown on the screen (_credit_setup), not as a popup.
+            if getattr(frappe.local, "message_log", None):
+                frappe.local.message_log.pop()
+
+
+def _credit_setup():
+    """What sales on account use in each company with an outlet: the payment
+    method, its clearing account, or why it is not ready yet."""
+    out = []
+    for company in _outlet_companies():
+        account = frappe.db.get_value(
+            "Mode of Payment Account", {"parent": credit_sales.MODE_OF_PAYMENT, "company": company}, "default_account"
+        )
+        mine = account and account.startswith(credit_sales.ACCOUNT_NAME)
+        out.append(
+            {
+                "company": company,
+                "mode": credit_sales.MODE_OF_PAYMENT,
+                "account": account or None,
+                "ready": 1 if mine else 0,
+                "clash": 1 if account and not mine else 0,
+            }
+        )
+    return out
 
 
 def check_passcode(passcode):

@@ -24,6 +24,10 @@ REGISTER_CLOSE = "Register close"
 ERPNEXT_DAY = "ERPNext day closed"
 SETTINGS_CHANGE = "Settings change"
 TILL_UNLOCK = "Till unlock"
+# Sales on account (0.60.0): a customer's payment taken at the till, and a
+# manager's switch or limit on a customer's card.
+CUSTOMER_PAYMENT = "Customer payment"
+CUSTOMER_CREDIT = "Customer credit"
 
 
 def _enabled():

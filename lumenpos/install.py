@@ -735,6 +735,18 @@ def make_custom_fields():
             no_copy=1,
             description="Client key for an offline-queued sale, prevents a retried sync from posting a duplicate invoice.",
         ),
+        # Sales on account (lumenpos.credit_sales, 0.60.0): the Journal Entry
+        # that booked this sale's part on account on the customer, or took a
+        # return's off it.
+        dict(
+            fieldname="lumenpos_credit_entry",
+            label="On Account Entry",
+            fieldtype="Link",
+            options="Journal Entry",
+            insert_after="lumenpos_idempotency_key",
+            read_only=1,
+            no_copy=1,
+        ),
         # Delivery-app channel data is written to the site's OWN fields when
         # present, custom_app_type (Select), pick_order_no (Data),
         # pick_customer (Check), is_exchange (Check). LumenPOS does not create
@@ -807,6 +819,79 @@ def make_custom_fields():
             ],
             "POS Invoice": invoice_fields,
             "Sales Invoice": invoice_fields,  # legacy v0.1-0.3 sales keep working
+            # Sales on account (lumenpos.credit_sales, 0.60.0): who may buy on
+            # account when the shop allows only chosen customers.
+            "Customer": [
+                dict(
+                    fieldname="lumenpos_allow_credit",
+                    label="Allow sales on account at the till",
+                    fieldtype="Check",
+                    default="0",
+                    insert_after="credit_limits",
+                    description="LumenPOS: this customer may buy on account, within their credit limit.",
+                ),
+            ],
+            # Each sale on account is one Journal Entry on the customer, so a
+            # payment settles sales one by one and the till lists what is owed.
+            "Journal Entry": [
+                dict(
+                    fieldname="lumenpos_credit_section",
+                    label="LumenPOS",
+                    fieldtype="Section Break",
+                    insert_after="user_remark",
+                    collapsible=1,
+                ),
+                dict(
+                    fieldname="lumenpos_credit_kind",
+                    label="On Account",
+                    fieldtype="Select",
+                    options="\nSale\nReturn\nPayment",
+                    insert_after="lumenpos_credit_section",
+                    read_only=1,
+                    no_copy=1,
+                ),
+                dict(
+                    fieldname="lumenpos_credit_invoice",
+                    label="Sale or Return",
+                    fieldtype="Data",
+                    insert_after="lumenpos_credit_kind",
+                    read_only=1,
+                    no_copy=1,
+                ),
+                dict(
+                    fieldname="lumenpos_credit_customer",
+                    label="On Account Customer",
+                    fieldtype="Link",
+                    options="Customer",
+                    insert_after="lumenpos_credit_invoice",
+                    read_only=1,
+                    no_copy=1,
+                    search_index=1,
+                ),
+                # A customer's payment taken at the till (a Cash or Bank Entry):
+                # the shift whose drawer holds it, so the close expects it.
+                dict(
+                    fieldname="lumenpos_session",
+                    label="POS Register Session",
+                    fieldtype="Link",
+                    options="POS Register Session",
+                    insert_after="lumenpos_credit_customer",
+                    read_only=1,
+                    no_copy=1,
+                    search_index=1,
+                ),
+                # A retried payment (its answer lost on the way back) finds the
+                # one that posted instead of taking the money twice.
+                dict(
+                    fieldname="lumenpos_idempotency_key",
+                    label="POS Idempotency Key",
+                    fieldtype="Data",
+                    insert_after="lumenpos_session",
+                    read_only=1,
+                    unique=1,
+                    no_copy=1,
+                ),
+            ],
             # Lines sold together as a bundle / buy-x-get-y set carry a group id so
             # a regular return can enforce returning the whole set together.
             "POS Invoice Item": [

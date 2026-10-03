@@ -53,6 +53,16 @@ def _assert_outlet_currency(original, profile, customer=None):
         )
 
 
+def _assert_no_debt(original, payments=None):
+    """A sale that still owes something on account is taken back as a return,
+    which comes off the debt first, and the new goods rung up on their own
+    (lumenpos.credit_sales). Nor is an exchange's difference put on account."""
+    from lumenpos import credit_sales
+
+    credit_sales.assert_no_debt(original, _("Take it back as a return, then ring the new goods up as a new sale."))
+    credit_sales.refuse_tender(payments, _("An exchange"))
+
+
 def _leftover_rows(leftover, refund_mode, refund_payments):
     """How the shop hands back the part the new goods did not cover."""
     if isinstance(refund_payments, str):
@@ -119,6 +129,7 @@ def quote_exchange(payload: dict | str):
     original = frappe.get_doc(sale_doctype, original_name)
     profile_name = payload.get("pos_profile") or original.get("pos_profile")
     _assert_outlet_currency(original, frappe.get_cached_doc("POS Profile", profile_name), payload.get("customer"))
+    _assert_no_debt(original)
     return_doc, _session = sales._build_return_doc(
         original, sale_doctype, original_name, return_items, payload.get("serials"),
         profile_name, None,
@@ -174,9 +185,9 @@ def submit_exchange(payload: dict | str):
         frappe.throw(_("Add at least one item the customer is taking instead"))
 
     profile = frappe.get_cached_doc("POS Profile", payload["pos_profile"])
-    _assert_outlet_currency(
-        frappe.get_doc(sales._doctype_of(original), original), profile, payload.get("customer")
-    )
+    original_doc = frappe.get_doc(sales._doctype_of(original), original)
+    _assert_outlet_currency(original_doc, profile, payload.get("customer"))
+    _assert_no_debt(original_doc, payload.get("payments"))
 
     # A retried exchange (lost answer, double tap) must not post twice. The new
     # sale carries the key, so finding it means the whole pair already posted.

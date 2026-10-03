@@ -15,6 +15,19 @@ def _cashback_balance(customer, company=None):
     return cashback.get_balance(customer, company=company)
 
 
+def _on_account(customer, company):
+    """What the customer owes and may still put on account (0.60.0), when the
+    shop sells on account at all."""
+    from lumenpos import credit_sales
+
+    if not credit_sales.enabled():
+        return None
+    try:
+        return credit_sales.facts(customer, company)
+    except Exception:
+        return None  # the wallet never fails for it
+
+
 @frappe.whitelist()
 def get_wallet(customer: str, company: str):
     """Loyalty points + store credit balance for the cart sidebar and the
@@ -27,6 +40,7 @@ def get_wallet(customer: str, company: str):
         # What this company's outlets accept (lumenpos.inter_company).
         "store_credit": get_balance(customer, company),
         "cashback": _cashback_balance(customer, company),
+        "on_account": _on_account(customer, company),
     }
     try:
         from lumenpos.erpnext_compat import loyalty_details

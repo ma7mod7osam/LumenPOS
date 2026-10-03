@@ -122,7 +122,11 @@
   "deposit_account",
   "deposit_item",
   "languages_section",
-  "till_languages"
+  "till_languages",
+  "credit_sales_section",
+  "credit_sales_enabled",
+  "credit_customers",
+  "credit_default_limit"
  ],
  "fields": [
   {
@@ -904,12 +908,42 @@
    "fieldname": "till_languages",
    "fieldtype": "Small Text",
    "label": "Languages at the till"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "credit_sales_section",
+   "fieldtype": "Section Break",
+   "label": "Sales on account"
+  },
+  {
+   "default": "0",
+   "description": "A customer takes the goods now and pays later. The part not paid is paid with the \"Credit Sale\" payment method, and the till books the debt on the customer at once with a Journal Entry, so it shows on their account in ERPNext and can be paid at the till or in ERPNext. LumenPOS makes the payment method and its clearing account itself. Who may sell on account is set in Who can do what.",
+   "fieldname": "credit_sales_enabled",
+   "fieldtype": "Check",
+   "label": "Sell on account"
+  },
+  {
+   "default": "Customers allowed on their card",
+   "depends_on": "eval:doc.credit_sales_enabled",
+   "description": "Customers allowed on their card: only customers marked \"Allow sales on account at the till\". Any named customer: everyone but the walk-in customer.",
+   "fieldname": "credit_customers",
+   "fieldtype": "Select",
+   "label": "Who can buy on account",
+   "options": "Customers allowed on their card\nAny named customer"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.credit_sales_enabled",
+   "description": "For a customer with no credit limit of their own in ERPNext (on the customer, its group or the company), in the company's currency. 0 = no limit.",
+   "fieldname": "credit_default_limit",
+   "fieldtype": "Currency",
+   "label": "Default credit limit"
   }
  ],
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-03 12:00:00.000000",
+ "modified": "2026-10-03 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

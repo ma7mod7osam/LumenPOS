@@ -214,6 +214,10 @@ def get_user_permissions():
         "can_reprint": caps_mod.can_reprint(),
         "sales_by_person": caps_mod.can_see_sales_by_person(),
         "system_check": caps_mod.can_see_system_check(),
+        # Sales on account (0.60.0), each nobody's but a manager's until named.
+        "sell_on_account": caps_mod.can_sell_on_account(),
+        "take_customer_payments": caps_mod.can_take_customer_payments(),
+        "set_customer_credit": caps_mod.can_set_customer_credit(),
         # ERPNext's document permission AND the shop's own rule, both must pass.
         "open_register": bool(has("POS Opening Entry", "create")) and caps_mod.can_open_register(),
         "close_register": bool(has("POS Closing Entry", "create")) and caps_mod.can_close_register(),
@@ -373,7 +377,7 @@ def _client_settings(profile_name=None):
 
     from frappe.utils import cint
 
-    from lumenpos import accounting_periods, languages, variance
+    from lumenpos import accounting_periods, credit_sales, languages, variance
     from lumenpos.api import approval_requests
 
     doc = frappe.get_cached_doc("LumenPOS Settings")
@@ -427,6 +431,8 @@ def _client_settings(profile_name=None):
         ],
         # A reason for a short or over at the close (lumenpos.variance, 0.59.0).
         **variance.client_facts(),
+        # Sales on account (lumenpos.credit_sales, 0.60.0).
+        **credit_sales.client_facts(),
         "delivery_apps": [
             {
                 "app_name": row.app_name,
