@@ -156,6 +156,18 @@
                 {{ drawer }}: {{ money(amount, drawerCurrency(drawer)) }}
               </div>
             </div>
+            <!-- Sales on account (0.60.0): owed, never in a drawer, and the
+                 customers' payments of what they owe, which are. -->
+            <div v-if="summary.on_account" class="stat" data-tour="register-on-account">
+              <div class="stat-label">{{ t('On account') }}</div>
+              <div class="stat-value">{{ money(summary.on_account, local) }}</div>
+              <div class="muted small">{{ t('Owed, not in the drawer') }}</div>
+            </div>
+            <div v-if="summary.customer_payments_total" class="stat">
+              <div class="stat-label">{{ t('Customer payments') }}</div>
+              <div class="stat-value">{{ money(summary.customer_payments_total, local) }}</div>
+              <div class="muted small">{{ t('{n} taken, in the drawer', { n: summary.customer_payments.length }) }}</div>
+            </div>
           </div>
           <!-- Who sold what on this shift (lumenpos.api.salespeople.shift_rows). -->
           <div v-if="summary.salespeople?.length" class="sp-block">
@@ -614,6 +626,7 @@ async function closeOther() {
       closing_note: otherNote.value || null,
       // Stale-closing-screen guard, as for this page's own close.
       expected_invoice_count: otherSummary.value ? otherSummary.value.sales_count : null,
+      expected_payment_count: otherSummary.value?.customer_payments ? otherSummary.value.customer_payments.length : null,
       variance_reason: otherAsk.value.show ? otherVarianceReason.value || null : null,
       variance_action: otherAsk.value.show ? otherVarianceAction.value || null : null,
     })
@@ -858,6 +871,8 @@ async function close() {
       // Stale-closing-screen guard: the server rejects the close if more sales
       // landed after this screen loaded (see close_register).
       expected_invoice_count: summary.value ? summary.value.sales_count : null,
+      // ...or a customer's payment was taken into a drawer (0.60.0).
+      expected_payment_count: summary.value?.customer_payments ? summary.value.customer_payments.length : null,
       variance_reason: ownAsk.value.show ? varianceReason.value || null : null,
       variance_action: ownAsk.value.show ? varianceAction.value || null : null,
     })

@@ -86,6 +86,21 @@
         </div>
       </div>
 
+      <!-- A sale on account (lumenpos.credit_sales, 0.60.0): what the customer
+           does not pay now stays owed on their account. -->
+      <div v-if="onAccount" class="on-account card" data-tour="pay-on-account">
+        <div class="oa-row">
+          <span class="oa-title"><Icon name="clock" /> {{ t('On account') }}</span>
+          <span class="muted small">
+            {{ t('Owes {amount}', { amount: money(onAccount.owed, onAccount.currency) }) }}<template v-if="onAccount.available != null">&nbsp;· {{ t('{amount} left of the limit', { amount: money(onAccount.available, onAccount.currency) }) }}</template>
+          </span>
+        </div>
+        <p v-if="onAccount.reason" class="muted small oa-why">{{ onAccount.reason }}</p>
+        <button v-else class="btn btn-outline oa-btn" :disabled="onAccountRoom <= 0" @click="addOnAccount">
+          {{ t('Put {amount} on account', { amount: money(onAccountRoom, sale.currency) }) }}
+        </button>
+      </div>
+
       <div class="tender">
         <!-- Each amount is typed in the money actually handed over: dollars, or
              local cash and card. The till converts at the shift's rate. -->
@@ -168,7 +183,7 @@
           <button class="btn-ghost" @click="redeemPoints = 0"><Icon name="close" /></button>
         </div>
         <div v-for="(payment, i) in payments" :key="i" class="split-row">
-          <span>{{ payment.mode_of_payment }}<span v-if="payment.card_no" class="muted"> ({{ payment.card_no }})</span></span>
+          <span>{{ payment.mode_of_payment === session.creditMode ? t('On account') : payment.mode_of_payment }}<span v-if="payment.card_no" class="muted"> ({{ payment.card_no }})</span></span>
           <span class="split-amount">
             {{ money(payment.tender_amount, payment.tender_currency) }}
             <span v-if="payment.tender_currency !== sale.currency" class="muted small">
@@ -273,6 +288,29 @@ const changeInSale = computed(() => sale.value.foreign && sale.value.change_curr
 // outlet's currency only.
 const wallet = computed(() => (session.offline || sale.value.foreign ? null : cart.wallet))
 const cashbackEarn = ref(0)
+
+// A sale on account (lumenpos.credit_sales, 0.60.0): the server's answer, fresh
+// with each quote. Offered for a named customer, to whoever may sell on
+// account, online, in the company's currency, never on an exchange. `reason`
+// says why this customer may not (the server's words, in the till's language).
+const creditFacts = ref(null)
+const onAccount = computed(() => {
+  const f = creditFacts.value
+  if (!f || !f.enabled || !f.can_sell || !cart.customer || session.offline || sale.value.foreign || cart.exchange) {
+    return null
+  }
+  return f
+})
+// What may still go on account here: the rest to pay, within what the limit
+// leaves (less what this screen already put on account).
+const onAccountRoom = computed(() => {
+  const f = onAccount.value
+  if (!f || f.reason) return 0
+  const due = Math.max(remaining.value, 0)
+  if (f.available == null) return round2(due)
+  const used = payments.value.filter((p) => p.mode_of_payment === session.creditMode).reduce((sum, p) => sum + p.amount, 0)
+  return round2(Math.max(Math.min(due, f.available - used), 0))
+})
 
 // Amount to collect. Authoritative from the SERVER (same math as submit), so the
 // till charges exactly what the posted invoice shows, no phantom rounding
@@ -397,7 +435,8 @@ const visibleModes = computed(() =>
     if (
       m.mode_of_payment === session.storeCreditMode ||
       m.mode_of_payment === session.cashbackMode ||
-      m.mode_of_payment === session.giftCardMode
+      m.mode_of_payment === session.giftCardMode ||
+      m.mode_of_payment === session.creditMode
     ) {
       return false
     }
@@ -469,6 +508,7 @@ async function loadQuote() {
     quoted.value = null
   }
   cashbackEarn.value = q && typeof q.cashback_earn === 'number' ? q.cashback_earn : 0
+  creditFacts.value = (q && q.on_account) || null
   if (q && q.blocked_modes) blockedModes.value = q.blocked_modes
   else loadBlockedModes() // quote failed (offline), ask on its own
 }
@@ -559,6 +599,13 @@ function addCashback() {
   const capped = round2(Math.min(available, Math.max(remaining.value, 0)))
   if (capped <= 0) return
   pushPayment(session.cashbackMode, capped)
+  refillAmount()
+}
+
+function addOnAccount() {
+  const take = onAccountRoom.value
+  if (take <= 0) return
+  pushPayment(session.creditMode, take)
   refillAmount()
 }
 
@@ -773,6 +820,11 @@ function round2(n) {
 }
 .ex-refund select { padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
 
+.on-account { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.oa-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.oa-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.oa-why { margin: 0; }
+.oa-btn { align-self: flex-start; }
 .wallet { padding: 6px 16px; }
 .wallet-row {
   display: flex;

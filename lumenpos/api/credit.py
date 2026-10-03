@@ -282,9 +282,11 @@ def set_customer_credit(customer: str, company: str, allow: int | str | None = N
 
     audit.log(
         audit.CUSTOMER_CREDIT,
-        detail=_("{0}: on account {1}, limit {2}").format(
-            customer, _("allowed") if cint(doc.get("lumenpos_allow_credit")) else _("not allowed"), limit if limit not in (None, "") else "-"
-        ),
+        detail=(
+            _("{0}: allowed on account, limit {1}")
+            if cint(doc.get("lumenpos_allow_credit"))
+            else _("{0}: not allowed on account, limit {1}")
+        ).format(customer, limit if limit not in (None, "") else "-"),
         reference_doctype="Customer",
         reference_name=customer,
     )

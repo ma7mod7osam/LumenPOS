@@ -48,6 +48,8 @@ def print_receipt(invoice: str, open_drawer: int | bool | str = 0, reprint: int 
     # want to keep to a supervisor, so only that is gated.
     if cint(reprint) and not permissions.can_reprint():
         frappe.throw(_("You are not allowed to reprint a receipt"), frappe.PermissionError)
+    if cint(reprint):
+        _log_reprint(invoice, _("{0} printed again on the receipt printer"))
     receipt = get_receipt(invoice)
     # A Sales Invoice outlet prints too: the sale's own doctype, not POS
     # Invoice only (it found no outlet and refused every such receipt).
@@ -62,6 +64,39 @@ def print_receipt(invoice: str, open_drawer: int | bool | str = 0, reprint: int 
     data = build_receipt_bytes(receipt, open_drawer=int(open_drawer))
     _send(ip, int(port), data)
     return {"printed": True}
+
+
+@frappe.whitelist()
+def allow_reprint(invoice: str):
+    """A receipt printed again from the browser or ERPNext's print view: the
+    same rule as on the receipt printer, asked by the till BEFORE it prints,
+    and written to the audit log (0.60.0). Until then only a network printer's
+    reprint was checked, and a refused one fell back to the browser, so in
+    practice anyone could print a receipt again. Asked by a shop in Nigeria
+    (2026-10-03): after the cashier's first print, copies only by a
+    supervisor."""
+    from lumenpos.api import permissions
+    from lumenpos.api.sales import _doctype_of
+
+    if not permissions.can_reprint():
+        frappe.throw(_("You are not allowed to reprint a receipt"), frappe.PermissionError)
+    frappe.get_doc(_doctype_of(invoice), invoice).check_permission("read")
+    _log_reprint(invoice, _("{0} printed again in the browser"))
+    return {"allowed": 1}
+
+
+def _log_reprint(invoice, message):
+    from lumenpos.api import audit
+    from lumenpos.api.sales import _doctype_of
+
+    doctype = _doctype_of(invoice)
+    audit.log(
+        audit.REPRINT,
+        detail=message.format(invoice),
+        reference_doctype=doctype,
+        reference_name=invoice,
+        pos_profile=frappe.db.get_value(doctype, invoice, "pos_profile"),
+    )
 
 
 def _send(ip, port, data):
@@ -131,6 +166,16 @@ def build_receipt_bytes(receipt, open_drawer=0):
         else:
             change = _num(receipt["change_amount"])
         out += _text(_pad("Change", change)) + b"\n"
+    # A sale on account (lumenpos.credit_sales, 0.60.0): what stays owed, on
+    # this sale and in all, and a line for the customer to sign.
+    owed = receipt.get("on_account") or {}
+    if owed and not receipt.get("is_return"):
+        out += BOLD_ON + _text(_pad("Owed on this sale", _num(owed.get("owed_on_sale")))) + b"\n" + BOLD_OFF
+        if owed.get("owed_total") is not None:
+            out += _text(_pad("Owed in all", _num(owed.get("owed_total")))) + b"\n"
+        out += b"\n" + _text("Signature: ______________________") + b"\n"
+    elif owed:
+        out += _text(_pad("Off what is owed", _num(abs(flt(owed.get("amount")))))) + b"\n"
 
     promos = receipt.get("applied_promotions") or []
     if promos:

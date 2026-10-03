@@ -18,6 +18,9 @@
 
 const salespeople = (s) => s.salesPersons.length > 0 && s.settings.salesperson_mode !== 'Off'
 const manager = (s) => Boolean(s.permissions.is_manager)
+// Sales on account (0.60.0): the shop sells on account at all, and this person may.
+const onAccount = (s) => Boolean(s.settings.credit_sales_enabled)
+const sellsOnAccount = (s) => onAccount(s) && Boolean(s.permissions.sell_on_account)
 
 export const SCREENS = {
   '/': 'Sell',
@@ -114,6 +117,17 @@ export const TOPICS = [
   },
   {
     route: '/',
+    title: 'Sell on account',
+    when: sellsOnAccount,
+    steps: [
+      'Choose the customer first: a sale on account needs a named customer, never the walk-in.',
+      ['At the payment screen, take what the customer pays now, then use {put} for the rest.', { put: 'On account' }],
+      'It shows what the customer already owes and what their credit limit leaves.',
+      'The receipt shows what is still owed, with a line for the customer to sign.',
+    ],
+  },
+  {
+    route: '/',
     title: 'Hold goods for a customer',
     when: (s) => Boolean(s.settings.enable_layaway) && s.permissions.can_hold_goods !== false,
     steps: [
@@ -178,6 +192,16 @@ export const TOPICS = [
   },
   {
     route: '/history',
+    title: 'Refund a sale on account',
+    when: (s) => onAccount(s) && s.permissions.can_return !== false,
+    steps: [
+      'What comes back goes off what the customer still owes on that sale first.',
+      'Only the rest goes back as money. A sale already paid off comes back as money in full.',
+      'A sale still owing is not exchanged: take it back, then sell the new goods.',
+    ],
+  },
+  {
+    route: '/history',
     title: 'Exchange goods',
     tour: 'returns',
     when: (s) => s.permissions.can_exchange !== false,
@@ -210,6 +234,17 @@ export const TOPICS = [
       'Search by name, phone, code or email.',
       'Tap a customer to see their purchases, returns, points and store credit.',
       'New customers are added from the cart while selling.',
+    ],
+  },
+  {
+    route: '/customers',
+    title: "A customer's account",
+    when: onAccount,
+    steps: [
+      'Open a customer to see what they owe, sale by sale, and their credit limit.',
+      ['{take} takes their payment into the drawer. The oldest sales are settled first, or tick the ones they pay.', { take: 'Take a payment' }],
+      'Print the payment receipt from the same card.',
+      'Whoever may set a customer\'s credit allows them on account and sets their limit there too.',
     ],
   },
 
@@ -270,6 +305,15 @@ export const TOPICS = [
       'When a counted drawer is short or over, the till asks why before you close.',
       'Write the reason or tap one, and say what was done about it, for example recounted or reported to the manager.',
       'Your shop may make the reason required: the register then closes only with one.',
+    ],
+  },
+  {
+    route: '/register',
+    title: 'On account at the close',
+    when: onAccount,
+    steps: [
+      'What was sold on account shows on this page but is not counted: it is owed, not in the drawer.',
+      'Payments customers made in the shift are in the drawer, and the close expects them there.',
     ],
   },
   {
@@ -388,6 +432,8 @@ export const TOURS = {
 // What is new, newest first. Shown once per person after an update, only the
 // entries newer than what they last saw and that apply to them.
 export const WHATS_NEW = [
+  { version: '0.60.0', title: 'Sales on account', text: 'A customer can take the goods now and pay later. Turn it on in Settings, General, Sales on account, which says how it works, and name who may sell on account in Approvals and access, Permissions.', route: '/settings', when: manager },
+  { version: '0.60.0', title: 'Selling on account', text: 'At the payment screen, On account leaves what the customer does not pay now on their account. Their payments are taken in Customers.', route: '/', when: sellsOnAccount },
   { version: '0.59.0', title: 'A reason for a short or over', text: 'When a count at the close is short or over, the till asks why and keeps the reason with the shift. The shop sets the list in Settings, General, Register and shifts, and can make it required.', route: '/register', when: (s) => (s.settings.variance_reason_mode || 'Optional') !== 'Off' },
   { version: '0.58.1', title: 'Locked accounting periods', text: 'When an ERPNext accounting period locks sales invoices, the till now says so as a shift opens and explains a close it stops. Settings, System check lists such periods too.', route: '/register', when: (s) => manager(s) && Boolean(s.settings.warn_locked_periods) },
   { version: '0.58.0', title: 'Refunds to store credit', text: 'Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.', route: '/settings', when: (s) => Boolean(s.permissions.settings) },

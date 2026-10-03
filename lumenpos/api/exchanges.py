@@ -60,7 +60,7 @@ def _assert_no_debt(original, payments=None):
     from lumenpos import credit_sales
 
     credit_sales.assert_no_debt(original, _("Take it back as a return, then ring the new goods up as a new sale."))
-    credit_sales.refuse_tender(payments, _("An exchange"))
+    credit_sales.refuse_tender(payments, _("An exchange cannot be put on account."))
 
 
 def _leftover_rows(leftover, refund_mode, refund_payments):

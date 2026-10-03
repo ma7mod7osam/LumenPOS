@@ -81,6 +81,9 @@
           <div class="stat"><div class="stat-v">{{ money(detail.wallet.store_credit) }}</div><div class="stat-l">{{ t('Store credit') }}</div></div>
         </div>
 
+        <!-- Sales on account (0.60.0): what they owe, a payment, their limit. -->
+        <CustomerCredit :customer="detail.name" :company="companyView || session.company" @changed="reloadTxns" />
+
         <div class="txn-head">
           <h3>{{ t('Transactions') }}</h3>
           <div class="txn-filters">
@@ -106,14 +109,14 @@
           <tbody>
             <tr v-for="tx in txns" :key="tx.name" class="txn-row" @click="openReceipt(tx)">
               <td class="mono">{{ tx.name }}</td>
-              <td class="muted small">{{ tx.posting_date }} {{ shortTime(tx.posting_time) }}</td>
+              <td class="muted small">{{ shortTime(tx.posting_date + ' ' + tx.posting_time) }}</td>
               <td>
                 <span v-if="tx.is_return" class="badge red">{{ t('Return') }}</span>
                 <span v-else-if="tx.is_exchange" class="badge amber">{{ t('Exchange') }}</span>
                 <span v-else class="badge">{{ t('Sale') }}</span>
               </td>
               <td class="right">{{ money(tx.grand_total, tx.currency) }}</td>
-              <td class="muted small">{{ tx.payment_modes }}</td>
+              <td class="muted small">{{ session.modeLabel(tx.payment_modes) }}</td>
             </tr>
           </tbody>
         </table>
@@ -140,6 +143,7 @@
 <script setup>
 import Icon from '../components/Icon.vue'
 import ReceiptModal from '../components/ReceiptModal.vue'
+import CustomerCredit from '../components/CustomerCredit.vue'
 import { useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { call } from '../api'

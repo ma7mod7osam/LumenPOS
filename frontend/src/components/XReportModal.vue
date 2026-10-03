@@ -25,7 +25,7 @@
             <div class="xr-title">{{ t('X-REPORT') }}</div>
             <div class="muted small">{{ s.session }}</div>
             <div class="muted small">{{ session.userFullname || session.user }}</div>
-            <div class="muted small">{{ t('Opened') }} {{ s.opened_at }}</div>
+            <div class="muted small">{{ t('Opened') }} {{ shortTime(s.opened_at) }}</div>
             <div class="muted small">{{ t('Printed') }} {{ printedAt }}</div>
           </div>
 
@@ -42,6 +42,17 @@
               <span>{{ money(row.expected_amount, row.currency || local) }}</span>
             </div>
             <div v-if="!s.expected.length" class="muted small">{{ t('No takings recorded yet.') }}</div>
+          </div>
+
+          <!-- Sales on account (0.60.0): owed, not in any drawer; and the
+               customers' payments of what they owe, already counted above. -->
+          <div v-if="s.on_account || s.customer_payments_total" class="xr-section">
+            <div class="xr-sub">{{ t('On account') }}</div>
+            <div v-if="s.on_account" class="row"><span>{{ t('Sold on account') }}</span><span>{{ money(s.on_account, local) }}</span></div>
+            <div v-for="p in s.customer_payments || []" :key="p.name" class="row">
+              <span><bdi>{{ p.customer_name || p.customer }}</bdi> <span class="muted">({{ p.mode_of_payment }})</span></span>
+              <span>{{ money(p.amount, local) }}</span>
+            </div>
           </div>
 
           <!-- The rates this shift sells other currencies at (fixed at its
@@ -69,7 +80,7 @@
               <span>{{ t('{drawer} float', { drawer }) }}</span><span>{{ money(amount, drawerCurrency(drawer)) }}</span>
             </div>
             <div class="row"><span>{{ t('Cash in') }}</span><span>{{ money(s.cash_in, local) }}</span></div>
-            <div class="row"><span>{{ t('Cash out') }}</span><span>-{{ money(s.cash_out, local) }}</span></div>
+            <div class="row"><span>{{ t('Cash out') }}</span><span>{{ s.cash_out ? '-' : '' }}{{ money(s.cash_out, local) }}</span></div>
           </div>
 
           <div class="xr-foot muted small">{{ t('Continues, not a Z-report.') }}</div>
@@ -87,7 +98,7 @@
 import Icon from './Icon.vue'
 import { computed } from 'vue'
 import { t } from '../i18n'
-import { money, rateLine } from '../format'
+import { money, rateLine, shortTime } from '../format'
 import { useSessionStore } from '../stores/session'
 
 const props = defineProps({ summary: { type: Object, required: true } })

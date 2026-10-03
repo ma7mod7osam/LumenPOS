@@ -70,7 +70,7 @@
           <span>{{ t('Payment method') }}</span>
           <select v-model="filters.payment_mode" @change="load">
             <option value="">{{ t('Any') }}</option>
-            <option v-for="m in paymentModeOptions" :key="m" :value="m">{{ m }}</option>
+            <option v-for="m in paymentModeOptions" :key="m" :value="m">{{ session.modeLabel(m) }}</option>
           </select>
         </label>
         <label class="f-field">
@@ -180,7 +180,7 @@
         <div class="sale-right">
           <div class="sale-amount" :class="{ neg: sale.grand_total < 0 }">{{ money(sale.grand_total, sale.currency) }}</div>
           <div class="muted small status-line">{{ t('status:' + sale.status) }}</div>
-          <div v-if="sale.payment_modes" class="muted small pay-line"><Icon name="card" /> {{ sale.payment_modes }}</div>
+          <div v-if="sale.payment_modes" class="muted small pay-line"><Icon name="card" /> {{ session.modeLabel(sale.payment_modes) }}</div>
         </div>
       </button>
       </template>

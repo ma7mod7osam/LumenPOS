@@ -318,7 +318,7 @@ def assert_sale(customer, company, amount_base, invoice_currency, company_curren
                     fmt_money(limit, currency=company_currency),
                     fmt_money(max(limit - owes, 0), currency=company_currency),
                 ),
-                title=_("Credit limit"),
+                title=_("Credit Limit"),
             )
 
 
@@ -478,10 +478,11 @@ def debt_part(original, refund_value):
     return flt(min(flt(refund_value), owed_on_sale(original)), 2)
 
 
-def refuse_tender(payments, what):
-    """Gift cards and holds are paid with money, never on account."""
+def refuse_tender(payments, message):
+    """Gift cards, holds and exchanges are paid with money, never on account:
+    `message` (a whole translated sentence) says which."""
     if any(flt(p.get("amount")) and p.get("mode_of_payment") == MODE_OF_PAYMENT for p in payments or []):
-        frappe.throw(_("{0} cannot be put on account.").format(what), title=_("Sales on account"))
+        frappe.throw(message, title=_("Sales on account"))
 
 
 def assert_no_debt(original, action):

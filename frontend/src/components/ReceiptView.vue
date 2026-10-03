@@ -78,8 +78,8 @@
         </div>
       </template>
       <template v-if="s.receipt_show_payments">
-        <div v-for="payment in receipt.payments" :key="payment.mode_of_payment" class="row">
-          <span>{{ payment.mode_of_payment }}</span>
+        <div v-for="payment in paymentRows" :key="payment.mode_of_payment" class="row">
+          <span>{{ modeLabel(payment.mode_of_payment) }}</span>
           <span>{{ foreign && payment.currency ? money(payment.tendered, payment.currency) : m(payment.amount) }}</span>
         </div>
       </template>
@@ -91,6 +91,27 @@
         <span>{{ t('Change') }}</span>
         <span>{{ foreign && receipt.change_currency !== receipt.currency ? money(receipt.base_change_amount, receipt.company_currency) : m(receipt.change_amount) }}</span>
       </div>
+      <!-- A sale on account (0.60.0): what stays owed, on this sale and in
+           all, whatever the receipt shows of the payments. -->
+      <template v-if="receipt.on_account && !receipt.is_return">
+        <div class="row total owed">
+          <span>{{ t('Owed on this sale') }}</span><span>{{ m(receipt.on_account.owed_on_sale) }}</span>
+        </div>
+        <div v-if="receipt.on_account.owed_total != null" class="row muted small">
+          <span>{{ t('Owed in all') }}</span><span>{{ money(receipt.on_account.owed_total, receipt.company_currency) }}</span>
+        </div>
+      </template>
+      <template v-else-if="receipt.on_account">
+        <div class="row">
+          <span>{{ t('Taken off what is owed') }}</span><span>{{ m(Math.abs(receipt.on_account.amount)) }}</span>
+        </div>
+        <div v-if="receipt.on_account.owed_total != null" class="row muted small">
+          <span>{{ t('Owed in all') }}</span><span>{{ money(receipt.on_account.owed_total, receipt.company_currency) }}</span>
+        </div>
+      </template>
+    </div>
+    <div v-if="receipt.on_account && !receipt.is_return" class="receipt-sign small">
+      {{ t('Customer signature') }}
     </div>
 
     <div v-if="receipt.applied_promotions?.length" class="receipt-promos">
@@ -173,6 +194,18 @@ function asImg(value) {
   // else as raw base64 PNG (e.g. a ZATCA QR stored as a base64 string).
   return /^(data:|https?:|\/)/i.test(v) ? v : `data:image/png;base64,${v}`
 }
+
+// LumenPOS's own tender for a sale on account reads in the till's language.
+function modeLabel(mode) {
+  return mode && mode === session.creditMode ? t('On account') : mode
+}
+// A return's part taken off the debt has its own row, in plain words, so its
+// tender line is not printed twice.
+const paymentRows = computed(() =>
+  (props.receipt.payments || []).filter(
+    (p) => !(props.receipt.is_return && props.receipt.on_account && p.mode_of_payment === session.creditMode)
+  )
+)
 </script>
 
 <style scoped>
@@ -181,6 +214,13 @@ function asImg(value) {
   border-radius: var(--radius);
   padding: 16px;
   font-size: 13px;
+}
+.row.owed { margin-top: 6px; }
+.receipt-sign {
+  margin-top: 26px;
+  padding-top: 4px;
+  border-top: 1px solid currentColor;
+  width: 70%;
 }
 .receipt-head { text-align: center; margin-bottom: 12px; }
 .receipt-logo {

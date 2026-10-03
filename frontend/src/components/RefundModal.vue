@@ -121,6 +121,17 @@
               <span v-if="offline" class="muted small">{{ t('(taxes included, as ERPNext will post it)') }}</span>
               <span v-else class="muted small">{{ t('(final amount includes taxes, computed on submit)') }}</span>
             </div>
+            <!-- A sale on account (0.60.0): what comes back goes off what is
+                 still owed on it first; only the rest goes back as money. -->
+            <div v-if="owedOnSale > 0" class="owed-box" data-tour="refund-on-account">
+              <div>{{ t('Comes off what they owe ≈') }} <strong>{{ m(debtPart) }}</strong></div>
+              <div v-if="!isExchange" class="muted small">
+                {{ t('{amount} is still owed on this sale. A return comes off it first, and only the rest goes back as money.', { amount: m(owedOnSale) }) }}
+              </div>
+              <div v-else class="ap-warn small">
+                {{ t('This sale still has {amount} on account. Take it back as a return, then ring the new goods up as a new sale.', { amount: m(owedOnSale) }) }}
+              </div>
+            </div>
             <label class="field-label">{{ t('Return reason') }}</label>
             <select v-model="reason" style="width: 100%">
               <option :value="null" disabled>{{ t('Select a reason…') }}</option>
@@ -137,9 +148,10 @@
               style="width: 100%; margin-top: 6px"
             />
             <!-- An exchange settles at the payment screen, against the new
-                 items, so there is nothing to allocate here. -->
-            <template v-if="!isExchange">
-            <label class="field-label">{{ t('Refund to') }}</label>
+                 items, so there is nothing to allocate here. Nor is there when
+                 the whole return comes off what is owed. -->
+            <template v-if="!isExchange && moneyBack > 0.005">
+            <label class="field-label">{{ owedOnSale > 0 ? t('Money back ≈ {amount}, to', { amount: m(moneyBack) }) : t('Refund to') }}</label>
             <!-- Split a refund across tenders (the customer may have paid two
                  ways). DIRECTION matters: refunding is limited to the allowed
                  refund methods, unlike collecting. -->
@@ -164,13 +176,15 @@
               </button>
             </div>
             <div class="rs-foot">
-              <button class="btn btn-outline btn-sm" @click="addSplit">
+              <!-- One tender takes what goes back of a sale on account: the
+                   server works the debt part out to the cent. -->
+              <button v-if="!(owedOnSale > 0)" class="btn btn-outline btn-sm" @click="addSplit">
                 <Icon name="plus" /> {{ t('Split') }}
               </button>
               <span class="muted small" :class="{ neg: !splitCovered }">
                 {{ splitCovered
                     ? t('Fully covered')
-                    : t('{amount} left to allocate', { amount: m(Math.max(refundTotal - splitTotal, 0)) }) }}
+                    : t('{amount} left to allocate', { amount: m(Math.max(moneyBack - splitTotal, 0)) }) }}
               </span>
             </div>
             <!-- Offline the list is always narrowed (no wallet), which is not
@@ -179,7 +193,7 @@
               {{ t('Limited to how this sale was paid (Settings → Refunds).') }}
             </p>
             </template>
-            <p v-else class="muted small refund-rule-note">
+            <p v-else-if="isExchange" class="muted small refund-rule-note">
               {{ t('Next you pick what the customer takes instead. Only the difference is paid or refunded.') }}
             </p>
           </div>
@@ -191,7 +205,7 @@
         <button
           v-if="isExchange"
           class="btn btn-primary"
-          :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval"
+          :disabled="refundTotal <= 0 || !reasonValue || busy || needsApproval || owedOnSale > 0"
           @click="continueExchange"
         >
           {{ t('Pick the new items') }}
@@ -269,9 +283,9 @@ const splitTotal = computed(() =>
   refundSplits.value.reduce((sum, r) => sum + (parseMoney(r.amount) || 0), 0)
 )
 // To the cent, a refund that doesn't add up must not post.
-const splitCovered = computed(() => Math.abs(splitTotal.value - refundTotal.value) < 0.005)
+const splitCovered = computed(() => Math.abs(splitTotal.value - moneyBack.value) < 0.005)
 function addSplit() {
-  const left = Math.max(refundTotal.value - splitTotal.value, 0)
+  const left = Math.max(moneyBack.value - splitTotal.value, 0)
   refundSplits.value.push({
     mode_of_payment: refundMode.value || refundModes.value[0],
     amount: left ? left.toFixed(2) : '',
@@ -328,7 +342,9 @@ const refundModes = computed(() => {
   if (!allowedModes.value && !modes.includes(session.storeCreditMode)) modes.push(session.storeCreditMode)
   // A refund never goes back onto a gift card or cashback: that part is
   // refunded as store credit (the server refuses it too).
-  modes = modes.filter((mode) => mode !== session.giftCardMode && mode !== session.cashbackMode)
+  modes = modes.filter(
+    (mode) => mode !== session.giftCardMode && mode !== session.cashbackMode && mode !== session.creditMode
+  )
   // A sale in another currency goes back through tenders ERPNext accepts for
   // it (its own currency or the local one), never onto a wallet: their
   // ledgers hold the outlet's currency only.
@@ -360,15 +376,22 @@ const refundTotal = computed(() => {
   )
 })
 
+// A sale on account (lumenpos.credit_sales, 0.60.0): what is still owed on it
+// (get_returnable). A return comes off that first; only the rest is money
+// back. Estimates, as refundTotal is: the server posts its own figures.
+const owedOnSale = ref(0)
+const debtPart = computed(() => Math.round(Math.min(refundTotal.value, owedOnSale.value) * 100) / 100)
+const moneyBack = computed(() => Math.max(Math.round((refundTotal.value - debtPart.value) * 100) / 100, 0))
+
 // Declared after everything it reads: an immediate watcher runs at setup, and
 // placed above refundTotal it threw on its first read and never tracked
 // anything, so the refund row never filled itself in (since 0.36.0).
-// Keep ONE row tracking the full refund until the cashier deliberately splits;
+// Keep ONE row tracking the money back until the cashier deliberately splits;
 // after that their allocation is left alone.
 watch(
-  () => [refundTotal.value, refundMode.value],
+  () => [moneyBack.value, refundMode.value],
   () => {
-    if (refundTotal.value <= 0) {
+    if (moneyBack.value <= 0) {
       refundSplits.value = []
       return
     }
@@ -376,7 +399,7 @@ watch(
       refundSplits.value = [
         {
           mode_of_payment: refundMode.value || refundModes.value[0],
-          amount: refundTotal.value.toFixed(2),
+          amount: moneyBack.value.toFixed(2),
           reference_no: refundSplits.value[0]?.reference_no || '',
         },
       ]
@@ -454,6 +477,7 @@ function loadLocal() {
     storeCreditMode: session.storeCreditMode,
     giftCardMode: session.giftCardMode,
     cashbackMode: session.cashbackMode,
+    creditMode: session.creditMode,
   })
   sold.value = {
     currency: record.currency || session.currency,
@@ -479,6 +503,7 @@ onMounted(async () => {
     })
     returnable.value = (data.items || []).filter((row) => row.returnable_qty > 0)
     allowedModes.value = data.allowed_refund_modes || null
+    owedOnSale.value = Number(data.on_account_owed) || 0
     sold.value = {
       currency: data.currency || session.currency,
       company_currency: data.company_currency || session.localCurrency,
@@ -867,6 +892,16 @@ async function submit() {
 .stepper input { width: 64px; text-align: center; padding: 7px 6px; }
 .stepper .btn { padding: 7px 12px; }
 .refund-summary { margin-top: 16px; }
+.owed-box {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(20, 99, 255, 0.08);
+  border: 1px solid rgba(20, 99, 255, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .refund-amount { margin-bottom: 10px; font-size: 15px; }
 /* The template's line breaks between these are dropped (Vue condenses them),
    so the gap is the stylesheet's: "$90.00(taxes included" read as one word. */

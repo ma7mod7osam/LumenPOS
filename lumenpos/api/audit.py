@@ -28,6 +28,8 @@ TILL_UNLOCK = "Till unlock"
 # manager's switch or limit on a customer's card.
 CUSTOMER_PAYMENT = "Customer payment"
 CUSTOMER_CREDIT = "Customer credit"
+# A receipt printed again after the sale's own print (api.printing, 0.60.0).
+REPRINT = "Reprint"
 
 
 def _enabled():

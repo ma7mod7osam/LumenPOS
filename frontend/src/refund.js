@@ -271,6 +271,8 @@ export function fromReceipt(receipt) {
     blocked: facts ? facts.blocked || {} : null,
     facts: Boolean(facts),
     loyalty: Number(receipt?.loyalty_points_redeemed) > 0,
+    // A sale on account (0.60.0): its debt lives on the server.
+    on_account: Boolean(receipt?.on_account || facts?.on_account),
   }
 }
 
@@ -280,7 +282,7 @@ export function fromReceipt(receipt) {
 // gift card, cashback: their balances live on the server) and never the
 // exchange clearing tender, and only tenders this till has.
 export function offlineRefundModes(record, ctx) {
-  const wallets = [ctx.storeCreditMode, ctx.giftCardMode, ctx.cashbackMode, 'Exchange'].filter(Boolean)
+  const wallets = [ctx.storeCreditMode, ctx.giftCardMode, ctx.cashbackMode, ctx.creditMode, 'Exchange'].filter(Boolean)
   const own = (ctx.paymentModes || []).map((m) => m.mode_of_payment)
   let modes
   if (Array.isArray(record?.refund_modes)) {
@@ -308,6 +310,7 @@ export function offlineBlocker(record, ctx) {
   if (ctx.permissions?.can_return === false) return "You're not allowed to make returns."
   if (!record || record.session !== ctx.session) return 'Only a sale of this shift can be taken back without a connection'
   if (record.loyalty) return 'A sale paid with loyalty points needs a connection to refund'
+  if (record.on_account) return 'A sale on account needs a connection to refund.'
   if (!record.rounding) return 'This sale needs a connection to refund'
   if (!record.queued && !record.facts) return 'This sale needs a connection to refund'
   if (record.queued && ctx.settings?.return_restricted) {

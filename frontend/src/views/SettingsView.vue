@@ -1069,6 +1069,58 @@
           </label>
         </div>
       </div>
+      <!-- Sales on account (lumenpos.credit_sales, 0.60.0) -->
+      <div class="sec-card" v-show="generalSection === 'credit'" data-tour="settings-credit">
+        <div class="sec-title"><Icon name="clock" /> {{ t('Sales on account') }}</div>
+        <p class="sec-note">{{ t('A customer takes the goods now and pays later, all of it, or the rest after paying part.') }}</p>
+        <div class="setting-list">
+          <label class="setting-row">
+            <input type="checkbox" class="setting-toggle" v-model="generalForm.credit_sales_enabled" :true-value="1" :false-value="0" />
+            <span class="setting-text">
+              <span class="setting-title">{{ t('Sell on account') }}</span>
+              <span class="setting-desc">{{ t('Off (the default): the till shows nothing about it.') }}</span>
+            </span>
+          </label>
+        </div>
+        <template v-if="generalForm.credit_sales_enabled">
+          <div class="field-grid" style="margin-top: 16px">
+            <label class="field">
+              <span>{{ t('Who can buy on account') }}</span>
+              <select v-model="generalForm.credit_customers">
+                <option value="Customers allowed on their card">{{ t('Only customers allowed on their card') }}</option>
+                <option value="Any named customer">{{ t('Any named customer') }}</option>
+              </select>
+              <span class="setting-desc">{{ t("Never the walk-in customer. A customer is allowed on their card in Customers, by whoever may set a customer's credit.") }}</span>
+            </label>
+            <label class="field">
+              <span>{{ t('Default credit limit') }}</span>
+              <input type="number" min="0" step="0.01" v-model.number="generalForm.credit_default_limit" />
+              <span class="setting-desc">{{ t("For a customer with no credit limit of their own in ERPNext (on the customer, its group or the company), in the company's currency. 0 = no limit.") }}</span>
+            </label>
+          </div>
+          <div class="how-box">
+            <div class="how-title">{{ t('How it works') }}</div>
+            <ol class="how-list">
+              <li>{{ t('At the payment screen, Put on account pays what the customer does not pay now. The sale is a POS invoice like any other.') }}</li>
+              <li>{{ t('At that moment the till books the debt on the customer in ERPNext, one Journal Entry per sale, so it shows on their account and in Accounts Receivable at once.') }}</li>
+              <li>{{ t('The till refuses a sale that would take the customer past their credit limit. Raise the limit on their card to allow more.') }}</li>
+              <li>{{ t('The customer pays later at the till (Customers, Take a payment) or in ERPNext. One payment can settle several sales, the oldest first.') }}</li>
+              <li>{{ t('A return of a sale still owing comes off the debt first, and only the rest goes back as money.') }}</li>
+              <li>{{ t('At the close, what was sold on account is shown but not counted, and the payments taken are in the drawer.') }}</li>
+            </ol>
+            <p class="muted small" style="margin: 0">{{ t("Who may sell on account, take customer payments and set a customer's credit is set in Approvals and access, Permissions. Until someone is named there, only managers can.") }}</p>
+          </div>
+          <div class="credit-setup">
+            <div class="sub-label">{{ t('Set up by LumenPOS') }}</div>
+            <div v-for="row in settingsInfo.credit_setup || []" :key="row.company" class="credit-setup-row">
+              <bdi class="credit-company">{{ row.company }}</bdi>
+              <span v-if="row.ready" class="muted small">{{ t('Payment method {mode}, account {account}', { mode: row.mode, account: row.account }) }}</span>
+              <span v-else-if="row.clash" class="credit-clash small">{{ t('A payment method named {mode} already exists, on account {account}. Rename it in ERPNext, then save again.', { mode: row.mode, account: row.account }) }}</span>
+              <span v-else class="muted small">{{ t('Set up when you save') }}</span>
+            </div>
+          </div>
+        </template>
+      </div>
       <!-- Delivery apps -->
       <div class="sec-card" v-show="generalSection === 'payments'">
         <div class="sec-title"><Icon name="bike" /> {{ t('Delivery apps') }}</div>
@@ -2474,6 +2526,9 @@ const capabilityOptions = [
   'Hold goods for a customer',
   'See sales by salesperson',
   'See the system check',
+  'Sell on account',
+  'Take customer payments',
+  "Set a customer's credit",
 ]
 
 function addCapabilityRule() {
@@ -2518,6 +2573,9 @@ const generalForm = ref({
   variance_reason_mode: 'Optional',
   variance_reason_threshold: 0,
   variance_reasons: [],
+  credit_sales_enabled: 0,
+  credit_customers: 'Customers allowed on their card',
+  credit_default_limit: 0,
   variance_alert_enabled: 0,
   variance_alert_threshold: 0,
   variance_alert_role: '',
@@ -2599,6 +2657,7 @@ const generalSections = [
   { key: 'companies', label: 'Companies', icon: 'company' },
   { key: 'returns', label: 'Returns and refunds', icon: 'refresh' },
   { key: 'holds', label: 'Holds and deposits', icon: 'bookmark' },
+  { key: 'credit', label: 'Sales on account', icon: 'clock' },
   { key: 'receipt', label: 'Receipt', icon: 'image' },
   { key: 'languages', label: 'Languages', icon: 'globe' },
   { key: 'help', label: 'Help for staff', icon: 'help' },
@@ -3018,7 +3077,7 @@ const previewReceipt = computed(() => ({
 const AUDIT_ACTIONS = [
   'Sale', 'Return', 'Over-limit discount', 'Price edit',
   'Register open', 'Register close', 'ERPNext day closed', 'Settings change', 'Email receipt', 'Till unlock',
-  'Customer payment', 'Customer credit',
+  'Customer payment', 'Customer credit', 'Reprint',
 ]
 const auditLogs = ref([])
 const auditFilter = ref({ action: '', from_date: '', to_date: '' })
@@ -3199,6 +3258,10 @@ async function load() {
     variance_reason_mode: info.variance_reason_mode || 'Optional',
     variance_reason_threshold: info.variance_reason_threshold || 0,
     variance_reasons: [...(info.variance_reasons || [])],
+    // And before 0.60.0 (lumenpos.credit_sales).
+    credit_sales_enabled: info.credit_sales_enabled ? 1 : 0,
+    credit_customers: info.credit_customers || 'Customers allowed on their card',
+    credit_default_limit: info.credit_default_limit || 0,
     variance_alert_enabled: info.variance_alert_enabled || 0,
     variance_alert_threshold: info.variance_alert_threshold || 0,
     variance_alert_role: info.variance_alert_role || '',
@@ -3983,6 +4046,9 @@ async function saveGeneral() {
     session.settings.variance_reason_mode = info.variance_reason_mode || 'Optional'
     session.settings.variance_reason_threshold = info.variance_reason_threshold || 0
     session.settings.variance_reasons = info.variance_reasons || []
+    session.settings.credit_sales_enabled = info.credit_sales_enabled || 0
+    session.settings.credit_customers = info.credit_customers || 'Customers allowed on their card'
+    session.settings.credit_default_limit = info.credit_default_limit || 0
     // The "?" comes and goes with the switch, no reload needed.
     session.help = {
       ...session.help,
@@ -4557,6 +4623,29 @@ button.sec-title.collapsible + * { margin-top: 14px; }
 .add-row { margin-top: 2px; }
 /* The reasons for a short or over, under their mode (0.59.0). */
 .vr-settings { margin: 0 0 14px; padding-inline-start: 2px; }
+/* Sales on account (0.60.0): how it works, and what LumenPOS set up. */
+.how-box {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.how-title { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.how-list { margin: 0 0 8px; padding-inline-start: 20px; font-size: 13px; line-height: 1.6; color: var(--text); }
+.how-list li + li { margin-top: 3px; }
+.credit-setup { margin-top: 16px; }
+.credit-setup-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.credit-setup-row:last-child { border-bottom: none; }
+.credit-company { font-weight: 600; min-width: 140px; }
+.credit-clash { color: var(--red); font-weight: 600; }
 
 /* iOS-style settings list */
 .setting-list { display: flex; flex-direction: column; }

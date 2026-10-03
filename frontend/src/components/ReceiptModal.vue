@@ -77,9 +77,10 @@
         >
           {{ emailing ? t('Sending…') : t('Email receipt') }}
         </button>
-        <button class="btn btn-outline" data-tour="receipt-print" :disabled="printing" @click="print">
+        <button v-if="!isReprint || mayReprint" class="btn btn-outline" data-tour="receipt-print" :disabled="printing" @click="print">
           {{ printing ? t('Printing…') : t('Print receipt') }}
         </button>
+        <span v-else class="muted small reprint-note">{{ t('Printing it again is kept to whoever may reprint a receipt.') }}</span>
         <button class="btn btn-primary" @click="$emit('close')">
           {{ receipt.is_return ? t('Done') : t('New Sale') }}
         </button>
@@ -151,7 +152,30 @@ async function emailReceipt() {
   }
 }
 
+// A copy printed again (Who can do what, Reprint a receipt): opened later
+// from History or Customers, or printed a second time from this screen. The
+// sale's own first print never is (0.60.0: until then only a network printer
+// checked it, and a refused one fell back to the browser).
+const printedOnce = ref(false)
+const isReprint = computed(() => props.reprint || printedOnce.value)
+const mayReprint = computed(() => session.permissions?.can_reprint !== false)
+
 async function print() {
+  const again = isReprint.value
+  if (again && !mayReprint.value) {
+    session.notify(t('You are not allowed to reprint a receipt'), true)
+    return
+  }
+  // Asked of the server before anything prints, and kept in the audit log.
+  // Offline it cannot be asked: the permission the till holds decides.
+  if (again && !props.receipt.offline && !session.offline) {
+    try {
+      await call('lumenpos.api.printing.allow_reprint', { invoice: props.receipt.name })
+    } catch (e) {
+      session.notify(e.message, true)
+      return
+    }
+  }
   // Priority: ESC/POS network printer -> the POS Profile's Print Format
   // (ERPNext print view) -> the built-in receipt via the browser dialog.
   if (session.printerConfigured && !props.receipt.offline && !session.offline) {
@@ -159,11 +183,11 @@ async function print() {
     try {
       await call('lumenpos.api.printing.print_receipt', {
         invoice: props.receipt.name,
-        // A copy printed later (History, Customers) is a reprint; the sale's
-        // own receipt, printed right after it, never is.
-        reprint: props.reprint ? 1 : 0,
+        // The reprint was allowed (and logged) above: the printer is not asked again.
+        reprint: 0,
       })
       session.notify(t('Receipt sent to printer'))
+      printedOnce.value = true
       return
     } catch (e) {
       session.notify(t('Printer failed ({error}), using browser print', { error: e.message }), true)
@@ -171,6 +195,7 @@ async function print() {
       printing.value = false
     }
   }
+  printedOnce.value = true
   if (session.printFormat && !props.receipt.offline && !session.offline) {
     // Use the sale's ACTUAL doctype (POS Invoice or Sales Invoice, per the
     // profile's mode), hardcoding "POS Invoice" broke custom Print Formats in
@@ -189,6 +214,7 @@ async function print() {
 </script>
 
 <style scoped>
+.reprint-note { align-self: center; max-width: 220px; }
 .offline-banner {
   background: rgba(245, 166, 35, 0.14);
   color: #9a6a0a;

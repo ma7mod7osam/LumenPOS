@@ -917,7 +917,7 @@
   },
   {
    "default": "0",
-   "description": "A customer takes the goods now and pays later. The part not paid is paid with the \"Credit Sale\" payment method, and the till books the debt on the customer at once with a Journal Entry, so it shows on their account in ERPNext and can be paid at the till or in ERPNext. LumenPOS makes the payment method and its clearing account itself. Who may sell on account is set in Who can do what.",
+   "description": "A customer takes the goods now and pays later. The part not paid is paid with the \"Credit Sale\" payment method, and the till books the debt on the customer at once with a Journal Entry, so it shows on their account in ERPNext and can be paid at the till or in ERPNext. LumenPOS makes the payment method and its clearing account itself. Who may sell on account is set in Approvals and access, Permissions.",
    "fieldname": "credit_sales_enabled",
    "fieldtype": "Check",
    "label": "Sell on account"

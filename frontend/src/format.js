@@ -83,9 +83,18 @@ export function warrantyLabel(days) {
 export function shortTime(value) {
   if (!value) return ''
   // Normalise Frappe timestamps that break Date parsing: space→T, drop the
-  // microseconds (".252308"), and pad a single-digit hour ("T1:"→"T01:").
+  // microseconds (".252308"), and pad a single-digit hour ("T1:"→"T01:") or
+  // second: Frappe 14 and later send a time of 12:47:09.5 as "12:47:9.5".
   let s = String(value).trim().replace(' ', 'T').replace(/\.\d+$/, '')
-  s = s.replace(/T(\d):/, 'T0$1:')
+  s = s.replace(/T(\d):/, 'T0$1:').replace(/(:\d\d):(\d)$/, '$1:0$2')
+  // A time with no date (a posting_time on its own) is shown as a time.
+  const bare = s.match(/^(\d{1,2}):(\d\d)(?::(\d\d))?$/)
+  if (bare) {
+    return new Date(2000, 0, 1, +bare[1], +bare[2], +(bare[3] || 0)).toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
   const d = new Date(s)
   if (isNaN(d)) return String(value).replace(/\.\d+.*$/, '') // last resort: at least no fractions
   return d.toLocaleString(undefined, {

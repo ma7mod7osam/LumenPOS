@@ -827,7 +827,7 @@ def sell_gift_card(payload: dict | str):
     amount = flt(payload.get("amount"))
     if amount <= 0:
         frappe.throw(_("Enter the gift card amount"))
-    credit_sales.refuse_tender(payload.get("payments"), _("A gift card"))
+    credit_sales.refuse_tender(payload.get("payments"), _("A gift card cannot be put on account."))
 
     gift_card_account = gift_cards.ensure_setup(profile.company)
     customer = payload.get("customer") or profile.customer
