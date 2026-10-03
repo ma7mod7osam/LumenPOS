@@ -24,6 +24,7 @@
 "A price cannot be below zero.","Giá không thể thấp hơn không."
 "A reason the cashier can pick when a counted drawer is short or over at the close (shown at the till).","Lý do thu ngân có thể chọn khi số tiền đếm trong ngăn kéo lúc đóng ca bị thiếu hoặc thừa (hiển thị tại quầy)."
 "A reason the cashier can pick when refunding an item (shown at the till).","Lý do thu ngân có thể chọn khi hoàn tiền trả hàng cho một mặt hàng (hiển thị tại quầy thu ngân)."
+"A refund cannot be put on account.","Tiền trả lại không thể ghi nợ."
 "A refund does not go back onto a gift card or cashback. Refund that part as store credit.","Không thể hoàn tiền trả hàng về thẻ quà tặng hoặc hoàn tiền. Hãy hoàn phần đó vào số dư cửa hàng."
 "A register closed with a counted difference over the alert threshold.","Một quầy thu ngân đã đóng với chênh lệch kiểm đếm vượt ngưỡng cảnh báo."
 "A register is still open well past the end of its shift.","Một quầy thu ngân vẫn mở dù đã quá giờ kết thúc ca khá lâu."

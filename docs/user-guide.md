@@ -323,7 +323,7 @@ merged, so a sale over the limit failed the whole close. This way every version 
 sale with nothing paid, a return comes off the debt, and the limit is checked at the sale.
 
 **Returns:** what comes back goes off what the customer still owes on that sale first,
-and only the rest goes back as money (out of the drawer). A sale already paid off comes
+and only the rest goes back as money (out of the drawer), never onto the customer's account. A sale already paid off comes
 back as money in full. A sale still owing is not exchanged: take it back, then sell the
 new goods.
 

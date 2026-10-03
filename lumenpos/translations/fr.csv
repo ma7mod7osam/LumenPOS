@@ -24,6 +24,7 @@
 "A price cannot be below zero.","Un prix ne peut pas être inférieur à zéro."
 "A reason the cashier can pick when a counted drawer is short or over at the close (shown at the till).","Un motif que le caissier peut choisir quand le comptage d'une caisse présente un manquant ou un excédent à la fermeture (affiché à la caisse)."
 "A reason the cashier can pick when refunding an item (shown at the till).","Un motif que le caissier peut choisir en remboursant un article (affiché à la caisse)."
+"A refund cannot be put on account.","Impossible de mettre un remboursement à crédit."
 "A refund does not go back onto a gift card or cashback. Refund that part as store credit.","Un remboursement ne retourne pas sur une carte cadeau ni en cashback. Remboursez cette partie en crédit magasin."
 "A register closed with a counted difference over the alert threshold.","Une caisse a été fermée avec un écart de comptage supérieur au seuil d'alerte."
 "A register is still open well past the end of its shift.","Une caisse est encore ouverte bien après la fin de sa session de caisse."

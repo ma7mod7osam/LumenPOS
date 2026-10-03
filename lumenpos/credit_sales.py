@@ -507,7 +507,7 @@ def open_items(customer, company):
     items = []
     entries = frappe.db.sql(
         """
-        select je.name, je.posting_date, je.lumenpos_credit_invoice as invoice, jea.account,
+        select je.name, je.posting_date, je.creation, je.lumenpos_credit_invoice as invoice, jea.account,
                jea.debit_in_account_currency as amount
         from `tabJournal Entry` je
         join `tabJournal Entry Account` jea on jea.parent = je.name and jea.party_type = 'Customer'
@@ -531,12 +531,13 @@ def open_items(customer, company):
                     "amount": flt(row.amount, 2),
                     "outstanding": left,
                     "account": row.account,
+                    "_order": (str(row.posting_date), str(row.creation)),
                 }
             )
     for row in frappe.get_all(
         "Sales Invoice",
         filters={"customer": customer, "company": company, "docstatus": 1, "outstanding_amount": [">", 0]},
-        fields=["name", "posting_date", "grand_total", "rounded_total", "outstanding_amount", "debit_to", "currency"],
+        fields=["name", "posting_date", "creation", "grand_total", "rounded_total", "outstanding_amount", "debit_to", "currency"],
         order_by="posting_date asc, creation asc",
     ):
         if row.currency != frappe.get_cached_value("Company", company, "default_currency"):
@@ -550,9 +551,14 @@ def open_items(customer, company):
                 "amount": flt(row.rounded_total or row.grand_total, 2),
                 "outstanding": flt(row.outstanding_amount, 2),
                 "account": row.debit_to,
+                "_order": (str(row.posting_date), str(row.creation)),
             }
         )
-    items.sort(key=lambda item: item["posting_date"])
+    # Oldest first: by date, then by when it was made, so two debts of one day
+    # (a sale's entry and a Sales Invoice among them) keep their real order.
+    items.sort(key=lambda item: item["_order"])
+    for item in items:
+        del item["_order"]
     return items
 
 

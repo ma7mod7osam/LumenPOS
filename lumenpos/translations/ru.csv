@@ -24,6 +24,7 @@
 "A price cannot be below zero.","Цена не может быть меньше нуля."
 "A reason the cashier can pick when a counted drawer is short or over at the close (shown at the till).","Причина, которую кассир может выбрать, если при закрытии в ящике недостача или излишек (показывается в кассе)."
 "A reason the cashier can pick when refunding an item (shown at the till).","Причина, которую кассир может выбрать при возврате товара (показывается на кассе)."
+"A refund cannot be put on account.","Возврат денег нельзя оформить в долг."
 "A refund does not go back onto a gift card or cashback. Refund that part as store credit.","Деньги не возвращаются на подарочную карту или кешбэк. Верните эту часть на депозит."
 "A register closed with a counted difference over the alert threshold.","Касса закрыта с расхождением выше порога оповещения."
 "A register is still open well past the end of its shift.","Касса всё ещё открыта намного дольше окончания смены."

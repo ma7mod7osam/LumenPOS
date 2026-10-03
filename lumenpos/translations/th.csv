@@ -24,6 +24,7 @@
 "A price cannot be below zero.","ราคาต้องไม่ต่ำกว่าศูนย์"
 "A reason the cashier can pick when a counted drawer is short or over at the close (shown at the till).","เหตุผลที่แคชเชียร์เลือกได้เมื่อยอดนับในลิ้นชักตอนปิดกะมีเงินขาดหรือเงินเกิน (แสดงที่เครื่องคิดเงิน)"
 "A reason the cashier can pick when refunding an item (shown at the till).","เหตุผลที่แคชเชียร์เลือกได้เมื่อคืนเงินค่าสินค้า (แสดงที่เครื่องคิดเงิน)"
+"A refund cannot be put on account.","การคืนเงิน บันทึกเป็นเงินเชื่อไม่ได้"
 "A refund does not go back onto a gift card or cashback. Refund that part as store credit.","การคืนเงินจะไม่คืนเข้าบัตรของขวัญหรือแคชแบ็ก ให้คืนส่วนนั้นเป็นเครดิตร้าน"
 "A register closed with a counted difference over the alert threshold.","เครื่องคิดเงินถูกปิดโดยมีส่วนต่างจากการนับเกินเกณฑ์แจ้งเตือน"
 "A register is still open well past the end of its shift.","เครื่องคิดเงินยังเปิดอยู่ทั้งที่เลยเวลาสิ้นสุดกะไปนานแล้ว"

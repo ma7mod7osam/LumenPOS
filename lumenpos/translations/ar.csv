@@ -24,6 +24,7 @@
 "A price cannot be below zero.","لا يمكن أن يكون السعر أقل من صفر."
 "A reason the cashier can pick when a counted drawer is short or over at the close (shown at the till).","سبب يمكن للكاشير اختياره عندما يكون في عد الصندوق عجز أو زيادة عند الإغلاق (يظهر في نقطة البيع)."
 "A reason the cashier can pick when refunding an item (shown at the till).","سبب يختاره الكاشير عند استرجاع صنف (يظهر في نقطة البيع)."
+"A refund cannot be put on account.","لا يمكن تسجيل المبلغ المعاد للعميل آجلا."
 "A refund does not go back onto a gift card or cashback. Refund that part as store credit.","لا يعاد المبلغ المسترجع إلى بطاقة الهدايا أو الكاش باك. استرجع ذلك الجزء إلى رصيد المتجر."
 "A register closed with a counted difference over the alert threshold.","تم إغلاق صندوق بفرق في المبالغ المعدودة يتجاوز حد التنبيه."
 "A register is still open well past the end of its shift.","لا يزال صندوق مفتوحا بعد انتهاء ورديته بوقت طويل."

@@ -24,6 +24,7 @@
 "A price cannot be below zero.","价格不能低于零。"
 "A reason the cashier can pick when a counted drawer is short or over at the close (shown at the till).","交班时清点的现金有短款或长款时收银员可选择的原因（显示在收银台）。"
 "A reason the cashier can pick when refunding an item (shown at the till).","收银员为商品退款时可选择的原因（在收银台显示）。"
+"A refund cannot be put on account.","退款不能记为赊账。"
 "A refund does not go back onto a gift card or cashback. Refund that part as store credit.","退款不会退回礼品卡或返现。请将这部分退为店内余额。"
 "A register closed with a counted difference over the alert threshold.","有收银台关闭时的清点差异超过了提醒阈值。"
 "A register is still open well past the end of its shift.","有收银台在班次结束很久后仍未关闭。"

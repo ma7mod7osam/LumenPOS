@@ -3007,6 +3007,12 @@ def create_return(
     splits = []
     if money_back > 0.005:
         splits = _refund_splits(refund_payments, -money_back, refund_mode, allowed_modes, absorb=tolerance)
+    # Only the part still owed goes on account, and the server works that out
+    # itself (debt_part, above). Money back never does: asked for, it would put
+    # a credit on the customer's account that nobody allowed (with refunds not
+    # limited to how a sale was paid, nothing else stopped it).
+    if any(r["mode_of_payment"] == credit_sales.MODE_OF_PAYMENT for r in splits):
+        frappe.throw(_("A refund cannot be put on account."), title=_("Sales on account"))
     if on_account:
         credit_sales.ensure_setup(original.company)
         splits.append({"mode_of_payment": credit_sales.MODE_OF_PAYMENT, "amount": -on_account, "reference_no": None})
