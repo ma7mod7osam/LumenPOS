@@ -123,6 +123,13 @@ def create_request(
             frappe.throw(_("Cash out needs no approval at this shop."))
         if flt(amount) <= 0:
             frappe.throw(_("Enter an amount above zero."))
+        # As the cash out itself reads it (register.add_cash_movement): a
+        # drawer that is not one of the outlet's in another currency is the
+        # main drawer, so the approver sees what will really be taken.
+        from lumenpos.api.register import _foreign_drawers
+
+        if mode_of_payment and mode_of_payment not in _foreign_drawers(pos_profile):
+            mode_of_payment = None
     else:  # Return
         if not return_invoice:
             frappe.throw(_("Select the invoice to return."))
@@ -255,7 +262,19 @@ def pending_requests(pos_profile: str | None = None):
     open_sessions = set(
         frappe.get_all(SESSION_DOCTYPE, filters={"status": "Open"}, pluck="name")
     )
-    return [r for r in rows if r.register_session in open_sessions]
+    rows = [r for r in rows if r.register_session in open_sessions]
+    # A cash out's amount is in its drawer's money: a drawer in another
+    # currency its own, the main drawer the outlet company's.
+    from lumenpos import currency
+    from lumenpos.api.register import _foreign_drawers
+
+    for r in rows:
+        if r.request_type == "Cash Out":
+            code = _foreign_drawers(r.pos_profile).get(r.cash_drawer) if r.cash_drawer else None
+            r.cash_currency = code or currency.company_currency(
+                frappe.get_cached_value("POS Profile", r.pos_profile, "company")
+            )
+    return rows
 
 
 @frappe.whitelist()
@@ -347,7 +366,14 @@ def validate_cash_out(request_name, session_name, amount, drawer=None):
     if (doc.get("cash_drawer") or None) != (drawer or None):
         frappe.throw(_("This approval is for another drawer."))
     if flt(amount) > flt(doc.get("cash_amount")) + 0.005:
-        frappe.throw(_("The approval covers {0}, not {1}.").format(flt(doc.get("cash_amount")), flt(amount)))
+        from lumenpos import cash_out
+
+        session_doc = frappe.get_doc("POS Register Session", session_name)
+        frappe.throw(
+            _("The approval covers {0}, not {1}.").format(
+                cash_out.money(session_doc, doc.get("cash_amount"), drawer), cash_out.money(session_doc, amount, drawer)
+            )
+        )
     return doc.approver_name
 
 

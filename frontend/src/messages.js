@@ -1229,7 +1229,7 @@ const returns = {
   "Block returns after the window below. Past it, the cashier sends a return-approval request (approved by the Approver Role set under Discount approval).":
     "منع الإرجاع بعد الفترة أدناه. بعد انقضائها يرسل الكاشير طلب اعتماد إرجاع (يعتمده صاحب «دور المعتمد» المحدد ضمن اعتماد الخصم).",
   "Return window (days, 0 = no limit)": "فترة الإرجاع (أيام، 0 = بلا حد)",
-  "Role that can approve requests (discount & return)": "الدور الذي يمكنه اعتماد الطلبات (الخصم والإرجاع)",
+  "Role that can approve requests (discount, return and cash out)": "الدور الذي يمكنه اعتماد الطلبات (الخصم والإرجاع والسحب النقدي)",
   Split: "تقسيم",
   "Fully covered": "مغطى بالكامل",
   "{amount} left to allocate": "تبقى {amount} للتوزيع",

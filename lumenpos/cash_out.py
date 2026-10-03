@@ -21,7 +21,7 @@ approval. Whoever approved is kept on the cash movement and in the audit log."""
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, fmt_money
 
 SETTINGS = "LumenPOS Settings"
 MODES = ("Off", "Above an amount", "Always")
@@ -67,6 +67,20 @@ def company_value(session_doc, amount, drawer=None):
 
     code = _foreign_drawers(session_doc.pos_profile).get(drawer) if drawer else None
     return flt(_in_company_currency(session_doc, amount, code), 2)
+
+
+def money(session_doc, amount, drawer=None):
+    """An amount of a drawer written with its money ("SAR 60.00"), for the
+    audit log and the refusals: the drawer's own currency for a drawer in
+    another currency, the company's for the main one."""
+    from lumenpos import currency
+    from lumenpos.api.register import _foreign_drawers
+
+    code = _foreign_drawers(session_doc.pos_profile).get(drawer) if drawer else None
+    if not code:
+        company = frappe.get_cached_value("POS Profile", session_doc.pos_profile, "company")
+        code = currency.company_currency(company)
+    return fmt_money(flt(amount, 2), currency=code)
 
 
 def needs_approval(session_doc, amount, drawer=None, user=None):

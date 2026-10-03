@@ -221,7 +221,7 @@
           <p v-if="cashOutHint" class="muted small cash-hint">{{ cashOutHint }}</p>
           <div v-for="(m, i) in summary?.cash_movements || []" :key="i" class="movement-row">
             <span :class="m.movement_type === 'Cash In' ? 'in' : 'out'">{{ t(m.movement_type) }}</span>
-            <span class="muted">{{ m.reason }}<template v-if="m.currency && m.currency !== local"> · {{ m.mode_of_payment }}</template><template v-if="m.approved_by"> · {{ t('approved by {name}', { name: m.approved_by }) }}</template></span>
+            <span class="muted">{{ m.reason }}<template v-if="m.currency && m.currency !== local"> · {{ m.mode_of_payment }}</template><template v-if="m.approved_by"> · {{ t('approved by {name}', { name: isolate(m.approved_by) }) }}</template></span>
             <span class="right">{{ money(m.amount, m.currency || local) }}</span>
           </div>
         </div>
@@ -471,7 +471,7 @@ import SalespeopleTable from '../components/SalespeopleTable.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { call } from '../api'
 import { useSessionStore } from '../stores/session'
-import { money, shortTime, parseMoney, plainText } from '../format'
+import { money, shortTime, parseMoney, plainText, isolate } from '../format'
 import PeriodHint from '../components/PeriodHint.vue'
 import VarianceReason from '../components/VarianceReason.vue'
 import CashOutApproval from '../components/CashOutApproval.vue'

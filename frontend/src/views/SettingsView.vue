@@ -2195,12 +2195,12 @@
         </template>
 
         <!-- Request-based approval (a role-holder approves remotely). The same
-             role approves both discount AND return requests. -->
+             role approves discount, return and cash out requests. -->
         <template v-if="generalForm.discount_approval_mode !== 'Passcode only' || generalForm.restrict_returns_to_window || generalForm.cash_out_approval !== 'Off'">
           <div class="sub-label">{{ t('Approver role for requests') }}</div>
           <div class="field-grid">
             <label class="field">
-              <span>{{ t('Role that can approve requests (discount & return)') }}</span>
+              <span>{{ t('Role that can approve requests (discount, return and cash out)') }}</span>
               <LinkPicker doctype="Role" v-model="generalForm.approver_role" :placeholder="t('e.g. LumenPOS Manager')" />
             </label>
           </div>

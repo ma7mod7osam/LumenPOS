@@ -651,7 +651,7 @@ def add_cash_movement(
     drawer_name = mode_of_payment or _drawer_mode(doc.pos_profile) or ""
     detail = (
         _("{0} taken out of {1}: {2}") if taking else _("{0} put in {1}: {2}")
-    ).format(amount, drawer_name, reason or "-")
+    ).format(cash_out.money(doc, amount, mode_of_payment), drawer_name, reason or "-")
     if approver:
         detail += " " + _("(approved by {0})").format(approver)
     audit.log(

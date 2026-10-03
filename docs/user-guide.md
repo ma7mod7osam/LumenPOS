@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.60.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.61.0. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -911,7 +911,18 @@ A serialized item can never be sold without its exact serials:
   every sale made by the cashier who opened it, so until 0.55.0 such a shift
   failed its close for good ("POS Invoice isn't created by user"). LumenPOS now
   makes that entry itself, with the checks that matter.
-- **Cash in / out** during the day from the Register page (reason logged). Each
+- **Cash in / out** during the day from the Register page (reason logged). Since
+  0.61.0 putting money in and taking it out are two permissions (*Cash in*, *Cash
+  out*), an amount must be above zero, and Settings, General, Approvals and access,
+  **Cash out** sets two things: **A reason for every cash out** (on by default) and
+  **Manager approval for cash out**: *Off* (the default), *Above an amount* (in the
+  company's currency, a drawer in another currency valued at the shift's rate) or
+  *Always*. When a cash out needs it, the till asks for a manager's passcode (the
+  approvers and their PINs in Discount approval, or the master passcode), or the
+  cashier sends a request that a manager approves from the **Approvals** tray. A
+  request is for that shift, that drawer and at most that amount, and is used once.
+  A manager (LumenPOS or System Manager) needs nobody's approval. Who approved shows
+  under the movement on the Register page and in the audit log. Each
   movement is **netted into the expected cash** at close (expected = opening +
   cash sales + cash in − cash out) **and declared on the POS Closing Entry**
   itself: a **Cash In / Cash Out** total plus a **Cash Movements** table (under
@@ -1230,7 +1241,8 @@ plus Fatima" is two rows rather than a role invented for one person.
 | **Make returns** | Creating a credit note from the till |
 | **Return past the window** | Returning a sale older than the return window WITHOUT an approval request |
 | **Exchange goods** | The one-step exchange (needs *Make returns* as well) |
-| **Cash in / out** | Putting money in the drawer or taking it out mid-shift |
+| **Cash in** | Putting money in the drawer mid-shift (0.61.0: apart from cash out) |
+| **Cash out** | Taking money out of the drawer mid-shift, and Settings can also ask for a reason and a manager's approval (0.61.0) |
 | **Reprint a receipt** | Printing a receipt again: from History or Customers, or a second time from the sale's own screen (and with it, kicking the drawer). The first print of the sale just made always goes through. From 0.60.0 the till asks the server before every copy, in the browser too, and each one is in the audit log |
 | **Open the register** | Starting a shift |
 | **Close the register** | Counting the drawer and closing |
@@ -1351,6 +1363,7 @@ which both LumenPOS roles are given.
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.61.0 | **Cash out under control** (the owner: so nobody takes money out of the drawer as they please). **Putting money in and taking it out are two permissions** now, *Cash in* and *Cash out*: a rule a shop wrote on the old *Cash in / out* becomes one of each on update, so nobody gains or loses anything. **A reason for every cash out**, on by default. **A manager's approval for a cash out**, off by default, above an amount or always (Settings, General, Approvals and access, Cash out): the manager types their passcode at the till, or approves the cashier's request from the Approvals tray, the same way an over-limit discount is approved. A request covers that shift, that drawer and at most that amount, once. Managers need nobody's approval. Who approved shows under the movement and in the audit log, where every cash in and out is now recorded. Also: an amount at or below zero is refused (a negative cash in was really a cash out that nobody checked). In all thirteen languages. |
 | 0.60.1 | **"The cashier" is the default for *A shift belongs to*** (Settings, General, Register and shifts): on a new site each cashier opens their own shift and sells only on it, with their own drawer and Z-report. A site that already has shifts keeps the way it worked: where nothing was chosen it stays on *The outlet*, written down once by the update, and a choice made in Settings is never changed. On ERPNext 16 an outlet sells on one open shift at a time, so with *The cashier* each cashier there needs their own POS Profile. In all thirteen languages. |
 | 0.60.0 | **Sales on account** (asked by a shop in Zimbabwe). A customer takes the goods now and pays later, all of it or the rest after paying part, and the sale is a POS invoice like any other: the part on account is paid by LumenPOS's *Credit Sale* tender, and the same moment books the debt on the customer with its own Journal Entry, so it shows on their account and in Accounts Receivable at once (works on ERPNext 13 to 16 alike, nothing paid included). ERPNext's credit limit, or the shop's default, is checked at the sale. Settings, General, Sales on account: the switch, who may buy (customers allowed on their card, or any named customer, never the walk-in) and the default limit, with how it works. The customer's page shows what they owe sale by sale; **Take a payment** takes their money into the drawer as a Cash or Bank Entry, oldest sales first or the ones ticked, and the close expects it there. A return comes off the debt first and gives back only the rest. The receipt shows what is still owed, with a line to sign. Three permissions, closed until someone is named: *Sell on account*, *Take customer payments*, *Set a customer's credit*. Also: **a receipt printed again is really kept to whoever may reprint** (asked by a shop in Nigeria): until now the rule was checked only on a network receipt printer, and a refused copy fell back to the browser. The till now asks the server before every copy, a second print of the same sale counts, and each reprint is in the audit log. Fixed on the way: on ERPNext 14 and later a sale made in the first ten seconds of a minute showed in History as a raw timestamp ("2026-10-03 12:47:9"), and in Customers every time looked like that; both now read as the other sales do. The X-report shows when the shift opened without fractions of a second. In all thirteen languages. |
 | 0.59.0 | **A reason for a short or over at the close** (asked by a shop in Zimbabwe). When a counted drawer differs from what it should hold, the cashier writes the reason in their own words, or taps one of the shop's quick reasons, and can say what was done about it. Both are kept with the shift, shown under its difference in Previous sessions and on the close panel, and sent with the variance email. A manager closing someone else's shift is asked the same. Settings, General, Register and shifts: *Reason for a short or over*, Optional (the default), Required (the register does not close without one, checked on the server too, optionally only past an amount) or Off, and the quick reasons, six to start with. In all thirteen languages, with its own help on the Register page and in What is new. Also: on a phone the Register page no longer runs off the screen (the cash in and out form stacks, and each payment in the count shows as its own block with Expected, Counted and Difference), and Settings shows the ready-made return reasons and reasons for a short or over in the screen's language (a reason left as it was is still saved in English, so every till keeps showing it in its own language). |

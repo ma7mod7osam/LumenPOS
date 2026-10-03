@@ -26,11 +26,10 @@
               <div v-if="r.request_type === 'Discount'" class="headline">
                 {{ r.discount_percent }}%<span v-if="r.cart_total" class="muted"> · {{ money(r.cart_total) }}</span>
               </div>
-              <!-- Money taken out of a drawer (0.61.0): a drawer in another
-                   currency is named, its amount is in that money. -->
+              <!-- Money taken out of a drawer (0.61.0), in that drawer's money;
+                   a drawer in another currency is named. -->
               <div v-else-if="r.request_type === 'Cash Out'" class="headline">
-                <template v-if="r.cash_drawer">{{ r.cash_amount }} · {{ r.cash_drawer }}</template>
-                <template v-else>{{ money(r.cash_amount) }}</template>
+                {{ money(r.cash_amount, r.cash_currency) }}<span v-if="r.cash_drawer" class="muted"> · {{ r.cash_drawer }}</span>
               </div>
               <div v-else class="headline">
                 {{ r.return_invoice }}<span v-if="r.invoice_age_days != null" class="muted"> · {{ t('{n} days old', { n: r.invoice_age_days }) }}</span>
