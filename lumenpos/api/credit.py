@@ -191,9 +191,7 @@ def receive_payment(
             "lumenpos_idempotency_key": key or None,
         }
     )
-    je.flags.ignore_permissions = True
-    je.insert()
-    je.submit()
+    credit_sales.post(je)
 
     from lumenpos.api import audit
 

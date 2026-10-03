@@ -339,6 +339,23 @@ def _dimensions(doc):
     return {name: doc.get(name) for name in names if doc.get(name)}
 
 
+def post(doc):
+    """Insert and submit one of LumenPOS's own entries, the way ERPNext makes
+    its internal ones (membership, donation, payment request): without the
+    cashier's read on each account. ERPNext 13's Journal Entry validation reads
+    every account's balance and checks, as the user, read on the Account,
+    which a cashier never gets (install.SALE_GRANTS: select only)."""
+    was = frappe.flags.ignore_account_permission
+    frappe.flags.ignore_account_permission = True
+    try:
+        doc.flags.ignore_permissions = True
+        doc.insert()
+        doc.submit()
+    finally:
+        frappe.flags.ignore_account_permission = was
+    return doc.name
+
+
 def _cost_center(doc):
     return (
         doc.get("cost_center")
@@ -397,10 +414,7 @@ def _journal_entry(doc, kind, amount, against=None):
             "lumenpos_credit_customer": doc.customer,
         }
     )
-    je.flags.ignore_permissions = True
-    je.insert()
-    je.submit()
-    return je.name
+    return post(je)
 
 
 def on_account_part(doc):
