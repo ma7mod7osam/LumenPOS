@@ -17,7 +17,7 @@ from lumenpos import __version__
 from lumenpos import erpnext_compat
 from lumenpos.api import insights
 from lumenpos.api import salespeople
-from lumenpos import cashback_rules, languages, scope
+from lumenpos import cashback_rules, languages, scope, variance
 
 def _can_manage():
     """Can the user change LumenPOS-wide settings (the General tab)?"""
@@ -196,6 +196,8 @@ def get_settings():
         "return_reasons": [
             r.reason for r in (doc.get("return_reasons") or []) if (r.reason or "").strip()
         ],
+        # A reason for a short or over at the close (lumenpos.variance, 0.59.0).
+        **variance.client_facts(),
         "discount_limit_percent": flt(doc.discount_limit_percent),
         "discount_approval_mode": doc.get("discount_approval_mode") or "Passcode only",
         "approver_role": doc.get("approver_role") or "",
@@ -456,6 +458,19 @@ def save_settings(payload: dict | str):
             if reason and key not in seen_reasons:
                 seen_reasons.add(key)
                 doc.append("return_reasons", {"reason": reason})
+    # A screen from before 0.59.0 sends none of these: leave them alone.
+    if payload.get("variance_reason_mode") in variance.MODES:
+        doc.variance_reason_mode = payload.get("variance_reason_mode")
+    if "variance_reason_threshold" in payload:
+        doc.variance_reason_threshold = max(flt(payload.get("variance_reason_threshold")), 0)
+    if "variance_reasons" in payload:
+        doc.variance_reasons = []
+        seen_reasons = set()
+        for reason in payload.get("variance_reasons") or []:
+            reason = (reason or "").strip()[:140]
+            if reason and reason.casefold() not in seen_reasons:
+                seen_reasons.add(reason.casefold())
+                doc.append("variance_reasons", {"reason": reason})
     doc.discount_limit_percent = flt(payload.get("discount_limit_percent"))
     doc.discount_approval_mode = payload.get("discount_approval_mode") or "Passcode only"
     doc.approver_role = payload.get("approver_role") or None

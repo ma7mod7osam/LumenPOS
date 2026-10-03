@@ -19,6 +19,9 @@
   "one_shift_per_user",
   "carry_shift_past_midnight",
   "warn_locked_periods",
+  "variance_reason_mode",
+  "variance_reason_threshold",
+  "variance_reasons",
   "variance_alert_enabled",
   "variance_alert_threshold",
   "variance_alert_role",
@@ -719,6 +722,29 @@
    "label": "Warn about locked accounting periods"
   },
   {
+   "default": "Optional",
+   "description": "When a counted drawer is short or over at the close. Optional (the default): the cashier may give a reason and say what was done. Required: the register does not close without a reason, checked on the server too. Off: the till does not ask. Set from the till: Settings, General, Register and shifts.",
+   "fieldname": "variance_reason_mode",
+   "fieldtype": "Select",
+   "label": "Reason for a short or over",
+   "options": "Optional\nRequired\nOff"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.variance_reason_mode=='Required'",
+   "description": "Required asks only when a difference is larger than this, in the company currency (a drawer in another currency at its shift rate). 0 = any difference.",
+   "fieldname": "variance_reason_threshold",
+   "fieldtype": "Currency",
+   "label": "Ask for a reason above"
+  },
+  {
+   "description": "Quick reasons the cashier can tap when a count is short or over. The cashier can also write a reason in their own words.",
+   "fieldname": "variance_reasons",
+   "fieldtype": "Table",
+   "label": "Reasons for a short or over",
+   "options": "POS Variance Reason"
+  },
+  {
    "default": "0",
    "description": "Email a role when a closing count differs from expected by more than the threshold. Records and notifies, it never blocks the close.",
    "fieldname": "variance_alert_enabled",
@@ -883,7 +909,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-01 21:00:00.000000",
+ "modified": "2026-10-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "LumenPOS Settings",

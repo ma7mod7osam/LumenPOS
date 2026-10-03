@@ -510,6 +510,13 @@ def _maybe_alert_variance(doc):
             f"<td align='right'><b>{flt(r.difference):,.2f}</b></td></tr>"
             for r in rows
         )
+        # The cashier's reason and what was done, when given (0.59.0).
+        why = ""
+        if doc.get("variance_reason"):
+            why += f"<p><b>{_('Reason for the difference')}:</b> {frappe.utils.escape_html(_(doc.variance_reason))}"
+            if doc.get("variance_action"):
+                why += f"<br><b>{_('Action taken')}:</b> {frappe.utils.escape_html(doc.variance_action)}"
+            why += "</p>"
         frappe.sendmail(
             recipients=recipients,
             subject=_("Cash variance on {0} ({1})").format(doc.pos_profile, doc.name),
@@ -522,7 +529,7 @@ def _maybe_alert_variance(doc):
                 "<table border='1' cellpadding='6' cellspacing='0'>"
                 f"<tr><th>{_('Payment')}</th><th>{_('Currency')}</th><th>{_('Expected')}</th>"
                 f"<th>{_('Counted')}</th><th>{_('Difference')}</th></tr>"
-                f"{cells}</table>"
+                f"{cells}</table>{why}"
             ),
         )
     except Exception:
@@ -746,10 +753,18 @@ def _has_expected_pending():
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def close_register(session: str, counted: dict | str, closing_note: str | None = None, expected_invoice_count: int | str | None = None):
+def close_register(
+    session: str,
+    counted: dict | str,
+    closing_note: str | None = None,
+    expected_invoice_count: int | str | None = None,
+    variance_reason: str | None = None,
+    variance_action: str | None = None,
+):
     """Flip the session to 'Closing' (committed immediately, so it can never be
     sold-on or resumed again), then consolidate in a serialized background job.
-    The shift only reaches 'Closed' once consolidation succeeds."""
+    The shift only reaches 'Closed' once consolidation succeeds. A drawer counted
+    short or over carries the cashier's reason (lumenpos.variance)."""
     if isinstance(counted, str):
         counted = json.loads(counted)
 
@@ -830,6 +845,12 @@ def close_register(session: str, counted: dict | str, closing_note: str | None =
                 "difference": flt(counted_amount - expected_amount, 2) if summary else 0,
             },
         )
+
+    # A short or over: the shop's reason, checked BEFORE anything is saved, so
+    # a close refused for want of one leaves the shift open (0.59.0).
+    from lumenpos import variance
+
+    variance.apply(doc, variance_reason, variance_action, figures_known=bool(summary))
 
     # Nothing unconfirmed survives the shift: void pending / approved-but-unused
     # approval requests BEFORE the flip, so none can be spent on the next shift.
@@ -929,6 +950,8 @@ def _close_result(doc, queued):
         ],
         "total_sales": doc.total_sales,
         "sales_count": doc.sales_count,
+        "variance_reason": doc.get("variance_reason"),
+        "variance_action": doc.get("variance_action"),
     }
 
 
@@ -2256,7 +2279,9 @@ def list_sessions(pos_profile: str, limit: int | str = 20):
             "total_sales", "total_discounts", "sales_count", "status",
             "closing_status", "closing_error",
             "pos_opening_entry", "pos_closing_entry",
-        ] + (["expected_pending"] if _has_expected_pending() else []),
+        ] + (["expected_pending"] if _has_expected_pending() else [])
+        + (["variance_reason", "variance_action"]
+           if frappe.get_meta("POS Register Session").has_field("variance_reason") else []),
         order_by="closed_at desc",
         limit_page_length=min(int(limit), 50),
     )

@@ -25,6 +25,8 @@
   "currency_rates",
   "column_break_2",
   "closing_note",
+  "variance_reason",
+  "variance_action",
   "movements_section",
   "cash_movements",
   "counts_section",
@@ -162,6 +164,19 @@
    "label": "Closing Note"
   },
   {
+   "description": "Picked by the cashier when a counted drawer was short or over at the close.",
+   "fieldname": "variance_reason",
+   "fieldtype": "Data",
+   "label": "Reason for the difference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "variance_action",
+   "fieldtype": "Small Text",
+   "label": "Action taken",
+   "read_only": 1
+  },
+  {
    "fieldname": "movements_section",
    "fieldtype": "Section Break",
    "label": "Cash In / Out"
@@ -242,7 +257,7 @@
    "link_fieldname": "lumenpos_session"
   }
  ],
- "modified": "2026-09-30 13:00:00.000000",
+ "modified": "2026-10-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "LumenPOS",
  "name": "POS Register Session",

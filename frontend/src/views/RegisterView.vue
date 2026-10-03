@@ -107,6 +107,10 @@
             </tr>
           </tbody>
         </table>
+        <p v-if="closedResult.variance_reason" class="muted small vr-line">
+          {{ t('Reason for the difference') }}: <b>{{ t(closedResult.variance_reason) }}</b>
+          <template v-if="closedResult.variance_action"> · {{ t('Action taken') }}: {{ closedResult.variance_action }}</template>
+        </p>
         <button class="btn btn-outline" style="margin-top: 12px" @click="dismissClosed">{{ t('Done') }}</button>
       </div>
     </div>
@@ -276,8 +280,18 @@
               </tr>
             </tbody>
           </table>
+          <!-- A short or over: why, and what was done (lumenpos.variance). -->
+          <VarianceReason
+            v-if="ownAsk.show"
+            v-model:reason="varianceReason"
+            v-model:action="varianceAction"
+            :reasons="vrReasons"
+            :required="ownAsk.required"
+            :known="ownAsk.known"
+            :missing="ownAsk.missing"
+          />
           <input v-model="closingNote" :placeholder="t('Closing note (optional)')" style="width: 100%; margin-top: 12px" />
-          <button class="btn btn-danger btn-lg" data-tour="register-close" style="width: 100%; margin-top: 14px" :disabled="closing || !canClose" @click="close">
+          <button class="btn btn-danger btn-lg" data-tour="register-close" style="width: 100%; margin-top: 14px" :disabled="closing || !canClose || ownAsk.missing" @click="close">
             {{ closing ? t('Closing…') : t('Close Register') }}
           </button>
           <p v-if="!canClose" class="muted small">{{ t("You don't have permission to close the register.") }}</p>
@@ -344,10 +358,19 @@
                 </tr>
               </tbody>
             </table>
+            <VarianceReason
+              v-if="otherAsk.show"
+              v-model:reason="otherVarianceReason"
+              v-model:action="otherVarianceAction"
+              :reasons="vrReasons"
+              :required="otherAsk.required"
+              :known="otherAsk.known"
+              :missing="otherAsk.missing"
+            />
             <input v-model="otherNote" :placeholder="t('Closing note (optional)')" style="width: 100%; margin-top: 12px" />
             <div class="other-actions">
               <button class="btn btn-outline" :disabled="otherBusy" @click="otherTarget = null">{{ t('Cancel') }}</button>
-              <button class="btn btn-danger" :disabled="otherBusy" @click="closeOther">
+              <button class="btn btn-danger" :disabled="otherBusy || otherAsk.missing" @click="closeOther">
                 {{ otherBusy ? t('Closing…') : t('Close this shift') }}
               </button>
             </div>
@@ -379,6 +402,10 @@
             <span v-else :class="past.total_difference < -0.005 ? 'neg' : past.total_difference > 0.005 ? 'pos' : ''">
               {{ t('difference') }} {{ money(past.total_difference, local) }}
             </span>
+          </div>
+          <div v-if="past.variance_reason" class="muted small vr-line">
+            {{ t('Reason for the difference') }}: <b>{{ t(past.variance_reason) }}</b>
+            <template v-if="past.variance_action"> · {{ t('Action taken') }}: {{ past.variance_action }}</template>
           </div>
           <div class="muted small">
             <!-- The ERPNext days closed while the shift sold on past midnight. -->
@@ -417,6 +444,7 @@ import { call } from '../api'
 import { useSessionStore } from '../stores/session'
 import { money, shortTime, parseMoney, plainText } from '../format'
 import PeriodHint from '../components/PeriodHint.vue'
+import VarianceReason from '../components/VarianceReason.vue'
 import { t } from '../i18n'
 
 const session = useSessionStore()
@@ -529,6 +557,8 @@ async function pickOther(row) {
   otherSummary.value = null
   otherCounted.value = {}
   otherNote.value = ''
+  otherVarianceReason.value = ''
+  otherVarianceAction.value = ''
   otherError.value = ''
   otherLoading.value = true
   try {
@@ -578,6 +608,8 @@ async function closeOther() {
       closing_note: otherNote.value || null,
       // Stale-closing-screen guard, as for this page's own close.
       expected_invoice_count: otherSummary.value ? otherSummary.value.sales_count : null,
+      variance_reason: otherAsk.value.show ? otherVarianceReason.value || null : null,
+      variance_action: otherAsk.value.show ? otherVarianceAction.value || null : null,
     })
     session.notify(t('Shift {session} is closing. Its sales are consolidated in the background.', { session: target.session }))
     otherTarget.value = null
@@ -659,6 +691,38 @@ const countRows = computed(() => {
   }
   return rows
 })
+
+// A reason for a short or over at the close (lumenpos.variance, 0.59.0). The
+// threshold is in the company currency, a drawer in another one valued at its
+// shift rate, as the server does it.
+const vrMode = computed(() => session.settings?.variance_reason_mode || 'Optional')
+const vrReasons = computed(() => session.settings?.variance_reasons || [])
+const vrThreshold = computed(() => Number(session.settings?.variance_reason_threshold) || 0)
+const varianceReason = ref('')
+const varianceAction = ref('')
+const otherVarianceReason = ref('')
+const otherVarianceAction = ref('')
+
+function askFor(rows, diffOf, figures, failed, reason) {
+  const none = { show: false, required: false, known: true, missing: false }
+  if (vrMode.value === 'Off') return none
+  // Without the expected figures the till sees no difference, but the server
+  // may work them out at the close: offer the reason, never insist on it.
+  if (!figures) return failed ? { ...none, show: true, known: false } : none
+  const differs = rows.filter((r) => r.expected_amount != null && Math.abs(diffOf(r)) > 0.005)
+  if (!differs.length) return none
+  const company = figures.company_currency
+  const rate = (r) => (r.currency && r.currency !== company ? Number((figures.rates || {})[r.currency]) || 1 : 1)
+  const required = vrMode.value === 'Required' && differs.some((r) => Math.abs(diffOf(r) * rate(r)) > vrThreshold.value + 0.005)
+  const missing = required && !String(reason || '').trim()
+  return { show: true, required, known: true, missing }
+}
+const ownAsk = computed(() =>
+  askFor(countRows.value, diff, summary.value, loadError.value, varianceReason.value)
+)
+const otherAsk = computed(() =>
+  askFor(otherRows.value, otherDiff, otherSummary.value, otherError.value, otherVarianceReason.value)
+)
 
 async function load() {
   if (!session.registerOpen) return
@@ -788,7 +852,11 @@ async function close() {
       // Stale-closing-screen guard: the server rejects the close if more sales
       // landed after this screen loaded (see close_register).
       expected_invoice_count: summary.value ? summary.value.sales_count : null,
+      variance_reason: ownAsk.value.show ? varianceReason.value || null : null,
+      variance_action: ownAsk.value.show ? varianceAction.value || null : null,
     })
+    varianceReason.value = ''
+    varianceAction.value = ''
     closeState.value = {
       status: closedResult.value.status || 'Closing',
       closing_status: 'Pending',
@@ -944,6 +1012,8 @@ async function close() {
   font-size: 13px;
 }
 .retry-closing { padding: 3px 10px; font-size: 11.5px; color: var(--amber); margin-left: 4px; }
+/* The cashier's reason for a short or over, with what was done (0.59.0). */
+.vr-line { margin: 4px 0 0; overflow-wrap: anywhere; }
 .field-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 10px 0 6px; }
 .open-choice { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .pill-warn {

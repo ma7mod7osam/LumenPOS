@@ -1797,6 +1797,40 @@ const lockedPeriods = {
   "When an ERPNext accounting period locks sales invoices, the till now says so as a shift opens and explains a close it stops. Settings, System check lists such periods too.": "عندما تقفل فترة محاسبية في ERPNext فواتير المبيعات، أصبحت نقطة البيع تنبه إلى ذلك عند فتح الوردية، وتشرح سبب تعذر إغلاقها. ويعرض فحص النظام في الإعدادات هذه الفترات أيضا.",
 }
 
+// 0.59.0: a reason for a short or over at the close (lumenpos.variance,
+// VarianceReason.vue).
+const varianceReasons = {
+  "The count is short or over. Why?": "في العد عجز أو زيادة. ما السبب؟",
+  "If the count is short or over, say why.": "إذا كان في العد عجز أو زيادة، فاذكر السبب.",
+  "Action taken (optional)": "الإجراء المتخذ (اختياري)",
+  "For example: recounted, reported to the manager": "مثال: أعيد العد، أبلغ المدير",
+  "Reason for the difference": "سبب الفرق",
+  "Action taken": "الإجراء المتخذ",
+  "Reason for a short or over": "سبب العجز أو الزيادة",
+  "Optional, the cashier may give a reason": "اختياري، يمكن للكاشير ذكر السبب",
+  "Required, the register does not close without one": "إلزامي، لا يغلق الصندوق بدونه",
+  "Off, the till does not ask for a reason": "متوقف، لا تطلب نقطة البيع السبب",
+  "Ask only when the difference is more than (0 = any difference)": "اطلب السبب فقط إذا زاد الفرق عن (0 = أي فرق)",
+  "Reasons for a short or over": "أسباب العجز أو الزيادة",
+  "Reason (for example Counting mistake)": "السبب (مثال: خطأ في العد)",
+  "A short or over": "العجز أو الزيادة",
+  "When a counted drawer is short or over, the till asks why before you close.": "عندما يكون في عد الصندوق عجز أو زيادة، تسألك نقطة البيع عن السبب قبل الإغلاق.",
+  "A reason for a short or over": "سبب العجز أو الزيادة",
+  "When a count at the close is short or over, the till asks why and keeps the reason with the shift. The shop sets the list in Settings, General, Register and shifts, and can make it required.": "عندما يكون في عد الإغلاق عجز أو زيادة، تسأل نقطة البيع عن السبب وتحفظه مع الوردية. يحدد المتجر قائمة الأسباب من الإعدادات، عام، الصندوق والورديات، ويمكنه جعلها إلزامية.",
+  "Counting mistake": "خطأ في العد",
+  "Wrong change given": "خطأ في الباقي",
+  "Sale or refund not recorded": "بيع أو استرجاع لم يسجل",
+  "Cash paid out without a record": "صرف نقدي بدون تسجيل",
+  "Card or transfer counted as cash": "بطاقة أو تحويل حسب نقدا",
+  "Theft or loss": "سرقة أو فقدان",
+  "Write the reason, or tap one below": "اكتب السبب، أو اضغط أحد الأسباب بالأسفل",
+  "Write a reason to close the register.": "اكتب السبب لإغلاق الصندوق.",
+  "The cashier can also write a reason in their own words.": "ويمكن للكاشير أيضا كتابة السبب بكلماته.",
+  "When a counted drawer is short or over at the close, the cashier writes a reason, or taps one from the list below, and can say what was done about it. Both stay with the shift and go in the variance email.": "عندما يكون في عد الصندوق عجز أو زيادة عند الإغلاق، يكتب الكاشير السبب أو يضغط أحد الأسباب من القائمة أدناه، ويمكنه ذكر الإجراء المتخذ. ويحفظان مع الوردية ويرسلان في بريد تنبيه الفرق.",
+  "Write the reason or tap one, and say what was done about it, for example recounted or reported to the manager.": "اكتب السبب أو اضغط أحد الأسباب، واذكر الإجراء المتخذ، مثل إعادة العد أو إبلاغ المدير.",
+  "Your shop may make the reason required: the register then closes only with one.": "قد يجعل المتجر السبب إلزاميا، فلا يغلق الصندوق إلا به.",
+}
+
 const prefixedEn = {
   'status:Draft': 'Draft',
   'status:Return': 'Return',
@@ -1983,5 +2017,5 @@ const prefixedAr = {
 
 export const messages = {
   en: { ...prefixedEn },
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...prefixedAr },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...prefixedAr },
 }

@@ -373,7 +373,7 @@ def _client_settings(profile_name=None):
 
     from frappe.utils import cint
 
-    from lumenpos import accounting_periods, languages
+    from lumenpos import accounting_periods, languages, variance
     from lumenpos.api import approval_requests
 
     doc = frappe.get_cached_doc("LumenPOS Settings")
@@ -425,6 +425,8 @@ def _client_settings(profile_name=None):
         "return_reasons": [
             r.reason for r in (doc.get("return_reasons") or []) if (r.reason or "").strip()
         ],
+        # A reason for a short or over at the close (lumenpos.variance, 0.59.0).
+        **variance.client_facts(),
         "delivery_apps": [
             {
                 "app_name": row.app_name,

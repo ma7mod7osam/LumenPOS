@@ -264,6 +264,16 @@ export const TOPICS = [
   },
   {
     route: '/register',
+    title: 'A short or over',
+    when: (s) => (s.settings.variance_reason_mode || 'Optional') !== 'Off',
+    steps: [
+      'When a counted drawer is short or over, the till asks why before you close.',
+      'Write the reason or tap one, and say what was done about it, for example recounted or reported to the manager.',
+      'Your shop may make the reason required: the register then closes only with one.',
+    ],
+  },
+  {
+    route: '/register',
     title: 'A shift someone left open',
     when: manager,
     steps: [
@@ -378,6 +388,7 @@ export const TOURS = {
 // What is new, newest first. Shown once per person after an update, only the
 // entries newer than what they last saw and that apply to them.
 export const WHATS_NEW = [
+  { version: '0.59.0', title: 'A reason for a short or over', text: 'When a count at the close is short or over, the till asks why and keeps the reason with the shift. The shop sets the list in Settings, General, Register and shifts, and can make it required.', route: '/register', when: (s) => (s.settings.variance_reason_mode || 'Optional') !== 'Off' },
   { version: '0.58.1', title: 'Locked accounting periods', text: 'When an ERPNext accounting period locks sales invoices, the till now says so as a shift opens and explains a close it stops. Settings, System check lists such periods too.', route: '/register', when: (s) => manager(s) && Boolean(s.settings.warn_locked_periods) },
   { version: '0.58.0', title: 'Refunds to store credit', text: 'Before 0.58.0, saving the General settings switched off Allow refunding to Store Credit. If your shop refunds to store credit, switch it on again in Settings, General, Returns and refunds.', route: '/settings', when: (s) => Boolean(s.permissions.settings) },
   { version: '0.58.0', title: 'Help on every screen', text: 'Tap ? at the top of any screen for its help and short tours over the real buttons.', tour: 'basics', when: (s) => Boolean(s.help.in_till) },

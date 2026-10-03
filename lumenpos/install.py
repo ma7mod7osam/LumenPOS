@@ -122,6 +122,7 @@ def ensure_setup():
     drop_deprecated_custom_fields()
     migrate_price_books()
     ensure_return_reasons()
+    ensure_variance_reasons()
     migrate_coupon_limits()
     backfill_store_credit_references()
     default_insights_on()
@@ -599,6 +600,14 @@ def ensure_return_reasons():
     for reason in DEFAULT_RETURN_REASONS:
         doc.append("return_reasons", {"reason": reason})
     doc.save(ignore_permissions=True)
+
+
+def ensure_variance_reasons():
+    """The starter reasons for a short or over at the close, once (0.59.0,
+    lumenpos.variance)."""
+    from lumenpos import variance
+
+    variance.ensure_reasons()
 
 
 def migrate_price_books():

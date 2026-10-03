@@ -1416,6 +1416,29 @@
               <LinkPicker doctype="Role" v-model="generalForm.variance_alert_role" :placeholder="t('e.g. LumenPOS Manager')" />
             </label>
           </div>
+          <!-- A reason for a short or over at the close (lumenpos.variance, 0.59.0). -->
+          <label class="field span-2" style="display:block; margin: 6px 0 10px">
+            <span class="setting-title">{{ t('Reason for a short or over') }}</span>
+            <select v-model="generalForm.variance_reason_mode" class="cf-in" style="width: 100%; margin-top: 4px">
+              <option value="Optional">{{ t('Optional, the cashier may give a reason') }}</option>
+              <option value="Required">{{ t('Required, the register does not close without one') }}</option>
+              <option value="Off">{{ t('Off, the till does not ask for a reason') }}</option>
+            </select>
+            <span class="setting-desc">{{ t('When a counted drawer is short or over at the close, the cashier writes a reason, or taps one from the list below, and can say what was done about it. Both stay with the shift and go in the variance email.') }}</span>
+          </label>
+          <div v-if="generalForm.variance_reason_mode !== 'Off'" class="vr-settings">
+            <label v-if="generalForm.variance_reason_mode === 'Required'" class="field" style="max-width: 320px; margin-bottom: 10px">
+              <span>{{ t('Ask only when the difference is more than (0 = any difference)') }}</span>
+              <input type="number" min="0" step="0.01" v-model.number="generalForm.variance_reason_threshold" />
+            </label>
+            <div class="sub-label">{{ t('Reasons for a short or over') }}</div>
+            <p class="muted hint-row" style="padding: 0 0 10px">{{ t('The cashier can also write a reason in their own words.') }}</p>
+            <div v-for="(r, i) in generalForm.variance_reasons" :key="'vr' + i" class="item-row">
+              <input v-model="generalForm.variance_reasons[i]" :placeholder="t('Reason (for example Counting mistake)')" />
+              <button class="btn-ghost" @click="generalForm.variance_reasons.splice(i, 1)"><Icon name="close" /></button>
+            </div>
+            <button class="btn btn-outline add-row" @click="generalForm.variance_reasons.push('')">{{ t('+ Add reason') }}</button>
+          </div>
           <label class="setting-row">
             <input type="checkbox" class="setting-toggle" v-model="generalForm.offline_stock_only" :true-value="1" :false-value="0" />
             <span class="setting-text">
@@ -2484,6 +2507,9 @@ const generalForm = ref({
   one_shift_per_user: 0,
   carry_shift_past_midnight: 1,
   warn_locked_periods: 1,
+  variance_reason_mode: 'Optional',
+  variance_reason_threshold: 0,
+  variance_reasons: [],
   variance_alert_enabled: 0,
   variance_alert_threshold: 0,
   variance_alert_role: '',
@@ -3143,6 +3169,10 @@ async function load() {
     carry_shift_past_midnight: info.carry_shift_past_midnight === 0 ? 0 : 1,
     // And before 0.58.1.
     warn_locked_periods: info.warn_locked_periods === 0 ? 0 : 1,
+    // And before 0.59.0 (lumenpos.variance).
+    variance_reason_mode: info.variance_reason_mode || 'Optional',
+    variance_reason_threshold: info.variance_reason_threshold || 0,
+    variance_reasons: [...(info.variance_reasons || [])],
     variance_alert_enabled: info.variance_alert_enabled || 0,
     variance_alert_threshold: info.variance_alert_threshold || 0,
     variance_alert_role: info.variance_alert_role || '',
@@ -3924,6 +3954,9 @@ async function saveGeneral() {
     session.settings.service_charge_percent = info.service_charge_percent || 0
     session.settings.enable_price_checker = info.enable_price_checker ?? 1
     session.settings.salesperson_mode = info.salesperson_mode || 'Optional'
+    session.settings.variance_reason_mode = info.variance_reason_mode || 'Optional'
+    session.settings.variance_reason_threshold = info.variance_reason_threshold || 0
+    session.settings.variance_reasons = info.variance_reasons || []
     // The "?" comes and goes with the switch, no reload needed.
     session.help = {
       ...session.help,
@@ -4496,6 +4529,8 @@ button.sec-title.collapsible + * { margin-top: 14px; }
 .price-input.dirty { border-color: var(--amber); }
 .item-row input { flex: 1; min-width: 160px; }
 .add-row { margin-top: 2px; }
+/* The reasons for a short or over, under their mode (0.59.0). */
+.vr-settings { margin: 0 0 14px; padding-inline-start: 2px; }
 
 /* iOS-style settings list */
 .setting-list { display: flex; flex-direction: column; }
