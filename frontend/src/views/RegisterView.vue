@@ -91,22 +91,24 @@
         >
           <Icon name="refresh" /> {{ retrying === closedResult.name ? t('Retrying…') : t('Retry closing') }}
         </button>
-        <table class="count-table">
+        <div class="count-wrap">
+        <table class="count-table stack">
           <thead>
             <tr><th>{{ t('Payment') }}</th><th class="right">{{ t('Expected') }}</th><th class="right">{{ t('Counted') }}</th><th class="right">{{ t('Difference') }}</th></tr>
           </thead>
           <tbody>
             <tr v-for="row in closedResult.counts" :key="row.mode_of_payment">
               <td>{{ row.mode_of_payment }}</td>
-              <td class="right">{{ closedResult.expected_pending ? '-' : money(row.expected_amount, row.currency) }}</td>
-              <td class="right">{{ money(row.counted_amount, row.currency) }}</td>
-              <td v-if="closedResult.expected_pending" class="right">-</td>
-              <td v-else class="right" :class="row.difference < -0.005 ? 'neg' : row.difference > 0.005 ? 'pos' : ''">
+              <td class="right" :data-label="t('Expected')">{{ closedResult.expected_pending ? '-' : money(row.expected_amount, row.currency) }}</td>
+              <td class="right" :data-label="t('Counted')">{{ money(row.counted_amount, row.currency) }}</td>
+              <td v-if="closedResult.expected_pending" class="right" :data-label="t('Difference')">-</td>
+              <td v-else class="right" :class="row.difference < -0.005 ? 'neg' : row.difference > 0.005 ? 'pos' : ''" :data-label="t('Difference')">
                 {{ money(row.difference, row.currency) }}
               </td>
             </tr>
           </tbody>
         </table>
+        </div>
         <p v-if="closedResult.variance_reason" class="muted small vr-line">
           {{ t('Reason for the difference') }}: <b>{{ t(closedResult.variance_reason) }}</b>
           <template v-if="closedResult.variance_action"> · {{ t('Action taken') }}: {{ closedResult.variance_action }}</template>
@@ -252,7 +254,8 @@
             {{ t('Need to fix a wrong payment method? Do the return + corrected sale') }}
             <b>{{ t('before') }}</b> {{ t("closing, they're picked up automatically. Once you close, the shift can't be sold on again.") }}
           </p>
-          <table class="count-table" data-tour="register-count">
+          <div class="count-wrap">
+          <table class="count-table stack" data-tour="register-count">
             <thead>
               <tr><th>{{ t('Payment') }}</th><th class="right">{{ t('Expected') }}</th><th class="right">{{ t('Counted') }}</th><th class="right">{{ t('Difference') }}</th></tr>
             </thead>
@@ -262,8 +265,8 @@
                   {{ row.mode_of_payment }}
                   <span v-if="row.currency && row.currency !== local" class="ccy-tag">{{ row.currency }}</span>
                 </td>
-                <td class="right">{{ row.expected_amount != null ? money(row.expected_amount, row.currency || local) : '-' }}</td>
-                <td class="right">
+                <td class="right" :data-label="t('Expected')">{{ row.expected_amount != null ? money(row.expected_amount, row.currency || local) : '-' }}</td>
+                <td class="right" :data-label="t('Counted')">
                   <input
                     type="text"
                     inputmode="decimal"
@@ -271,7 +274,7 @@
                     v-model="counted[row.mode_of_payment]"
                   />
                 </td>
-                <td class="right" :class="diffClass(row)">{{ money(diff(row), row.currency || local) }}</td>
+                <td class="right" :class="diffClass(row)" :data-label="t('Difference')">{{ money(diff(row), row.currency || local) }}</td>
               </tr>
               <tr v-if="!countRows.length">
                 <td colspan="4" class="muted" style="text-align: center; padding: 14px">
@@ -280,6 +283,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
           <!-- A short or over: why, and what was done (lumenpos.variance). -->
           <VarianceReason
             v-if="ownAsk.show"
@@ -335,7 +339,8 @@
             <div v-if="otherError" class="summary-error">
               {{ t('⚠ Couldn\'t load the expected takings') }} ({{ otherError }}). {{ t('You can still close the register. Enter the counted amounts below.') }}
             </div>
-            <table class="count-table">
+            <div class="count-wrap">
+            <table class="count-table stack">
               <thead>
                 <tr><th>{{ t('Payment') }}</th><th class="right">{{ t('Expected') }}</th><th class="right">{{ t('Counted') }}</th><th class="right">{{ t('Difference') }}</th></tr>
               </thead>
@@ -345,11 +350,11 @@
                     {{ row.mode_of_payment }}
                     <span v-if="row.currency && row.currency !== otherLocal" class="ccy-tag">{{ row.currency }}</span>
                   </td>
-                  <td class="right">{{ row.expected_amount != null ? money(row.expected_amount, row.currency || otherLocal) : '-' }}</td>
-                  <td class="right">
+                  <td class="right" :data-label="t('Expected')">{{ row.expected_amount != null ? money(row.expected_amount, row.currency || otherLocal) : '-' }}</td>
+                  <td class="right" :data-label="t('Counted')">
                     <input type="text" inputmode="decimal" class="count-input" v-model="otherCounted[row.mode_of_payment]" />
                   </td>
-                  <td class="right" :class="otherDiffClass(row)">{{ money(otherDiff(row), row.currency || otherLocal) }}</td>
+                  <td class="right" :class="otherDiffClass(row)" :data-label="t('Difference')">{{ money(otherDiff(row), row.currency || otherLocal) }}</td>
                 </tr>
                 <tr v-if="!otherRows.length">
                   <td colspan="4" class="muted" style="text-align: center; padding: 14px">
@@ -358,6 +363,7 @@
                 </tr>
               </tbody>
             </table>
+            </div>
             <VarianceReason
               v-if="otherAsk.show"
               v-model:reason="otherVarianceReason"
@@ -985,6 +991,36 @@ async function close() {
   font-weight: 600;
 }
 .count-input { width: 110px; text-align: right; padding: 7px 9px; }
+/* A long amount scrolls inside its table, never the whole page (0.59.0). */
+.count-wrap { overflow-x: auto; }
+/* A phone: the cash form stacks and the count table tightens (0.59.0). */
+@media (max-width: 640px) {
+  .register { padding: 10px; }
+  .panel-body { padding: 12px; }
+  .cash-form,
+  .cash-form.with-drawer { grid-template-columns: 1fr 1fr; }
+  .cash-form > * { min-width: 0; }
+  .cash-form > input:not([inputmode]),
+  .cash-form > .btn,
+  .cash-form.with-drawer > input { grid-column: 1 / -1; }
+  .count-table th,
+  .count-table td { padding: 6px 3px; }
+  .count-table td { font-size: 13px; }
+  .count-input { width: 70px; }
+}
+/* A narrow phone: each payment becomes a small block of its own, so the
+   difference is always in sight (0.59.0). */
+@media (max-width: 480px) {
+  .count-table.stack thead { display: none; }
+  .count-table.stack,
+  .count-table.stack tbody,
+  .count-table.stack tr { display: block; width: 100%; }
+  .count-table.stack tr { border-top: 1px solid var(--border); padding: 6px 0; }
+  .count-table.stack td { display: block; border-top: none; padding: 3px 0; font-size: 14px; }
+  .count-table.stack td[data-label] { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .count-table.stack td[data-label]::before { content: attr(data-label); color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  .count-table.stack .count-input { width: 130px; }
+}
 .neg { color: var(--red); }
 .pos { color: var(--amber); }
 .empty { padding: 60px; text-align: center; }

@@ -1434,7 +1434,11 @@
             <div class="sub-label">{{ t('Reasons for a short or over') }}</div>
             <p class="muted hint-row" style="padding: 0 0 10px">{{ t('The cashier can also write a reason in their own words.') }}</p>
             <div v-for="(r, i) in generalForm.variance_reasons" :key="'vr' + i" class="item-row">
-              <input v-model="generalForm.variance_reasons[i]" :placeholder="t('Reason (for example Counting mistake)')" />
+              <input
+                :value="shownReason(generalForm.variance_reasons[i])"
+                :placeholder="t('Reason (for example Counting mistake)')"
+                @input="generalForm.variance_reasons[i] = keptReason($event.target.value)"
+              />
               <button class="btn-ghost" @click="generalForm.variance_reasons.splice(i, 1)"><Icon name="close" /></button>
             </div>
             <button class="btn btn-outline add-row" @click="generalForm.variance_reasons.push('')">{{ t('+ Add reason') }}</button>
@@ -1990,7 +1994,11 @@
           <b>{{ t('Other') }}</b> {{ t('for a free-text reason.') }}
         </p>
         <div v-for="(r, i) in generalForm.return_reasons" :key="i" class="item-row">
-          <input v-model="generalForm.return_reasons[i]" :placeholder="t('Reason (for example Damaged product)')" />
+          <input
+            :value="shownReason(generalForm.return_reasons[i])"
+            :placeholder="t('Reason (for example Damaged product)')"
+            @input="generalForm.return_reasons[i] = keptReason($event.target.value)"
+          />
           <button class="btn-ghost" @click="generalForm.return_reasons.splice(i, 1)"><Icon name="close" /></button>
         </div>
         <button
@@ -2565,6 +2573,22 @@ const generalForm = ref({
 })
 const logoError = ref(false)
 
+// Return reasons and reasons for a short or over are kept in English and every
+// till shows them in its own language, so this screen shows them translated too.
+// A reason left as it was is saved back as its English text, so it stays
+// translated everywhere; a reason the manager rewrites is kept as written.
+const reasonKeys = ref([])
+const reasonByShown = computed(() => {
+  const map = new Map()
+  for (const key of reasonKeys.value) {
+    const shown = t(key)
+    if (shown !== key && !map.has(shown)) map.set(shown, key)
+  }
+  return map
+})
+const shownReason = (value) => (value ? t(value) : '')
+const keptReason = (value) => reasonByShown.value.get(value) || value
+
 // ---- General is split into groups, like the tabs on the left ----
 const generalSections = [
   { key: 'features', label: 'Features', icon: 'bulb' },
@@ -3125,6 +3149,7 @@ async function load() {
   if (session.offline) return
   const info = await call('lumenpos.api.settings.get_settings')
   settingsInfo.value = info
+  reasonKeys.value = [...(info.variance_reasons || []), ...(info.return_reasons || [])]
   profileReceiptOverrides.value = info.profile_receipt_overrides || []
   loadFieldOptions('Sale Invoice')
   loadFieldOptions('POS Profile')
