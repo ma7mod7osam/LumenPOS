@@ -697,12 +697,12 @@
    "label": "Terms & conditions"
   },
   {
-   "default": "Per outlet",
-   "description": "Per outlet: ONE shift per register, whoever opens it, any assigned cashier can sell on it (default; how LumenPOS has always worked). Per cashier: each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer.",
+   "default": "Per cashier",
+   "description": "Per cashier (default): each cashier opens their OWN shift on the register and can only sell on their own, so several people share one counter but each gets their own Z-report and is accountable for their own drawer. Per outlet: ONE shift per register, whoever opens it, any assigned cashier can sell on it.",
    "fieldname": "shift_scope",
    "fieldtype": "Select",
    "label": "A shift belongs to",
-   "options": "Per outlet\nPer cashier"
+   "options": "Per cashier\nPer outlet"
   },
   {
    "default": "0",

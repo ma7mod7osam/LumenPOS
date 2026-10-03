@@ -390,7 +390,7 @@ def _client_settings(profile_name=None):
         "return_window_days": cint(doc.get("return_window_days")) or 0,
         "show_out_of_stock": 1 if doc.get("show_out_of_stock") else 0,
         "serial_scan_only": 1 if doc.get("serial_scan_only") else 0,
-        "shift_scope": doc.get("shift_scope") or "Per outlet",
+        "shift_scope": doc.get("shift_scope") or "Per cashier",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
         "warn_locked_periods": 1 if accounting_periods.switch() else 0,
         "enable_order_discount": 1 if doc.get("enable_order_discount") else 0,
@@ -570,15 +570,19 @@ def check_coupon(pos_profile: str, code: str):
 
 
 def shift_scope():
-    """"Per outlet" (default). ONE shift per register; any assigned cashier
-    sells on it. "Per cashier", each cashier opens their OWN shift on that
-    register and sells only on their own, so several people can share one
-    counter and each still gets their own Z-report and drawer accountability."""
+    """"Per cashier" (the default since 0.60.1): each cashier opens their OWN
+    shift on that register and sells only on their own, so several people can
+    share one counter and each still gets their own Z-report and drawer
+    accountability. "Per outlet": ONE shift per register, any assigned cashier
+    sells on it. A site that had shifts before 0.60.1 keeps what it had (patch
+    v0_60.keep_shift_scope)."""
     try:
         return (
-            frappe.db.get_single_value("LumenPOS Settings", "shift_scope") or "Per outlet"
+            frappe.db.get_single_value("LumenPOS Settings", "shift_scope") or "Per cashier"
         )
     except Exception:
+        # The setting cannot be read at all: let any cashier sell rather than
+        # stop every sale but the opener's.
         return "Per outlet"
 
 

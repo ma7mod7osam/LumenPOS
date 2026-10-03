@@ -156,7 +156,7 @@ export const useSessionStore = defineStore('session', {
     // shift, so only they may ring one up (no manager bypass, handover is
     // close + reopen). Empty when the shift is the outlet's.
     sellBlockedBy: (s) => {
-      if ((s.settings?.shift_scope || 'Per outlet') !== 'Per cashier') return ''
+      if ((s.settings?.shift_scope || 'Per cashier') !== 'Per cashier') return ''
       const owner = s.registerSession?.opened_by
       return owner && owner !== s.user ? owner : ''
     },

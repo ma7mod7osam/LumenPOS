@@ -1401,8 +1401,8 @@
           <label class="field span-2" style="display:block; margin-bottom: 10px">
             <span class="setting-title">{{ t('A shift belongs to') }}</span>
             <select v-model="generalForm.shift_scope" class="cf-in" style="width: 100%; margin-top: 4px">
-              <option value="Per outlet">{{ t('The outlet, one shift per register, any cashier sells on it') }}</option>
               <option value="Per cashier">{{ t('The cashier, each opens their own shift and sells only on it') }}</option>
+              <option value="Per outlet">{{ t('The outlet, one shift per register, any cashier sells on it') }}</option>
             </select>
             <span class="setting-desc">{{ t('Per cashier lets several people share one counter, each with their own drawer and Z-report. On ERPNext 16 an outlet sells with only one open shift, so there each cashier needs their own POS Profile.') }}</span>
           </label>
@@ -2566,7 +2566,7 @@ const generalForm = ref({
   help_in_till: 1,
   help_offer_tour: 1,
   help_whats_new: 1,
-  shift_scope: 'Per outlet',
+  shift_scope: 'Per cashier',
   one_shift_per_user: 0,
   carry_shift_past_midnight: 1,
   warn_locked_periods: 1,
@@ -3248,7 +3248,7 @@ async function load() {
     help_in_till: info.help_in_till === 0 ? 0 : 1,
     help_offer_tour: info.help_offer_tour === 0 ? 0 : 1,
     help_whats_new: info.help_whats_new === 0 ? 0 : 1,
-    shift_scope: info.shift_scope || 'Per outlet',
+    shift_scope: info.shift_scope || 'Per cashier',
     one_shift_per_user: info.one_shift_per_user ? 1 : 0,
     // A server from before 0.55.0 does not send it: on, its default.
     carry_shift_past_midnight: info.carry_shift_past_midnight === 0 ? 0 : 1,

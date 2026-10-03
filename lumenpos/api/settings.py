@@ -108,7 +108,7 @@ def get_settings():
         "help_in_till": 1 if offline_switch("help_in_till") else 0,
         "help_offer_tour": 1 if offline_switch("help_offer_tour") else 0,
         "help_whats_new": 1 if offline_switch("help_whats_new") else 0,
-        "shift_scope": doc.get("shift_scope") or "Per outlet",
+        "shift_scope": doc.get("shift_scope") or "Per cashier",
         "one_shift_per_user": 1 if doc.get("one_shift_per_user") else 0,
         "carry_shift_past_midnight": 1 if _carry_past_midnight() else 0,
         "warn_locked_periods": 1 if offline_switch("warn_locked_periods") else 0,
@@ -323,7 +323,7 @@ def save_settings(payload: dict | str):
         payload = json.loads(payload)
     doc = frappe.get_doc("LumenPOS Settings")
     doc.offline_stock_only = 1 if payload.get("offline_stock_only") else 0
-    doc.shift_scope = payload.get("shift_scope") or "Per outlet"
+    doc.shift_scope = payload.get("shift_scope") or "Per cashier"
     # A screen from before 0.54.0 sends no such key: leave the choice alone.
     if "one_shift_per_user" in payload:
         doc.one_shift_per_user = 1 if payload.get("one_shift_per_user") else 0
