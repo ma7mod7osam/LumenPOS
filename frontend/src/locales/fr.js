@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "Si votre magasin le demande, un responsable approuve la sortie d'espèces : avec son code d'accès à la caisse, ou par une demande qu'il approuve depuis le volet Approbations.",
   "Cash out under control": "Sorties d'espèces sous contrôle",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "Déposer de l'argent dans le tiroir-caisse et en retirer sont désormais deux autorisations. Une sortie d'espèces peut nécessiter un motif et l'approbation d'un responsable, par code d'accès ou par une demande. À régler dans Paramètres, Général, Approbations et accès, Sortie d'espèces.",
+  "{amount} in holds and orders": "{amount} en mises de côté et en commandes",
+  "Holds and orders not invoiced": "Mises de côté et commandes non facturées",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "Pas encore dues, mais ERPNext les compte dans la limite de crédit.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "Les mises de côté et les commandes non facturées apparaissent sur une ligne à part : pas encore dues, mais elles comptent dans la limite de crédit.",
+  "What a customer owes": "Ce que doit un client",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "« Doit » n'affiche plus que ce que doit le client. Les mises de côté et les commandes non facturées apparaissent sur une ligne à part et comptent toujours dans la limite de crédit.",
+  "The shift clock": "L'horloge de la session",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "La barre du haut affiche sous forme d'horloge, 07:01:20, depuis combien de temps la session de caisse est ouverte, à l'heure du site, quel que soit le fuseau horaire de l'appareil.",
 }

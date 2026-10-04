@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.61.0. This document is updated with every feature change.*
+*Applies to LumenPOS v0.61.1. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -298,6 +298,14 @@ another account, is never taken over: the card says so, and the shop renames it.
 **Put … on account** for the rest. The card shows what the customer already owes and
 what their limit leaves. The receipt shows what is still owed on the sale and in all,
 with a line for the customer to sign.
+
+**Owes, and holds apart (0.61.1):** *Owes* is the customer's balance in the books, the
+sales on account and invoices they have not paid, which is what the list of their sales
+adds up to. Their open holds (and any Sales Order or Delivery Note not invoiced yet) are
+not owed, so they show on their own line, **Holds and orders not invoiced**, on the
+customer's page and on the payment screen's card. They still count against the credit
+limit, because ERPNext counts them when it checks the limit: *Left to use* is the limit
+less both.
 
 **What happens in ERPNext:** the part on account is paid on the invoice by the *Credit
 Sale* tender, and in the same moment LumenPOS books the debt on the customer with its own
@@ -1298,6 +1306,7 @@ stays open.
 | The **?** button is missing, or the welcome or *What is new* card never shows | Settings, General, **Help for staff**: the three switches. *What is new* shows once per person after an update, and only news that applies to them. |
 | The **On account** card or the *Put … on account* button is missing | Sales on account are off (Settings, General, Sales on account), the person is not named for *Sell on account* in Permissions, the sale has no named customer (the walk-in never buys on account), the customer is not allowed on their card, the sale is in another currency, or the till is offline. With a named customer the card says which. |
 | "… owes … of a limit of …, so at most … can go on account" | The customer's credit limit (ERPNext's own, or the shop's default). Take more now, or a manager raises the limit on the customer's card. |
+| "… owes … and has … in holds and orders not invoiced, of a limit of …" | The customer's open holds count against the limit too (ERPNext counts them). Take more now, hand over or cancel a hold, or a manager raises the limit. |
 | Settings, Sales on account says a payment method named Credit Sale already exists | The shop made a payment method of that name on its own account. Rename it in ERPNext (Mode of Payment, Rename), then save Settings again: LumenPOS makes its own. |
 | A cashier can still reprint a receipt | Before 0.60.0 the reprint rule was checked only on a network receipt printer. Update: the till now asks the server before every copy. |
 | "You do not have access to the POS" | The user lacks **POS Invoice → read**. Grant the **LumenPOS Cashier** role (or POS Invoice access) in Role Permissions Manager. |
@@ -1363,6 +1372,7 @@ which both LumenPOS roles are given.
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.61.1 | **What a customer owes, without their holds** (the owner agreed on 2026-10-04). *Owes*, on the payment screen's On account card and on the customer's page, was ERPNext's credit figure, which counts a hold that is not invoiced yet: a customer with a hold of 1,000 and no debt read "Owes 1,000" above a list that said nothing was owed. Now *Owes* is their balance in the books, and **Holds and orders not invoiced** shows apart. The limit is unchanged: holds still count against it, as ERPNext counts them, and when a sale is refused for the limit the message names the holds. **The shift clock** in the top bar reads like a clock, 07:01:20, and counts on the site's own time: a device set to another time zone (or a wrong time) used to show a new shift as hours old, and the Arabic read "7 ساعة". |
 | 0.61.0 | **Cash out under control** (the owner: so nobody takes money out of the drawer as they please). **Putting money in and taking it out are two permissions** now, *Cash in* and *Cash out*: a rule a shop wrote on the old *Cash in / out* becomes one of each on update, so nobody gains or loses anything. **A reason for every cash out**, on by default. **A manager's approval for a cash out**, off by default, above an amount or always (Settings, General, Approvals and access, Cash out): the manager types their passcode at the till, or approves the cashier's request from the Approvals tray, the same way an over-limit discount is approved. A request covers that shift, that drawer and at most that amount, once. Managers need nobody's approval. Who approved shows under the movement and in the audit log, where every cash in and out is now recorded. Also: an amount at or below zero is refused (a negative cash in was really a cash out that nobody checked). In all thirteen languages. |
 | 0.60.1 | **"The cashier" is the default for *A shift belongs to*** (Settings, General, Register and shifts): on a new site each cashier opens their own shift and sells only on it, with their own drawer and Z-report. A site that already has shifts keeps the way it worked: where nothing was chosen it stays on *The outlet*, written down once by the update, and a choice made in Settings is never changed. On ERPNext 16 an outlet sells on one open shift at a time, so with *The cashier* each cashier there needs their own POS Profile. In all thirteen languages. |
 | 0.60.0 | **Sales on account** (asked by a shop in Zimbabwe). A customer takes the goods now and pays later, all of it or the rest after paying part, and the sale is a POS invoice like any other: the part on account is paid by LumenPOS's *Credit Sale* tender, and the same moment books the debt on the customer with its own Journal Entry, so it shows on their account and in Accounts Receivable at once (works on ERPNext 13 to 16 alike, nothing paid included). ERPNext's credit limit, or the shop's default, is checked at the sale. Settings, General, Sales on account: the switch, who may buy (customers allowed on their card, or any named customer, never the walk-in) and the default limit, with how it works. The customer's page shows what they owe sale by sale; **Take a payment** takes their money into the drawer as a Cash or Bank Entry, oldest sales first or the ones ticked, and the close expects it there. A return comes off the debt first and gives back only the rest. The receipt shows what is still owed, with a line to sign. Three permissions, closed until someone is named: *Sell on account*, *Take customer payments*, *Set a customer's credit*. Also: **a receipt printed again is really kept to whoever may reprint** (asked by a shop in Nigeria): until now the rule was checked only on a network receipt printer, and a refused copy fell back to the browser. The till now asks the server before every copy, a second print of the same sale counts, and each reprint is in the audit log. Fixed on the way: on ERPNext 14 and later a sale made in the first ten seconds of a minute showed in History as a raw timestamp ("2026-10-03 12:47:9"), and in Customers every time looked like that; both now read as the other sales do. The X-report shows when the shift opened without fractions of a second. In all thirteen languages. |

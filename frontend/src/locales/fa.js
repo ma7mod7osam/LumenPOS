@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "اگر فروشگاه شما بخواهد، مدیر برداشت نقد را تأیید می‌کند: با رمز تأیید خودش در صندوق، یا با درخواستی که از بخش تأییدها تأیید می‌کند.",
   "Cash out under control": "کنترل برداشت نقد",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "واریز نقد به کشو و برداشت نقد از آن اکنون دو مجوز جدا هستند. ممکن است برداشت نقد به دلیل و تأیید مدیر نیاز داشته باشد، با رمز تأیید یا با درخواست. آن را در تنظیمات، عمومی، تأییدها و دسترسی، برداشت نقد تنظیم کنید.",
+  "{amount} in holds and orders": "{amount} در رزروها و سفارش‌ها",
+  "Holds and orders not invoiced": "رزروها و سفارش‌های فاکتور نشده",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "هنوز بدهی نیستند، اما ERPNext آن‌ها را از محدودیت اعتبار کسر می‌کند.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "رزروها و سفارش‌های فاکتور نشده در ردیفی جداگانه نمایش داده می‌شوند: هنوز بدهی نیستند، اما از محدودیت اعتبار کسر می‌شوند.",
+  "What a customer owes": "بدهی مشتری",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "«بدهی» اکنون فقط بدهی مشتری را نشان می‌دهد. رزروها و سفارش‌های فاکتور نشده در ردیفی جداگانه نمایش داده می‌شوند و همچنان از محدودیت اعتبار کسر می‌شوند.",
+  "The shift clock": "زمان‌سنج شیفت",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "نوار بالا مدت باز بودن شیفت را به‌صورت ساعت (07:01:20)، بر اساس زمان سایت و صرف‌نظر از منطقه زمانی دستگاه نشان می‌دهد.",
 }

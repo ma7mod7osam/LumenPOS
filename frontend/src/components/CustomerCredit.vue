@@ -16,6 +16,12 @@
         <div class="cr-v">{{ money(facts.owed, facts.currency) }}</div>
         <div class="cr-l">{{ t('Owes') }}</div>
       </div>
+      <!-- Holds and orders not invoiced (0.61.1): not owed, but ERPNext
+           counts them against the limit, so "Left to use" takes them off. -->
+      <div v-if="facts.held > 0" class="cr-stat" data-tour="customer-credit-held">
+        <div class="cr-v">{{ money(facts.held, facts.currency) }}</div>
+        <div class="cr-l">{{ t('Holds and orders not invoiced') }}</div>
+      </div>
       <div class="cr-stat">
         <div class="cr-v">{{ facts.limit > 0 ? money(facts.limit, facts.currency) : t('No limit') }}</div>
         <div class="cr-l">{{ facts.limit_source === 'default' ? t('Credit limit (shop default)') : t('Credit limit') }}</div>
@@ -25,6 +31,7 @@
         <div class="cr-l">{{ t('Left to use') }}</div>
       </div>
     </div>
+    <p v-if="facts.held > 0" class="muted small cr-held">{{ t('Not owed yet, but ERPNext counts them against the credit limit.') }}</p>
     <p v-if="facts.reason" class="muted small cr-why">{{ facts.reason }}</p>
 
     <!-- A manager's switch and limit (Who can do what: Set a customer's credit). -->
@@ -288,6 +295,7 @@ watch(() => [props.customer, props.company], load, { immediate: true })
 .cr-v { font-size: 17px; font-weight: 800; }
 .cr-l { font-size: 12px; color: var(--text-muted); }
 .cr-why { margin: 0; }
+.cr-held { margin: 0; }
 .cr-set { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
 .cr-set .btn { align-self: flex-start; }
 .cr-limit { max-width: 360px; }

@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "Se a sua loja pedir, um gerente aprova a sangria: com o código dele no caixa, ou com um pedido que ele aprova na bandeja de Aprovações.",
   "Cash out under control": "Sangria sob controle",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "Suprimento e sangria agora são duas permissões. Uma sangria pode exigir um motivo e a aprovação de um gerente, por código ou por pedido. Defina em Configurações, Geral, Aprovações e acesso, Sangria.",
+  "{amount} in holds and orders": "{amount} em reservas e pedidos",
+  "Holds and orders not invoiced": "Reservas e pedidos não faturados",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "Ainda não são devidos, mas o ERPNext os conta no limite de crédito.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "Reservas e pedidos não faturados aparecem em uma linha à parte: ainda não são devidos, mas contam no limite de crédito.",
+  "What a customer owes": "O que um cliente deve",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "“Deve” agora mostra apenas o que o cliente deve. Reservas e pedidos não faturados aparecem em uma linha à parte e continuam contando no limite de crédito.",
+  "The shift clock": "O relógio do turno",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "A barra superior mostra em formato de relógio, 07:01:20, há quanto tempo o turno está aberto, pelo horário do site, seja qual for o fuso horário do aparelho.",
 }

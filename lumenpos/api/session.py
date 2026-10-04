@@ -112,6 +112,10 @@ def get_bootstrap(pos_profile: str | None = None):
         "taxes": _profile_taxes(profile),
         "promotions": get_active_promotions(profile_name),
         "register_session": session,
+        # The site's own clock, in the zone its times are written in: the shift
+        # clock in the top bar counts from it, so a device set to another zone
+        # (or a wrong time) never shows a shift as hours old (0.61.1).
+        "server_now": str(frappe.utils.now_datetime()),
         "other_open_registers": _other_open_registers(profile_name),
         "pending_closing": _pending_closing(profile_name),
         "period_lock": _period_lock(profile),

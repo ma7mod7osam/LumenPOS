@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "Mağazanız bunu istiyorsa para çıkışını bir yönetici onaylar: kasada kendi onay şifresiyle ya da Onaylar kutusundan onayladığı bir taleple.",
   "Cash out under control": "Para çıkışı kontrol altında",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "Çekmeceye para koymak ve çekmeceden para almak artık iki ayrı yetkidir. Bir para çıkışı için neden ve yönetici onayı gerekebilir, onay şifresiyle ya da bir taleple. Bunu Ayarlar, Genel, Onaylar ve erişim, Para çıkışı bölümünden ayarlayın.",
+  "{amount} in holds and orders": "Rezervasyonlar ve siparişler: {amount}",
+  "Holds and orders not invoiced": "Faturalanmamış rezervasyonlar ve siparişler",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "Henüz borç değildir, ancak ERPNext bunları bakiye limitinden düşer.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "Faturalanmamış rezervasyonlar ve siparişler ayrı bir satırda görünür: henüz borç değildir, ancak bakiye limitinden düşülür.",
+  "What a customer owes": "Müşterinin borcu",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "\"Borç\" artık yalnızca müşterinin borcunu gösterir. Faturalanmamış rezervasyonlar ve siparişler ayrı bir satırda görünür ve hâlâ bakiye limitinden düşülür.",
+  "The shift clock": "Vardiya süresi sayacı",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Üst çubuk, vardiyanın ne kadar süredir açık olduğunu saat formatında (07:01:20), cihazın saat dilimi ne olursa olsun sitenin saatine göre gösterir.",
 }

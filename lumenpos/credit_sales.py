@@ -218,13 +218,30 @@ def credit_limit(customer, company):
     return 0.0, None
 
 
-def owed(customer, company):
+def exposure(customer, company):
     """What ERPNext counts against the customer's limit, in the company
     currency: the customer's ledger (every debt on account included, from the
-    moment of its sale), plus unbilled Sales Orders and Delivery Notes."""
+    moment of its sale), plus unbilled Sales Orders (a hold is one) and
+    Delivery Notes. The limit is checked against this."""
     from erpnext.selling.doctype.customer.customer import get_customer_outstanding
 
     return flt(get_customer_outstanding(customer, company), 2)
+
+
+def owed(customer, company):
+    """What the customer owes, in the company currency: their balance in the
+    books, the ledger part of ERPNext's own figure (get_customer_outstanding's
+    first sum, the same on v13 to v16, where a cancelled entry and its reversal
+    are both marked cancelled). A hold is not a debt (0.61.1: the till said a
+    customer with a hold and no debt owed the hold's value)."""
+    row = frappe.db.sql(
+        """
+        select sum(debit) - sum(credit) from `tabGL Entry`
+        where party_type = 'Customer' and is_cancelled = 0 and party = %s and company = %s
+        """,
+        (customer, company),
+    )
+    return flt(row[0][0] if row and row[0][0] else 0, 2)
 
 
 def customer_allowed(customer):
@@ -261,18 +278,22 @@ def facts(customer, company, user=None):
         "who": who(),
     }
     if not out["enabled"] or not customer or not company:
-        out.update(allowed=0, reason=refusal(customer, company), owed=0.0, limit=0.0, available=None)
+        out.update(allowed=0, reason=refusal(customer, company), owed=0.0, held=0.0, limit=0.0, available=None)
         return out
     limit, source = credit_limit(customer, company)
+    total = exposure(customer, company)
     owes = owed(customer, company)
     out.update(
         {
             "reason": refusal(customer, company),
+            # What they owe, and apart what is held for them: both count
+            # against the limit, as ERPNext counts them.
             "owed": owes,
+            "held": max(flt(total - owes, 2), 0.0),
             "limit": limit,
             "limit_source": source,
             "erpnext_limit": flt(_erpnext_own_limit(customer, company)),
-            "available": max(flt(limit - owes, 2), 0.0) if limit > 0 else None,
+            "available": max(flt(limit - total, 2), 0.0) if limit > 0 else None,
         }
     )
     out["allowed"] = 0 if out["reason"] else 1
@@ -304,22 +325,28 @@ def assert_sale(customer, company, amount_base, invoice_currency, company_curren
         )
     limit, _source = credit_limit(customer, company)
     if limit > 0:
-        owes = owed(customer, company)
-        if flt(owes + amount_base, 2) > flt(limit, 2) + EPSILON:
+        # ERPNext's own figure: a hold counts against the limit at the close.
+        total = exposure(customer, company)
+        if flt(total + amount_base, 2) > flt(limit, 2) + EPSILON:
             from frappe.utils import fmt_money
 
-            frappe.throw(
-                _(
+            def money(value):
+                return fmt_money(value, currency=company_currency)
+
+            name = frappe.db.get_value("Customer", customer, "customer_name") or customer
+            owes = owed(customer, company)
+            on_hold = max(flt(total - owes, 2), 0.0)
+            if on_hold > EPSILON:
+                message = _(
+                    "{0} owes {1} and has {2} in holds and orders not invoiced, of a limit of {3}, so at most {4} can "
+                    "go on account. Take more now, or ask a manager to raise the limit."
+                ).format(name, money(owes), money(on_hold), money(limit), money(max(limit - total, 0)))
+            else:
+                message = _(
                     "{0} owes {1} of a limit of {2}, so at most {3} can go on account. Take more now, or ask a "
                     "manager to raise the limit."
-                ).format(
-                    frappe.db.get_value("Customer", customer, "customer_name") or customer,
-                    fmt_money(owes, currency=company_currency),
-                    fmt_money(limit, currency=company_currency),
-                    fmt_money(max(limit - owes, 0), currency=company_currency),
-                ),
-                title=_("Credit Limit"),
-            )
+                ).format(name, money(owes), money(limit), money(max(limit - total, 0)))
+            frappe.throw(message, title=_("Credit Limit"))
 
 
 # ---------------------------------------------------------------------------

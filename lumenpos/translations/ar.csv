@@ -996,6 +996,7 @@
 "{0} is serialized: select {1} serial number(s) to return, got {2}","الصنف {0} له أرقام تسلسلية: المطلوب اختيار {1} من الأرقام التسلسلية للاسترجاع، والمختار {2}"
 "{0} issued by {1} and spent at {2}","{0}: الإصدار من {1} والصرف في {2}"
 "{0} needs a {1} before this sale can be completed.","يلزم إدخال {1} لطريقة الدفع {0} قبل إتمام هذا البيع."
+"{0} owes {1} and has {2} in holds and orders not invoiced, of a limit of {3}, so at most {4} can go on account. Take more now, or ask a manager to raise the limit.","على {0} مبلغ {1}، وله {2} في حجوزات وطلبات غير مفوترة، من حد {3}، فأقصى ما يمكن تسجيله آجلا {4}. استلم أكثر الآن، أو اطلب من المدير رفع الحد."
 "{0} owes {1} of a limit of {2}, so at most {3} can go on account. Take more now, or ask a manager to raise the limit.","على {0} مبلغ {1} من حد {2}، فأقصى ما يمكن تسجيله آجلا {3}. استلم أكثر الآن، أو اطلب من المدير رفع الحد."
 "{0} paid {1} by {2}","{0} دفع {1} بطريقة {2}"
 "{0} paid {1} by {2} at {3}, shift {4}","{0} دفع {1} بطريقة {2} في {3}، الوردية {4}"

@@ -80,6 +80,46 @@ export function warrantyLabel(days) {
   return `${days}-day warranty`
 }
 
+// A Frappe datetime ("2026-10-03 17:03:07.827194", or an unpadded
+// "17:3:7.5") read as if it were UTC: the site's own wall clock as a number,
+// so two of them subtract to the time between them, whatever the device's
+// zone (0.61.1, the shift clock).
+export function siteMs(value) {
+  if (!value) return NaN
+  let s = String(value).trim().replace(' ', 'T').replace(/\.\d+$/, '')
+  s = s.replace(/T(\d):/, 'T0$1:').replace(/:(\d)(?=:|$)/g, ':0$1')
+  return Date.parse(s + 'Z')
+}
+
+// The site's wall clock less this device's, measured from the site's own
+// "now" (`serverNow`) read at device time `at`; null when there is none.
+export function skewFrom(serverNow, at) {
+  const site = siteMs(serverNow)
+  return Number.isNaN(site) || !Number.isFinite(at) ? null : Math.round(site - at)
+}
+
+// The site's own now on the scale of siteMs: the device's time moved by the
+// measured skew, or, none measured yet, the device's own wall clock (what the
+// shift clock read before 0.61.1).
+export function siteNowFrom(deviceNow, skewMs) {
+  if (skewMs != null && Number.isFinite(skewMs)) return deviceNow + skewMs
+  return deviceNow - new Date(deviceNow).getTimezoneOffset() * 60000
+}
+
+// How long a shift has been open, as a clock: 07:01:20, the hours counting on
+// past 24. `siteNow` is the site's own now on the scale of siteMs.
+export function shiftClock(openedAt, siteNow) {
+  const start = siteMs(openedAt)
+  if (Number.isNaN(start) || !Number.isFinite(siteNow)) return ''
+  let s = Math.max(0, Math.floor((siteNow - start) / 1000))
+  const h = Math.floor(s / 3600)
+  s -= h * 3600
+  const m = Math.floor(s / 60)
+  s -= m * 60
+  const two = (n) => String(n).padStart(2, '0')
+  return `${two(h)}:${two(m)}:${two(s)}`
+}
+
 export function shortTime(value) {
   if (!value) return ''
   // Normalise Frappe timestamps that break Date parsing: space→T, drop the

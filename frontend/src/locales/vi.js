@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "Nếu cửa hàng của bạn yêu cầu, quản lý phải phê duyệt lần rút tiền: bằng mã xác nhận của quản lý tại quầy thu ngân, hoặc một yêu cầu quản lý phê duyệt từ khay Phê duyệt.",
   "Cash out under control": "Kiểm soát rút tiền",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "Giờ đây, nạp tiền vào và rút tiền ra khỏi ngăn kéo tiền là hai quyền riêng. Một lần rút tiền có thể cần lý do và sự phê duyệt của quản lý, bằng mã xác nhận hoặc yêu cầu. Thiết lập tại Cài đặt, Chung, Phê duyệt và quyền truy cập, Rút tiền.",
+  "{amount} in holds and orders": "Giữ hàng và đơn hàng {amount}",
+  "Holds and orders not invoiced": "Giữ hàng và đơn hàng chưa lập hóa đơn",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "Chưa phải là khoản nợ, nhưng ERPNext tính chúng vào hạn mức tín dụng.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "Giữ hàng và đơn hàng chưa lập hóa đơn hiển thị trên một dòng riêng: chưa phải là khoản nợ, nhưng được tính vào hạn mức tín dụng.",
+  "What a customer owes": "Số tiền khách hàng đang nợ",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "Mục “Đang nợ” giờ đây chỉ hiển thị số tiền khách hàng đang nợ. Giữ hàng và đơn hàng chưa lập hóa đơn hiển thị trên một dòng riêng, và vẫn được tính vào hạn mức tín dụng.",
+  "The shift clock": "Đồng hồ ca",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Thanh trên cùng hiển thị ca đã mở được bao lâu dưới dạng đồng hồ, 07:01:20, theo giờ của máy chủ, bất kể múi giờ của thiết bị.",
 }

@@ -1857,6 +1857,17 @@ const cashOut = {
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "الإيداع في الدرج والسحب منه صلاحيتان منفصلتان الآن. وقد يحتاج السحب النقدي سببا واعتماد المدير، بالرمز أو بطلب. اضبطه من الإعدادات، عام، الاعتمادات والصلاحيات، سحب نقدي.",
 }
 
+const owesHolds = {
+  "{amount} in holds and orders": "حجوزات وطلبات بقيمة {amount}",
+  "Holds and orders not invoiced": "حجوزات وطلبات غير مفوترة",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "ليست مستحقة بعد، لكن ERPNext يحسبها من الحد الائتماني.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "تظهر الحجوزات والطلبات غير المفوترة في سطر خاص: ليست مستحقة بعد، لكنها تحسب من الحد الائتماني.",
+  "What a customer owes": "المستحق على العميل",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "أصبح المستحق عليه يعرض ما على العميل فقط. وتظهر الحجوزات والطلبات غير المفوترة في سطر خاص، وما زالت تحسب من الحد الائتماني.",
+  "The shift clock": "عداد الوردية",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "يعرض الشريط العلوي مدة فتح الوردية بصيغة الساعة 07:01:20، حسب وقت الموقع، مهما كانت المنطقة الزمنية للجهاز.",
+}
+
 const creditSales = {
   "On account": "آجل",
   "Not on account": "لا يشتري بالآجل",
@@ -2132,5 +2143,5 @@ const prefixedAr = {
 
 export const messages = {
   en: { ...prefixedEn },
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...creditSales, ...cashOut, ...prefixedAr },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...creditSales, ...cashOut, ...owesHolds, ...prefixedAr },
 }

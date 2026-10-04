@@ -92,7 +92,7 @@
         <div class="oa-row">
           <span class="oa-title"><Icon name="clock" /> {{ t('On account') }}</span>
           <span class="muted small">
-            {{ t('Owes {amount}', { amount: money(onAccount.owed, onAccount.currency) }) }}<template v-if="onAccount.available != null">&nbsp;· {{ t('{amount} left of the limit', { amount: money(onAccount.available, onAccount.currency) }) }}</template>
+            {{ t('Owes {amount}', { amount: money(onAccount.owed, onAccount.currency) }) }}<template v-if="onAccount.held > 0">&nbsp;· {{ t('{amount} in holds and orders', { amount: money(onAccount.held, onAccount.currency) }) }}</template><template v-if="onAccount.available != null">&nbsp;· {{ t('{amount} left of the limit', { amount: money(onAccount.available, onAccount.currency) }) }}</template>
           </span>
         </div>
         <p v-if="onAccount.reason" class="muted small oa-why">{{ onAccount.reason }}</p>

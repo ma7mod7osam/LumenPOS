@@ -996,6 +996,7 @@
 "{0} is serialized: select {1} serial number(s) to return, got {2}","{0} lleva número de serie: seleccione {1} número(s) de serie para devolver, se recibieron {2}"
 "{0} issued by {1} and spent at {2}","{0} emitido por {1} y usado en {2}"
 "{0} needs a {1} before this sale can be completed.","{0} requiere {1} antes de poder completar esta venta."
+"{0} owes {1} and has {2} in holds and orders not invoiced, of a limit of {3}, so at most {4} can go on account. Take more now, or ask a manager to raise the limit.","{0} debe {1} y tiene {2} en apartados y órdenes sin facturar, de un límite de {3}, así que como máximo {4} puede quedar a crédito. Cobre más ahora o pida a un gerente que suba el límite."
 "{0} owes {1} of a limit of {2}, so at most {3} can go on account. Take more now, or ask a manager to raise the limit.","{0} debe {1} de un límite de {2}, así que como máximo {3} puede quedar a crédito. Cobre más ahora o pida a un gerente que suba el límite."
 "{0} paid {1} by {2}","{0} pagó {1} con {2}"
 "{0} paid {1} by {2} at {3}, shift {4}","{0} pagó {1} con {2} en {3}, turno {4}"

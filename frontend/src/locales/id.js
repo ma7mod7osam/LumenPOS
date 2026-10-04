@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "Jika toko Anda memintanya, manajer menyetujui kas keluar: dengan kode aksesnya di mesin kasir, atau melalui permintaan yang disetujuinya dari panel Persetujuan.",
   "Cash out under control": "Kas keluar terkendali",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "Memasukkan uang ke laci dan mengambilnya kini menjadi dua hak akses terpisah. Kas keluar bisa memerlukan alasan dan persetujuan manajer, dengan kode akses atau permintaan. Atur di Pengaturan, Umum, Persetujuan dan akses, Kas keluar.",
+  "{amount} in holds and orders": "Titip bayar dan pesanan {amount}",
+  "Holds and orders not invoiced": "Titip bayar dan pesanan belum ditagih",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "Belum menjadi utang, tetapi ERPNext memperhitungkannya dalam batas kredit.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "Titip bayar dan pesanan yang belum ditagih tampil di baris tersendiri: belum menjadi utang, tetapi diperhitungkan dalam batas kredit.",
+  "What a customer owes": "Utang pelanggan",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "\"Utang\" kini hanya menampilkan utang pelanggan. Titip bayar dan pesanan yang belum ditagih tampil di baris tersendiri, dan tetap diperhitungkan dalam batas kredit.",
+  "The shift clock": "Penghitung waktu shift",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Bilah atas menampilkan berapa lama shift sudah berjalan dalam format jam (07:01:20), menurut waktu situs, apa pun zona waktu perangkatnya.",
 }

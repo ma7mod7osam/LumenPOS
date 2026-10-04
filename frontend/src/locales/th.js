@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "หากร้านของคุณกำหนดไว้ ผู้จัดการต้องอนุมัติการนำเงินสดออก: ด้วยรหัสผ่านของผู้จัดการที่เครื่องคิดเงิน หรือคำขอที่ผู้จัดการอนุมัติจากแผงการอนุมัติ",
   "Cash out under control": "ควบคุมการนำเงินสดออก",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "ตอนนี้การนำเงินเข้าและการนำเงินออกจากลิ้นชักเก็บเงินแยกเป็นสองสิทธิ์แล้ว การนำเงินสดออกอาจต้องระบุเหตุผลและได้รับอนุมัติจากผู้จัดการ ด้วยรหัสผ่านหรือคำขอ ตั้งค่าได้ที่ การตั้งค่า, ทั่วไป, การอนุมัติและสิทธิ์การเข้าถึง, นำเงินสดออก",
+  "{amount} in holds and orders": "การจองสินค้าและใบสั่งขาย {amount}",
+  "Holds and orders not invoiced": "การจองสินค้าและใบสั่งขายที่ยังไม่ออกใบแจ้งหนี้",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "ยังไม่ถือเป็นยอดค้างชำระ แต่ ERPNext นับรวมเป็นวงเงินเครดิตที่ใช้ไปแล้ว",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "การจองสินค้าและใบสั่งขายที่ยังไม่ออกใบแจ้งหนี้จะแสดงแยกบรรทัด: ยังไม่ถือเป็นยอดค้างชำระ แต่นับรวมเป็นวงเงินเครดิตที่ใช้ไปแล้ว",
+  "What a customer owes": "ยอดที่ลูกค้าค้างชำระ",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "ช่อง “ค้างชำระ” ตอนนี้แสดงเฉพาะยอดที่ลูกค้าค้างชำระ การจองสินค้าและใบสั่งขายที่ยังไม่ออกใบแจ้งหนี้จะแสดงแยกบรรทัด และยังคงนับรวมเป็นวงเงินเครดิตที่ใช้ไปแล้ว",
+  "The shift clock": "ตัวจับเวลากะ",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "แถบด้านบนแสดงระยะเวลาที่เปิดกะมาแล้วในรูปแบบนาฬิกา 07:01:20 ตามเวลาของไซต์ ไม่ว่าอุปกรณ์จะใช้เขตเวลาใด",
 }

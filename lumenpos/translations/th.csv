@@ -996,6 +996,7 @@
 "{0} is serialized: select {1} serial number(s) to return, got {2}","{0} มีหมายเลขซีเรียล: ต้องเลือกหมายเลขซีเรียลที่จะคืน {1} หมายเลข แต่ได้รับ {2}"
 "{0} issued by {1} and spent at {2}","{0} ที่ออกโดย {1} และใช้ที่ {2}"
 "{0} needs a {1} before this sale can be completed.","{0} ต้องมี {1} ก่อนจึงจะทำการขายนี้ให้เสร็จได้"
+"{0} owes {1} and has {2} in holds and orders not invoiced, of a limit of {3}, so at most {4} can go on account. Take more now, or ask a manager to raise the limit.","{0} ค้างชำระ {1} และมียอดการจองสินค้าและใบสั่งขายที่ยังไม่ออกใบแจ้งหนี้ {2} จากวงเงิน {3} จึงขายเงินเชื่อได้ไม่เกิน {4} ให้รับชำระเพิ่มตอนนี้ หรือขอให้ผู้จัดการเพิ่มวงเงิน"
 "{0} owes {1} of a limit of {2}, so at most {3} can go on account. Take more now, or ask a manager to raise the limit.","{0} ค้างชำระ {1} จากวงเงิน {2} จึงขายเงินเชื่อได้ไม่เกิน {3} ให้รับชำระเพิ่มตอนนี้ หรือขอให้ผู้จัดการเพิ่มวงเงิน"
 "{0} paid {1} by {2}","{0} ชำระ {1} ด้วย {2}"
 "{0} paid {1} by {2} at {3}, shift {4}","{0} ชำระ {1} ด้วย {2} ที่ {3} กะ {4}"

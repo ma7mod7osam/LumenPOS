@@ -242,6 +242,7 @@ export const TOPICS = [
     when: onAccount,
     steps: [
       'Open a customer to see what they owe, sale by sale, and their credit limit.',
+      'Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.',
       ['{take} takes their payment into the drawer. The oldest sales are settled first, or tick the ones they pay.', { take: 'Take a payment' }],
       'Print the payment receipt from the same card.',
       'Whoever may set a customer\'s credit allows them on account and sets their limit there too.',
@@ -434,6 +435,8 @@ export const TOURS = {
 // What is new, newest first. Shown once per person after an update, only the
 // entries newer than what they last saw and that apply to them.
 export const WHATS_NEW = [
+  { version: '0.61.1', title: 'What a customer owes', text: 'Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.', route: '/customers', when: onAccount },
+  { version: '0.61.1', title: 'The shift clock', text: 'The top bar shows how long the shift has been open as a clock, 07:01:20, on the site\'s time, whatever the device\'s time zone.' },
   { version: '0.61.0', title: 'Cash out under control', text: 'Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager\'s approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.', route: '/settings', when: manager },
   { version: '0.60.0', title: 'Sales on account', text: 'A customer can take the goods now and pay later. Turn it on in Settings, General, Sales on account, which says how it works, and name who may sell on account in Approvals and access, Permissions.', route: '/settings', when: manager },
   { version: '0.60.0', title: 'Selling on account', text: 'At the payment screen, On account leaves what the customer does not pay now on their account. Their payments are taken in Customers.', route: '/', when: sellsOnAccount },

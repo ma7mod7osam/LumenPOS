@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "如果您的门店有此要求，现金取出需经理批准：在收银台输入经理的授权码，或由经理在审批栏中批准申请。",
   "Cash out under control": "管控现金取出",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "现在，向钱箱存入现金和从钱箱取出现金是两项不同的权限。现金取出可以要求填写原因，也可以要求经理通过授权码或申请批准。请在“设置 > 常规 > 审批与权限 > 现金取出”中设置。",
+  "{amount} in holds and orders": "预留单和订单 {amount}",
+  "Holds and orders not invoiced": "未开票的预留单和订单",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "尚未形成欠款，但 ERPNext 会将其计入已用信用额度。",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "未开票的预留单和订单会单独列为一行：尚未形成欠款，但计入已用信用额度。",
+  "What a customer owes": "客户欠款",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "“欠款”现在只显示客户所欠的金额。未开票的预留单和订单会单独列为一行，并仍计入已用信用额度。",
+  "The shift clock": "班次计时",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "顶栏以 07:01:20 这样的时钟格式显示班次已开启的时长，按站点时间计算，无论设备使用哪个时区。",
 }

@@ -164,7 +164,7 @@ import { call } from './api'
 import { useSessionStore } from './stores/session'
 import { useCatalogStore } from './stores/catalog'
 import { useCartStore } from './stores/cart'
-import { money } from './format'
+import { money, shiftClock, isolate } from './format'
 import { publishCart, onDisplayRequest } from './customerDisplay'
 import { ensurePersistentStorage } from './offline'
 import { t, locale, setLocale, offeredLanguages, LANGUAGES } from './i18n'
@@ -235,18 +235,13 @@ const clockText = computed(() => {
   const d = new Date(now.value)
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 })
+// How long the shift has been open, as a clock (07:01:20), counted on the
+// site's clock: the shift's opening time is the site's, so a device in another
+// zone (or set wrong) read hours too many or too few before 0.61.1.
 const shiftText = computed(() => {
   const openedAt = session.registerSession?.opened_at
   if (!openedAt) return ''
-  // ERPNext datetime "YYYY-MM-DD HH:MM:SS" (site tz ≈ the till's local tz).
-  const start = Date.parse(String(openedAt).replace(' ', 'T'))
-  if (Number.isNaN(start)) return ''
-  let s = Math.max(0, Math.floor((now.value - start) / 1000))
-  const h = Math.floor(s / 3600)
-  s -= h * 3600
-  const m = Math.floor(s / 60)
-  s -= m * 60
-  return t('{h} Hr {m} Min {s} Sec', { h, m, s })
+  return isolate(shiftClock(openedAt, session.siteNow(now.value)))
 })
 onBeforeUnmount(() => clearInterval(clockTimer))
 

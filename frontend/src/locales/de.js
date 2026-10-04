@@ -1829,4 +1829,12 @@ export default {
   "Where your shop asks for it, a manager approves a cash out: their passcode at the till, or a request they approve from the Approvals tray.": "Wo Ihr Geschäft es verlangt, gibt ein Manager eine Entnahme frei: mit seinem Freigabecode an der Kasse oder über eine Anfrage, die er im Bereich Freigaben freigibt.",
   "Cash out under control": "Entnahmen unter Kontrolle",
   "Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager's approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.": "Geld in die Kassenschublade einlegen und daraus entnehmen sind jetzt zwei getrennte Berechtigungen. Eine Entnahme kann einen Grund und die Freigabe eines Managers erfordern, per Freigabecode oder Anfrage. Legen Sie das unter Einstellungen, Allgemein, Freigaben und Zugriff, Entnahme fest.",
+  "{amount} in holds and orders": "{amount} in Reservierungen und Aufträgen",
+  "Holds and orders not invoiced": "Nicht abgerechnete Reservierungen und Aufträge",
+  "Not owed yet, but ERPNext counts them against the credit limit.": "Noch nicht geschuldet, aber ERPNext rechnet sie auf das Kreditlimit an.",
+  "Holds and orders not invoiced show on their own line: not owed yet, but they count against the credit limit.": "Nicht abgerechnete Reservierungen und Aufträge stehen in einer eigenen Zeile: Sie sind noch nicht geschuldet, werden aber auf das Kreditlimit angerechnet.",
+  "What a customer owes": "Was ein Kunde schuldet",
+  "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "„Offen“ zeigt jetzt nur noch, was der Kunde schuldet. Nicht abgerechnete Reservierungen und Aufträge stehen in einer eigenen Zeile und werden weiterhin auf das Kreditlimit angerechnet.",
+  "The shift clock": "Die Schichtuhr",
+  "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Die obere Leiste zeigt im Uhrformat, 07:01:20, wie lange die Schicht schon offen ist, nach der Uhrzeit des Servers, unabhängig von der Zeitzone des Geräts.",
 }

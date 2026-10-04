@@ -996,6 +996,7 @@
 "{0} is serialized: select {1} serial number(s) to return, got {2}","{0} memakai nomor seri: pilih {1} nomor seri untuk diretur, diterima {2}"
 "{0} issued by {1} and spent at {2}","{0} diterbitkan oleh {1} dan dipakai di {2}"
 "{0} needs a {1} before this sale can be completed.","{0} memerlukan {1} sebelum penjualan ini dapat diselesaikan."
+"{0} owes {1} and has {2} in holds and orders not invoiced, of a limit of {3}, so at most {4} can go on account. Take more now, or ask a manager to raise the limit.","{0} berutang {1} dan memiliki {2} dalam titip bayar dan pesanan yang belum ditagih, dari batas {3}, jadi paling banyak {4} yang bisa dicatat sebagai utang. Terima lebih banyak sekarang, atau minta manajer menaikkan batasnya."
 "{0} owes {1} of a limit of {2}, so at most {3} can go on account. Take more now, or ask a manager to raise the limit.","{0} berutang {1} dari batas {2}, jadi paling banyak {3} yang bisa dicatat sebagai utang. Terima lebih banyak sekarang, atau minta manajer menaikkan batasnya."
 "{0} paid {1} by {2}","{0} membayar {1} dengan {2}"
 "{0} paid {1} by {2} at {3}, shift {4}","{0} membayar {1} dengan {2} di {3}, shift {4}"
