@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "«Долг» теперь показывает только то, что должен клиент. Брони и заказы без счёта показаны отдельной строкой и по-прежнему учитываются в кредитном лимите.",
   "The shift clock": "Таймер смены",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Верхняя панель показывает, сколько времени открыта смена, в виде часов (07:01:20) по времени сайта, независимо от часового пояса устройства.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "При продаже в вашей валюте поле {amountIn} принимает и другую валюту, а сумма учитывается в вашей валюте по курсу смены.",
+  "Other currencies on any sale": "Другие валюты в любой продаже",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "При продаже в вашей валюте сумму теперь можно ввести и в другой валюте. Строка оплаты показывает обе суммы по курсу смены.",
 }

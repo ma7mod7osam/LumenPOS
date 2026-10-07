@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "Mục “Đang nợ” giờ đây chỉ hiển thị số tiền khách hàng đang nợ. Giữ hàng và đơn hàng chưa lập hóa đơn hiển thị trên một dòng riêng, và vẫn được tính vào hạn mức tín dụng.",
   "The shift clock": "Đồng hồ ca",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Thanh trên cùng hiển thị ca đã mở được bao lâu dưới dạng đồng hồ, 07:01:20, theo giờ của máy chủ, bất kể múi giờ của thiết bị.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "Khi bán bằng tiền của cửa hàng, mục “{amountIn}” cũng nhận tiền tệ khác, được ghi nhận bằng tiền của cửa hàng theo tỷ giá của ca.",
+  "Other currencies on any sale": "Tiền tệ khác trên mọi giao dịch bán",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "Khi bán bằng tiền của cửa hàng, giờ đây có thể nhập số tiền bằng tiền tệ khác. Dòng thanh toán hiển thị cả hai số tiền, theo tỷ giá của ca.",
 }

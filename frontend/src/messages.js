@@ -1868,6 +1868,12 @@ const owesHolds = {
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "يعرض الشريط العلوي مدة فتح الوردية بصيغة الساعة 07:01:20، حسب وقت الموقع، مهما كانت المنطقة الزمنية للجهاز.",
 }
 
+const anyCurrency = {
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "في البيع بعملتك، يقبل خيار \"{amountIn}\" عملة أخرى أيضا، وتسجل قيمتها بعملتك بسعر الوردية.",
+  "Other currencies on any sale": "عملات أخرى في أي بيع",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "في البيع بعملتك، يمكن الآن كتابة المبلغ بعملة أخرى أيضا، ويظهر السطر بالمبلغين بسعر الوردية.",
+}
+
 const creditSales = {
   "On account": "آجل",
   "Not on account": "لا يشتري بالآجل",
@@ -2143,5 +2149,5 @@ const prefixedAr = {
 
 export const messages = {
   en: { ...prefixedEn },
-  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...creditSales, ...cashOut, ...owesHolds, ...prefixedAr },
+  ar: { ...common, ...settings, ...register, ...features, ...sell, ...txn, ...misc, ...approvals, ...returns, ...customersScreen, ...lifecycle, ...serialsAndGroups, ...permissions, ...insights, ...generalLayout, ...currencies, ...customerForm, ...salespeopleAndCheck, ...helpForStaff, ...lockedPeriods, ...varianceReasons, ...creditSales, ...cashOut, ...owesHolds, ...anyCurrency, ...prefixedAr },
 }

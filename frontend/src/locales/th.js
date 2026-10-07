@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "ช่อง “ค้างชำระ” ตอนนี้แสดงเฉพาะยอดที่ลูกค้าค้างชำระ การจองสินค้าและใบสั่งขายที่ยังไม่ออกใบแจ้งหนี้จะแสดงแยกบรรทัด และยังคงนับรวมเป็นวงเงินเครดิตที่ใช้ไปแล้ว",
   "The shift clock": "ตัวจับเวลากะ",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "แถบด้านบนแสดงระยะเวลาที่เปิดกะมาแล้วในรูปแบบนาฬิกา 07:01:20 ตามเวลาของไซต์ ไม่ว่าอุปกรณ์จะใช้เขตเวลาใด",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "เมื่อขายเป็นสกุลเงินของร้าน “{amountIn}” ก็เลือกเป็นสกุลเงินอื่นได้ด้วย และจะบันทึกเป็นสกุลเงินของร้านตามอัตราของกะ",
+  "Other currencies on any sale": "รับสกุลเงินอื่นได้ในทุกการขาย",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "เมื่อขายเป็นสกุลเงินของร้าน ตอนนี้พิมพ์จำนวนเงินเป็นสกุลเงินอื่นได้ด้วย รายการชำระเงินจะแสดงทั้งสองจำนวนตามอัตราของกะ",
 }

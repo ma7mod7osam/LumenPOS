@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "« Doit » n'affiche plus que ce que doit le client. Les mises de côté et les commandes non facturées apparaissent sur une ligne à part et comptent toujours dans la limite de crédit.",
   "The shift clock": "L'horloge de la session",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "La barre du haut affiche sous forme d'horloge, 07:01:20, depuis combien de temps la session de caisse est ouverte, à l'heure du site, quel que soit le fuseau horaire de l'appareil.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "Sur une vente dans votre propre devise, l'option {amountIn} accepte aussi une autre devise, enregistrée dans la vôtre au taux de la session de caisse.",
+  "Other currencies on any sale": "Autres devises sur toute vente",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "Sur une vente dans votre propre devise, le montant peut désormais aussi être saisi dans une autre devise. La ligne de paiement affiche les deux montants, au taux de la session de caisse.",
 }

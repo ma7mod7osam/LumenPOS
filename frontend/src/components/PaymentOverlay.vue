@@ -103,8 +103,10 @@
 
       <div class="tender">
         <!-- Each amount is typed in the money actually handed over: dollars, or
-             local cash and card. The till converts at the shift's rate. -->
-        <div v-if="sale.foreign" class="tender-ccy">
+             local cash and card. The till converts at the shift's rate. On a
+             sale in the outlet's own money (0.61.2) the shop's other currencies
+             too: their value is booked in the outlet's money. -->
+        <div v-if="tenderChoices.length > 1" class="tender-ccy">
           <span class="muted small">{{ t('Amount in') }}</span>
           <div class="segmented">
             <button
@@ -117,6 +119,9 @@
               {{ code }}
             </button>
           </div>
+        </div>
+        <div v-if="!sale.foreign && typedIn !== sale.currency" class="rate-note">
+          {{ t('Rate for this shift: {rate}', { rate: rateLine(typedIn, unitRate(typedIn) / unitRate(sale.currency), sale.currency) }) }}
         </div>
         <input
           ref="amountInput"
@@ -188,6 +193,9 @@
             {{ money(payment.tender_amount, payment.tender_currency) }}
             <span v-if="payment.tender_currency !== sale.currency" class="muted small">
               = {{ money(payment.amount, sale.currency) }}
+            </span>
+            <span v-else-if="payment.typed_currency" class="muted small">
+              = {{ money(payment.typed_amount, payment.typed_currency) }}
             </span>
           </span>
           <button class="btn-ghost" @click="payments.splice(i, 1)"><Icon name="close" /></button>
@@ -376,20 +384,46 @@ function modeCurrency(mode) {
   return found?.account_currency || local.value
 }
 
-// Money typed in `code`, in the sale's currency, and back. Only the sale's own
-// currency and the local one ever meet here.
+// What one unit of `code` is worth in the company's money at this shift's rate
+// (0 when the till has no rate for it).
+function unitRate(code) {
+  const mc = session.multiCurrency || {}
+  if (code === local.value) return 1
+  if (code === (mc.outlet_currency || session.currency)) return mc.outlet_rate || 0
+  return (session.saleCurrencies.find((c) => c.currency === code) || {}).rate || 0
+}
+
+// Money typed in `code`, in the sale's currency, and back. A sale in another
+// currency meets only its own money and the local one. A sale in the outlet's
+// money may meet any currency the shop sells in (0.61.2), at the shift's rates.
 function toSale(value, code) {
-  if (!sale.value.foreign || code === sale.value.currency) return round2(value)
-  return round2(value / (sale.value.rate || 1))
+  if (code === sale.value.currency) return round2(value)
+  if (sale.value.foreign) return round2(value / (sale.value.rate || 1))
+  const from = unitRate(code)
+  const to = unitRate(sale.value.currency)
+  return from && to ? round2((value * from) / to) : round2(value)
 }
 function fromSale(value, code) {
-  if (!sale.value.foreign || code === sale.value.currency) return round2(value)
-  return round2(value * (sale.value.rate || 1))
+  if (code === sale.value.currency) return round2(value)
+  if (sale.value.foreign) return round2(value * (sale.value.rate || 1))
+  const from = unitRate(sale.value.currency)
+  const to = unitRate(code)
+  return from && to ? round2((value * from) / to) : round2(value)
 }
 
 const tenderCurrency = ref(null)
-const typedIn = computed(() => (sale.value.foreign && tenderCurrency.value) || sale.value.currency)
-const tenderChoices = computed(() => [...new Set([sale.value.currency, local.value])])
+// The shop's other currencies on a sale in the outlet's money: ZWG cash taken
+// on a dollar sale, booked at its dollar value (the Zimbabwe shop, 2026-10-07).
+const otherCodes = computed(() => {
+  if (sale.value.foreign || !unitRate(sale.value.currency)) return []
+  return session.saleCurrencies.map((c) => c.currency).filter((c) => c !== sale.value.currency)
+})
+const tenderChoices = computed(() =>
+  sale.value.foreign ? [...new Set([sale.value.currency, local.value])] : [sale.value.currency, ...otherCodes.value]
+)
+const typedIn = computed(() =>
+  tenderCurrency.value && tenderChoices.value.includes(tenderCurrency.value) ? tenderCurrency.value : sale.value.currency
+)
 
 function setTenderCurrency(code) {
   tenderCurrency.value = code
@@ -576,7 +610,14 @@ function addPayment(mode) {
   // typed in that money, else the sale amount at the shift's rate.
   const modeCode = sale.value.foreign ? modeCurrency(mode) : sale.value.currency
   const tenderAmount = capped === value && modeCode === code ? typed : fromSale(capped, modeCode)
-  pushPayment(mode, capped, { tender_currency: modeCode, tender_amount: tenderAmount })
+  const extra = { tender_currency: modeCode, tender_amount: tenderAmount }
+  // Typed in another currency on a sale in the outlet's money: keep what was
+  // handed over, so the row says what it is worth (the server books the amount).
+  if (!sale.value.foreign && code !== sale.value.currency) {
+    extra.typed_currency = code
+    extra.typed_amount = capped === value ? typed : fromSale(capped, code)
+  }
+  pushPayment(mode, capped, extra)
   refillAmount()
 }
 

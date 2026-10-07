@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "\"Utang\" kini hanya menampilkan utang pelanggan. Titip bayar dan pesanan yang belum ditagih tampil di baris tersendiri, dan tetap diperhitungkan dalam batas kredit.",
   "The shift clock": "Penghitung waktu shift",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Bilah atas menampilkan berapa lama shift sudah berjalan dalam format jam (07:01:20), menurut waktu situs, apa pun zona waktu perangkatnya.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "Pada penjualan dalam mata uang Anda sendiri, kolom {amountIn} juga dapat memakai mata uang lain, yang dicatat dalam mata uang Anda dengan kurs shift.",
+  "Other currencies on any sale": "Mata uang lain di setiap penjualan",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "Pada penjualan dalam mata uang Anda sendiri, jumlah kini juga dapat diketik dalam mata uang lain. Baris pembayaran menampilkan kedua angka, dengan kurs shift.",
 }

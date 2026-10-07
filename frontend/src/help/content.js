@@ -155,6 +155,7 @@ export const TOPICS = [
       'A customer billed in another currency in ERPNext buys in it by themselves.',
       'Prices are converted at the rate fixed for the shift.',
       'Take the payment in that currency, or part of it in yours.',
+      ['On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.', { amountIn: 'Amount in' }],
     ],
   },
   {
@@ -435,6 +436,7 @@ export const TOURS = {
 // What is new, newest first. Shown once per person after an update, only the
 // entries newer than what they last saw and that apply to them.
 export const WHATS_NEW = [
+  { version: '0.61.2', title: 'Other currencies on any sale', text: 'On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.', route: '/', when: (s) => s.saleCurrencies.length > 0 },
   { version: '0.61.1', title: 'What a customer owes', text: 'Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.', route: '/customers', when: onAccount },
   { version: '0.61.1', title: 'The shift clock', text: 'The top bar shows how long the shift has been open as a clock, 07:01:20, on the site\'s time, whatever the device\'s time zone.' },
   { version: '0.61.0', title: 'Cash out under control', text: 'Putting money in and taking it out of the drawer are two permissions now. A cash out can need a reason and a manager\'s approval, by passcode or a request. Set it in Settings, General, Approvals and access, Cash out.', route: '/settings', when: manager },

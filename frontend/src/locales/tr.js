@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "\"Borç\" artık yalnızca müşterinin borcunu gösterir. Faturalanmamış rezervasyonlar ve siparişler ayrı bir satırda görünür ve hâlâ bakiye limitinden düşülür.",
   "The shift clock": "Vardiya süresi sayacı",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Üst çubuk, vardiyanın ne kadar süredir açık olduğunu saat formatında (07:01:20), cihazın saat dilimi ne olursa olsun sitenin saatine göre gösterir.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "Kendi para biriminizdeki bir satışta {amountIn} seçeneği başka bir para birimini de kabul eder, tutar vardiyanın kuruyla kendi para biriminizde kaydedilir.",
+  "Other currencies on any sale": "Her satışta diğer para birimleri",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "Kendi para biriminizdeki bir satışta tutar artık başka bir para biriminde de girilebilir. Ödeme satırı, vardiyanın kuruyla iki tutarı da gösterir.",
 }

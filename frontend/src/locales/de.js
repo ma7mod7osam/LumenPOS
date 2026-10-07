@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "„Offen“ zeigt jetzt nur noch, was der Kunde schuldet. Nicht abgerechnete Reservierungen und Aufträge stehen in einer eigenen Zeile und werden weiterhin auf das Kreditlimit angerechnet.",
   "The shift clock": "Die Schichtuhr",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "Die obere Leiste zeigt im Uhrformat, 07:01:20, wie lange die Schicht schon offen ist, nach der Uhrzeit des Servers, unabhängig von der Zeitzone des Geräts.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "Bei einem Verkauf in Ihrer eigenen Währung nimmt die Auswahl {amountIn} auch eine andere Währung an, erfasst in Ihrer Währung zum Kurs der Schicht.",
+  "Other currencies on any sale": "Andere Währungen bei jedem Verkauf",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "Bei einem Verkauf in Ihrer eigenen Währung kann der Betrag jetzt auch in einer anderen Währung eingegeben werden. Die Zahlungszeile zeigt beide Beträge, zum Kurs der Schicht.",
 }

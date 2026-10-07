@@ -1,6 +1,6 @@
 # LumenPOS: Complete User Guide
 
-*Applies to LumenPOS v0.61.1. This document is updated with every feature change.*
+*Applies to LumenPOS v0.61.2. This document is updated with every feature change.*
 
 > **Note on this document.** Sections 1 to 17 below were written up to v0.17 and are
 > being brought forward release by release; the **changelog in section 18 is
@@ -396,7 +396,12 @@ is set to **Give change in USD** (same card): then the change of every sale in
 dollars comes back in dollars, from the *Cash USD* drawer, and the payment
 screen, the receipt and the close say so. The choice holds for the whole shift,
 like the rate, because the close books all of a customer's change from one
-account. An outlet whose POS Profile names its own *Account for Change Amount*
+account. **On a sale in the outlet's own money (0.61.2)** the payment screen also
+asks **Amount in** for the shop's other currencies: pick riyals on a dollar sale,
+type what the customer hands over, and the line reads "US$3.00 = SAR 11.25" at
+the shift's rate. The sale and that payment are still recorded in the outlet's
+money, so a payment method kept on a local account (one a shop uses for foreign
+notes, say) can take them, and the change comes back in local money. An outlet whose POS Profile names its own *Account for Change Amount*
 keeps it (ERPNext uses it on every sale), the till shows the change in that
 account's money, and a sale whose change that account cannot take (one in a
 third currency) is refused at the till rather than failing the shift close.
@@ -1372,6 +1377,7 @@ which both LumenPOS roles are given.
 ### LumenPOS releases
 | Version | Highlights |
 |---|---|
+| 0.61.2 | **Other currencies on any sale** (the Zimbabwe shop, 2026-10-07: a ZWG sale showed each payment in both currencies, a USD sale did not). On a sale in the outlet's own money, **Amount in** now offers the shop's other currencies too: the cashier types the ZWG the customer hands over, the line reads "US$3.00 = ZWG 112.91" at the shift's rate, and the sale and the payment stay recorded in dollars, so nothing changes in the books. Help names it, and *What is new* tells shops that sell in other currencies. Also: help sentences drop a button label's closing colon, as they drop its "…". |
 | 0.61.1 | **What a customer owes, without their holds** (the owner agreed on 2026-10-04). *Owes*, on the payment screen's On account card and on the customer's page, was ERPNext's credit figure, which counts a hold that is not invoiced yet: a customer with a hold of 1,000 and no debt read "Owes 1,000" above a list that said nothing was owed. Now *Owes* is their balance in the books, and **Holds and orders not invoiced** shows apart. The limit is unchanged: holds still count against it, as ERPNext counts them, and when a sale is refused for the limit the message names the holds. **The shift clock** in the top bar reads like a clock, 07:01:20, and counts on the site's own time: a device set to another time zone (or a wrong time) used to show a new shift as hours old, and the Arabic read "7 ساعة". |
 | 0.61.0 | **Cash out under control** (the owner: so nobody takes money out of the drawer as they please). **Putting money in and taking it out are two permissions** now, *Cash in* and *Cash out*: a rule a shop wrote on the old *Cash in / out* becomes one of each on update, so nobody gains or loses anything. **A reason for every cash out**, on by default. **A manager's approval for a cash out**, off by default, above an amount or always (Settings, General, Approvals and access, Cash out): the manager types their passcode at the till, or approves the cashier's request from the Approvals tray, the same way an over-limit discount is approved. A request covers that shift, that drawer and at most that amount, once. Managers need nobody's approval. Who approved shows under the movement and in the audit log, where every cash in and out is now recorded. Also: an amount at or below zero is refused (a negative cash in was really a cash out that nobody checked). In all thirteen languages. |
 | 0.60.1 | **"The cashier" is the default for *A shift belongs to*** (Settings, General, Register and shifts): on a new site each cashier opens their own shift and sells only on it, with their own drawer and Z-report. A site that already has shifts keeps the way it worked: where nothing was chosen it stays on *The outlet*, written down once by the update, and a choice made in Settings is never changed. On ERPNext 16 an outlet sells on one open shift at a time, so with *The cashier* each cashier there needs their own POS Profile. In all thirteen languages. |

@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "«بدهی» اکنون فقط بدهی مشتری را نشان می‌دهد. رزروها و سفارش‌های فاکتور نشده در ردیفی جداگانه نمایش داده می‌شوند و همچنان از محدودیت اعتبار کسر می‌شوند.",
   "The shift clock": "زمان‌سنج شیفت",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "نوار بالا مدت باز بودن شیفت را به‌صورت ساعت (07:01:20)، بر اساس زمان سایت و صرف‌نظر از منطقه زمانی دستگاه نشان می‌دهد.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "در فروش به ارز خودتان، در گزینه {amountIn} می‌توانید ارز دیگری هم انتخاب کنید و مبلغ با نرخ شیفت به ارز خودتان ثبت می‌شود.",
+  "Other currencies on any sale": "ارزهای دیگر در هر فروش",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "در فروش به ارز خودتان، اکنون می‌توان مبلغ را به ارز دیگری هم وارد کرد. ردیف پرداخت هر دو مبلغ را با نرخ شیفت نشان می‌دهد.",
 }

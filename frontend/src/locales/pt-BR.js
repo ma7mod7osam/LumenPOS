@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "“Deve” agora mostra apenas o que o cliente deve. Reservas e pedidos não faturados aparecem em uma linha à parte e continuam contando no limite de crédito.",
   "The shift clock": "O relógio do turno",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "A barra superior mostra em formato de relógio, 07:01:20, há quanto tempo o turno está aberto, pelo horário do site, seja qual for o fuso horário do aparelho.",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "Em uma venda na sua própria moeda, a opção {amountIn} também aceita outra moeda, registrada na sua pelo câmbio do turno.",
+  "Other currencies on any sale": "Outras moedas em qualquer venda",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "Em uma venda na sua própria moeda, o valor agora também pode ser digitado em outra moeda. A linha de pagamento mostra os dois valores, pelo câmbio do turno.",
 }

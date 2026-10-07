@@ -72,12 +72,13 @@ const tourIds = computed(() => help.availableTours.map((tour) => tour.id))
 
 // A step is a text, or a text and the labels it names, each in the till's
 // own words for that button. A label's "…" (Refund…) stays on the button:
-// inside a sentence it would read "Refund…."
+// inside a sentence it would read "Refund….". So does a label's closing colon
+// (Turkish "Amount in" reads "Şu para biriminde tutar:", 0.61.2).
 function say(line) {
   if (!Array.isArray(line)) return t(line)
   const [text, labels] = line
   const params = {}
-  for (const [key, label] of Object.entries(labels || {})) params[key] = t(label).replace(/\s*…$/, '')
+  for (const [key, label] of Object.entries(labels || {})) params[key] = t(label).replace(/\s*[…:：]$/, '')
   return t(text, params)
 }
 </script>

@@ -1837,4 +1837,7 @@ export default {
   "Owes now shows only what the customer owes. Holds and orders not invoiced show on their own line, and still count against the credit limit.": "“欠款”现在只显示客户所欠的金额。未开票的预留单和订单会单独列为一行，并仍计入已用信用额度。",
   "The shift clock": "班次计时",
   "The top bar shows how long the shift has been open as a clock, 07:01:20, on the site's time, whatever the device's time zone.": "顶栏以 07:01:20 这样的时钟格式显示班次已开启的时长，按站点时间计算，无论设备使用哪个时区。",
+  "On a sale in your own currency, {amountIn} takes another currency too, recorded in yours at the rate of the shift.": "以本店货币销售时，“{amountIn}”也可选择其他货币，并按班次汇率折算为本店货币入账。",
+  "Other currencies on any sale": "任何销售均可使用其他货币",
+  "On a sale in your own currency, the amount can now be typed in another currency too. The line shows both figures, at the rate of the shift.": "以本店货币销售时，现在也可以用其他货币输入金额。付款行会按班次汇率同时显示两种货币的金额。",
 }
